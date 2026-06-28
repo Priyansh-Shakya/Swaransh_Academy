@@ -1,0 +1,983 @@
+openapi: 3.1.0
+info:
+  title: Swaransh Academy of Music & Art - API
+  version: 2.1.0
+  description: |
+    # Swaransh Academy API
+
+    ## Summary
+    Features:
+    - Users: Identity record linked to Supabase Auth (Google Sign-In).
+    - Courses: Public course catalogue. Full admin CRUD.
+    - Students: Student records, role-aware shape (Admin = full, Student = basic).
+      Full admin CRUD - many students are paper/cash enrollments who never
+      touch the app, so admin must be able to manually create/edit/delete.
+    - Admission: Admission workflow (apply -> approve/decline -> pay -> active).
+    - Payments: Ledger, primarily insert-only, with admin-only correction via
+      a supersede pattern (see below) rather than true mutation.
+    - AI Assistance: Role-aware, stateless, streaming chat assistant.
+
+    ## Key design decisions (do not re-litigate without reason)
+    - Auth is handled by Supabase Auth (Google Sign-In). This API's `User` schema
+      is a profile record keyed by the Supabase `user_id`, not a credential store.
+    - Student row is created at admission **approval** time, with
+      `status = pending_payment`. Payment does NOT create the student row -
+      it activates it. This avoids a nullable dual-FK on payments.
+    - `payments` table/endpoint has exactly one FK: `student_id`. Never nullable.
+      `payment_type` distinguishes admission vs recurring payments as a label,
+      not a structural fork.
+    - Many students are local/offline enrollments (cash, paper registers) who
+      never install the app. Admin therefore has full manual CRUD on
+      Students, Courses, AND Payments - the app must work as the academy's
+      record system, not just a self-service portal for app users.
+    - Payment corrections use a SUPERSEDE pattern, not in-place mutation:
+      PUT does not overwrite a row. It inserts a new corrected row, then
+      flags the old row `status = superseded` with `superseded_by` pointing
+      to the new row's id. This preserves an audit trail while still letting
+      admin fix mistakes. DELETE remains a true hard delete, reserved for
+      genuine duplicates (e.g. same payment logged twice), not corrections.
+    - `paid_on` is admin-settable on creation (not server-forced to "now"),
+      since admin frequently backfills a paper register days/weeks after
+      the actual payment happened. If omitted, backend defaults to now.
+    - No pagination yet (academy has ~100 students). `/studentList` supports
+      optional filter/search query params, applied server-side. Revisit
+      pagination only if scale changes - contract impact will be additive
+      (limit/offset params), not breaking.
+    - `StudentBasic` (visible to students about other students) intentionally
+      excludes contact info, fees, religion, caste, address, dob - anything
+      personal/financial. `StudentFull` (admin only) has everything.
+servers:
+  - url: /api/v1
+tags:
+  - name: Users
+  - name: Courses
+  - name: Students
+  - name: Admission
+  - name: Payments
+  - name: AI Assistance
+
+paths:
+  /user:
+    post:
+      tags: [Users]
+      summary: Create/Sync User Profile
+      description: |
+        Called once after Supabase Auth (Google Sign-In) completes, to create
+        the app-side profile row keyed by the Supabase user_id. fcm_token is
+        for push notifications and is separate from auth.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /user/{id}:
+    get:
+      tags: [Users]
+      summary: Get User By ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /course:
+    post:
+      tags: [Courses]
+      summary: Create Course
+      description: Admin only. Lets admin manage the catalogue without touching the DB directly.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseCreate'
+      responses:
+        '200':
+          description: Course created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+
+  /course/{id}:
+    put:
+      tags: [Courses]
+      summary: Update Course
+      description: Admin only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CourseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseCreate'
+      responses:
+        '200':
+          description: Course updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+
+    delete:
+      tags: [Courses]
+      summary: Delete Course
+      description: |
+        Admin only. Consider soft-delete (an `active` flag) rather than a hard
+        delete if students/StudentBasic.courses reference this course by id -
+        a hard delete would orphan that reference.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CourseId'
+      responses:
+        '200':
+          description: Deleted successfully
+
+  /courseList:
+    get:
+      tags: [Courses]
+      summary: Get list of all courses
+      description: Public catalogue, shown on starter screen.
+      responses:
+        '200':
+          description: Returns course list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Course'
+
+  /student:
+    post:
+      tags: [Students]
+      summary: Create Student (manual, admin-only)
+      description: |
+        Direct manual creation by admin. This is a primary path, not a rare
+        edge case - many students are local/cash/paper enrollments who never
+        install the app or go through the admission flow at all. The
+        admission-flow path (/admissionForm/{id}/approved) is the OTHER way
+        a student gets created, not the only way.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentCreate'
+      responses:
+        '200':
+          description: Student created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentFull'
+
+  /studentList:
+    get:
+      tags: [Students]
+      summary: Get Students List
+      description: |
+        Returns StudentFull[] for Admin, StudentBasic[] for Student role.
+        No pagination at current scale (~100 students). Filters are applied
+        server-side via query params; free-text fields are best filtered
+        client-side after one fetch, but search param is supported too.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: department
+          in: query
+          schema:
+            $ref: '#/components/schemas/Department'
+        - name: admission_type
+          in: query
+          schema:
+            $ref: '#/components/schemas/AdmissionType'
+        - name: learning_mode
+          in: query
+          schema:
+            $ref: '#/components/schemas/LearningMode'
+        - name: fee_type
+          in: query
+          schema:
+            $ref: '#/components/schemas/FeeType'
+        - name: batch
+          in: query
+          schema:
+            $ref: '#/components/schemas/Batch'
+        - name: fees_min
+          in: query
+          description: Admin only. Ignored / rejected for student role.
+          schema:
+            type: number
+        - name: fees_max
+          in: query
+          description: Admin only. Ignored / rejected for student role.
+          schema:
+            type: number
+        - name: joined_after
+          in: query
+          description: Admin only. ISO date.
+          schema:
+            type: string
+            format: date
+        - name: joined_before
+          in: query
+          description: Admin only. ISO date.
+          schema:
+            type: string
+            format: date
+        - name: search
+          in: query
+          description: Matches name (all roles), contact/scholar_no (admin only).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Returns StudentFull[] (Admin) or StudentBasic[] (Student)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  oneOf:
+                    - $ref: '#/components/schemas/StudentFull'
+                    - $ref: '#/components/schemas/StudentBasic'
+
+  /student/{id}:
+    get:
+      tags: [Students]
+      summary: Get Student
+      description: |
+        Returns StudentFull for Admin viewing any student, and for a student
+        viewing their own record. This same shape is what the frontend
+        renders for BOTH "admin's student detail page" and "student's own
+        profile page" - one schema, one detail widget, role only changes
+        which sections are editable, not which fields are present.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/StudentId'
+      responses:
+        '200':
+          description: Returns StudentFull (Admin/self) or StudentBasic (other students)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/StudentFull'
+                  - $ref: '#/components/schemas/StudentBasic'
+
+    put:
+      tags: [Students]
+      summary: Update Student
+      description: |
+        Admin can update any student, any field - this is the primary edit
+        path for paper/cash students who have no app account at all. A
+        student can update their own record (id must match JWT-bound
+        student) but only personal/contact fields - not fees, status,
+        scholar_no, date_of_joining, etc. Backend enforces field-level write
+        permission, not just row-level.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/StudentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentUpdate'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentFull'
+
+    delete:
+      tags: [Students]
+      summary: Delete Student
+      description: Admin only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/StudentId'
+      responses:
+        '200':
+          description: Deleted successfully
+
+  /admissionForm:
+    post:
+      tags: [Admission]
+      summary: Submit Admission Form
+      description: Anonymous OR authenticated users can submit. No student row created yet.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdmissionFormCreate'
+      responses:
+        '200':
+          description: Form Submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdmissionForm'
+        '400':
+          description: Failed to submit
+
+  /admissionFormList:
+    get:
+      tags: [Admission]
+      summary: Get Submitted Forms (Admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/AdmissionStatus'
+      responses:
+        '200':
+          description: Returns admission forms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdmissionForm'
+
+  /admissionForm/{id}/approved:
+    post:
+      tags: [Admission]
+      summary: Approve Form
+      description: |
+        Admin only. On approval:
+        1. AdmissionForm.status -> Approved
+        2. A Student row is created immediately with status = pending_payment.
+           scholar_no and date_of_joining remain null until payment succeeds.
+        3. Returns the newly created Student (status pending_payment) so the
+           frontend can route straight into the payment screen.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AdmissionFormId'
+      responses:
+        '200':
+          description: Approved, student created in pending_payment state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentFull'
+
+  /admissionForm/{id}/declined:
+    post:
+      tags: [Admission]
+      summary: Decline Form
+      description: Admin only. Applicant notified. No student row is ever created.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AdmissionFormId'
+      responses:
+        '200':
+          description: Declined
+
+  /admissionForm/me:
+    get:
+      tags: [Admission]
+      summary: My Admission Forms
+      description: Returns forms where user_id matches the authenticated JWT.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Returns current user's forms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdmissionForm'
+
+  /student/{id}/payment:
+    post:
+      tags: [Payments]
+      summary: Record a Payment
+      description: |
+        Single endpoint for BOTH admission payment and recurring (monthly/
+        quarterly/half-yearly/yearly) payment, AND for admin manually
+        backfilling a cash/paper-register payment after the fact. Always
+        references an existing student_id - the student row already exists
+        by this point. payment_type is a label, not a structural fork.
+
+        `paid_on` is optional: omit it for a normal in-app payment (defaults
+        to now), or set it explicitly when backfilling a register entry from
+        a past date.
+
+        Side effects when payment_type = admission:
+        - student.status: pending_payment -> active
+        - student.scholar_no and date_of_joining are generated/set
+        Side effects when payment_type is recurring (monthly/quarterly/etc):
+        - student.fee_paid_till is advanced based on fee_type/period covered
+
+        New rows are always created with status = active. Corrections to an
+        existing row happen via PUT (supersede), not by re-posting here.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/StudentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentCreate'
+      responses:
+        '200':
+          description: Payment recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+
+  /student/{id}/paymentList:
+    get:
+      tags: [Payments]
+      summary: Get Payment History for a Student
+      description: |
+        Admin sees any student's history. Student can only see their own.
+        Returns both active and superseded rows by default so the full
+        correction trail is visible to admin; superseded rows carry
+        status = superseded and superseded_by pointing at their replacement.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/StudentId'
+      responses:
+        '200':
+          description: Returns payment ledger for this student
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payment'
+
+  /student/{id}/payment/{payment_id}:
+    put:
+      tags: [Payments]
+      summary: Correct a Payment (supersede)
+      description: |
+        Admin only. Does NOT mutate the existing row. Internally:
+        1. Inserts a new Payment row with the corrected values.
+        2. Sets the old row's status = superseded and superseded_by =
+           <new row id>.
+        3. Returns the new (active) row.
+        This preserves the original entry as an audit trail instead of
+        silently overwriting history. Use DELETE instead if the row is a
+        genuine duplicate rather than a mistake needing correction.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/StudentId'
+        - $ref: '#/components/parameters/PaymentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentCreate'
+      responses:
+        '200':
+          description: Correction recorded as a new active row; old row marked superseded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+
+    delete:
+      tags: [Payments]
+      summary: Delete a Payment (hard delete)
+      description: |
+        Admin only. True hard delete - reserved for genuine mistakes like an
+        accidental duplicate entry, not for corrections (use PUT for those,
+        which preserves an audit trail). Deleting a row that funded
+        student.status/fee_paid_till requires the backend to recompute those
+        denormalized fields from the remaining ledger.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/StudentId'
+        - $ref: '#/components/parameters/PaymentId'
+      responses:
+        '200':
+          description: Deleted successfully
+
+  /assistance:
+    post:
+      tags: [AI Assistance]
+      summary: Ask AI Assistant (streaming)
+      description: |
+        Backend injects additional context based on JWT role, stateless per
+        request:
+        - Admin: system_prompt + list_students
+        - Student/Anon: system_prompt + academy_app_info (RAG)
+
+        Response is text/event-stream (chunked), not a single JSON blob.
+        Frontend keeps a capped (10 message) in-memory history and resends
+        relevant context each call; backend stores nothing.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssistanceQuery'
+      responses:
+        '200':
+          description: text/event-stream of AI response chunks
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+components:
+  parameters:
+    UserId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    StudentId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+
+    AdmissionFormId:
+      name: id
+      in: path
+      required: true
+      description: ID of the admission form (distinct from a student id).
+      schema:
+        type: integer
+
+    CourseId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+
+    PaymentId:
+      name: payment_id
+      in: path
+      required: true
+      description: ID of a specific payment ledger row.
+      schema:
+        type: integer
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase Auth JWT (issued after Google Sign-In).
+
+  schemas:
+
+    # ---------- Enums (shared, single casing convention) ----------
+
+    AdmissionType:
+      type: string
+      enum: [Regular, Band_Training, Summer_Camp, Custom]
+
+    LearningMode:
+      type: string
+      enum: [Online, Offline, Hybrid]
+
+    Department:
+      type: string
+      enum: [Music, Dance, Acting, Music_Video_Production, Other]
+
+    Batch:
+      type: string
+      enum: [Morning, Evening]
+
+    EducationQualification:
+      type: string
+      enum: [Primary_School, High_School, Bachelors, Masters]
+
+    FeeType:
+      type: string
+      enum: [Monthly, Quarterly, Half_Yearly, Yearly]
+
+    AdmissionStatus:
+      type: string
+      enum: [Pending, Approved, Declined]
+
+    StudentStatus:
+      type: string
+      enum: [pending_payment, active, inactive]
+
+    PaymentType:
+      type: string
+      enum: [admission, monthly, quarterly, half_yearly, yearly]
+
+    PaymentMode:
+      type: string
+      enum: [Cash, UPI, Card, Bank_Transfer, Other]
+
+    PaymentStatus:
+      type: string
+      enum: [active, superseded]
+
+    # ---------- Users ----------
+
+    UserCreate:
+      type: object
+      required: [email]
+      properties:
+        user_name:
+          type: string
+        email:
+          type: string
+          format: email
+        fcm_token:
+          type: string
+          description: Optional at creation; set/updated once push is configured.
+
+    User:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Matches Supabase Auth user id.
+        user_name:
+          type: string
+        email:
+          type: string
+          format: email
+        fcm_token:
+          type: string
+
+    # ---------- Courses ----------
+
+    Course:
+      type: object
+      properties:
+        id:
+          type: integer
+        course_name:
+          type: string
+          description: Display title, marketing-friendly. May not match form enums exactly.
+        duration:
+          type: string
+        fees:
+          type: number
+        mode:
+          $ref: '#/components/schemas/LearningMode'
+        tag:
+          type: string
+          enum: [Instrumental, Vocal]
+        maps_to_department:
+          $ref: '#/components/schemas/Department'
+        maps_to_subject:
+          type: string
+          description: |
+            Exact value to pre-fill into AdmissionFormCreate.subject when a
+            student taps "Apply Now" from this course's detail screen.
+            Deliberately separate from course_name since admin may want a
+            catchy display title ("Beginner Guitar Workshop") that differs
+            from the standardized subject value the form expects ("Guitar").
+
+    CourseCreate:
+      type: object
+      description: Same as Course, minus server-generated id.
+      properties:
+        course_name:
+          type: string
+        duration:
+          type: string
+        fees:
+          type: number
+        mode:
+          $ref: '#/components/schemas/LearningMode'
+        tag:
+          type: string
+          enum: [Instrumental, Vocal]
+        maps_to_department:
+          $ref: '#/components/schemas/Department'
+        maps_to_subject:
+          type: string
+
+    # ---------- Students ----------
+
+    StudentBasic:
+      type: object
+      description: Visible to other students. No contact/financial/personal fields.
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        admission_type:
+          $ref: '#/components/schemas/AdmissionType'
+        learning_mode:
+          $ref: '#/components/schemas/LearningMode'
+        department:
+          $ref: '#/components/schemas/Department'
+        batch:
+          $ref: '#/components/schemas/Batch'
+        start_time:
+          type: string
+          format: time
+        end_time:
+          type: string
+          format: time
+        subject:
+          type: string
+        courses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Course'
+
+    StudentFull:
+      description: Admin view, and a student's view of their own record.
+      allOf:
+        - $ref: '#/components/schemas/StudentBasic'
+        - type: object
+          properties:
+            user_id:
+              type: [string, "null"]
+              format: uuid
+              description: Null for paper/cash students who never created an app account.
+            status:
+              $ref: '#/components/schemas/StudentStatus'
+            dob:
+              type: string
+              format: date
+            father_name:
+              type: string
+            education_qualification:
+              $ref: '#/components/schemas/EducationQualification'
+            contact:
+              type: string
+            email:
+              type: string
+              format: email
+            address:
+              type: string
+            religion:
+              type: string
+              description: Optional. Compliance/records only - never used in list/filter UI.
+            caste:
+              type: string
+              description: Optional. Compliance/records only - never used in list/filter UI.
+            scholar_no:
+              type: [string, "null"]
+              description: Null until first (admission) payment succeeds.
+            date_of_joining:
+              type: [string, "null"]
+              format: date
+              description: Null until first (admission) payment succeeds.
+            fees:
+              type: number
+            fee_type:
+              $ref: '#/components/schemas/FeeType'
+            fee_paid_till:
+              type: [string, "null"]
+              format: date
+              description: Denormalized summary, advanced on each recorded (active) payment.
+
+    StudentCreate:
+      description: |
+        Used for admin manual student creation - the primary path for
+        paper/cash enrollments, not a rare fallback.
+      allOf:
+        - $ref: '#/components/schemas/StudentFull'
+        - type: object
+          properties:
+            id:
+              readOnly: true
+            status:
+              readOnly: true
+            scholar_no:
+              readOnly: true
+            fee_paid_till:
+              readOnly: true
+
+    StudentUpdate:
+      description: |
+        PUT body. Admin may send any field. If caller is the student
+        themself, backend rejects changes to fees/status/scholar_no/
+        date_of_joining/fee_paid_till regardless of what's sent.
+      allOf:
+        - $ref: '#/components/schemas/StudentFull'
+
+    # ---------- Admission ----------
+
+    AdmissionFormCreate:
+      type: object
+      description: |
+        Same shape as StudentFull minus server-generated/payment-derived
+        fields (id, status, scholar_no, date_of_joining, fee_paid_till,
+        user_id - user_id is bound server-side from JWT if authenticated,
+        null if anonymous).
+      allOf:
+        - $ref: '#/components/schemas/StudentBasic'
+        - type: object
+          properties:
+            dob:
+              type: string
+              format: date
+            father_name:
+              type: string
+            education_qualification:
+              $ref: '#/components/schemas/EducationQualification'
+            contact:
+              type: string
+            email:
+              type: string
+              format: email
+            address:
+              type: string
+            religion:
+              type: string
+            caste:
+              type: string
+            fees:
+              type: number
+            fee_type:
+              $ref: '#/components/schemas/FeeType'
+
+    AdmissionForm:
+      allOf:
+        - $ref: '#/components/schemas/AdmissionFormCreate'
+        - type: object
+          properties:
+            id:
+              type: integer
+              readOnly: true
+            user_id:
+              type: [string, "null"]
+              format: uuid
+              description: Null if submitted anonymously.
+            status:
+              $ref: '#/components/schemas/AdmissionStatus'
+
+    # ---------- Payments ----------
+
+    PaymentCreate:
+      type: object
+      required: [payment_type, amount, mode]
+      properties:
+        payment_type:
+          $ref: '#/components/schemas/PaymentType'
+        amount:
+          type: number
+        mode:
+          $ref: '#/components/schemas/PaymentMode'
+        txn_ref:
+          type: string
+          description: Gateway transaction reference, if applicable.
+        paid_on:
+          type: string
+          format: date-time
+          description: |
+            Optional. Omit for a normal in-app payment (backend defaults to
+            now). Set explicitly when admin is backfilling a cash/paper
+            register entry from a past date.
+
+    Payment:
+      type: object
+      description: |
+        Ledger row. Primarily insert-only - corrections go through PUT
+        (supersede pattern), not in-place mutation. See PaymentStatus.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        student_id:
+          type: integer
+          description: Single, non-nullable FK. Always points to an existing student.
+        payment_type:
+          $ref: '#/components/schemas/PaymentType'
+        amount:
+          type: number
+        mode:
+          $ref: '#/components/schemas/PaymentMode'
+        txn_ref:
+          type: string
+        paid_on:
+          type: string
+          format: date-time
+          description: Either backend-assigned (now) or admin-supplied at creation - not regenerated afterward.
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+        superseded_by:
+          type: [integer, "null"]
+          description: |
+            Set only when status = superseded. Points to the Payment.id of
+            the corrected row that replaced this one. Null for active rows.
+
+    # ---------- AI Assistance ----------
+
+    AssistanceQuery:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+        history:
+          type: array
+          description: Last up to 10 messages, kept client-side. Sent each call; backend is stateless.
+          items:
+            type: object
+            properties:
+              role:
+                type: string
+                enum: [user, assistant]
+              content:
+                type: string
+
+    AssistanceResponse:
+      type: object
+      properties:
+        response:
+          type: string
