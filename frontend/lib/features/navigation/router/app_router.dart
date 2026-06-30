@@ -1,13 +1,12 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:swaransh_academy/features/students/students_page.dart';
 
-import '../../courses/presentation/courses_page.dart';
+import '../../admission/presentation/admission_page.dart';
+import '../../courses/data/courses_repository.dart';
 import '../../courses/presentation/course_detail_page.dart';
 import '../../courses/presentation/course_form_page.dart';
-import '../../courses/data/courses_repository.dart';
-import '../../students/presentation/students_page.dart';
-import '../../admission/presentation/admission_page.dart';
+import '../../courses/presentation/courses_page.dart';
 import '../../profile/presentation/profile_page.dart';
 import '../../settings/presentation/settings_page.dart';
 import '../../splash/presentation/splash_page.dart';
@@ -49,9 +48,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         path: 'edit',
                         builder: (context, state) {
                           final id = int.parse(state.pathParameters['id']!);
-                          final course = ProviderScope.containerOf(context)
-                              .read(coursesProvider.notifier)
-                              .findById(id);
+                          final course = ProviderScope.containerOf(
+                            context,
+                          ).read(coursesProvider.notifier).findById(id);
                           return CourseFormPage(existing: course);
                         },
                       ),
@@ -63,22 +62,34 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           StatefulShellBranch(
             routes: [
-              GoRoute(path: '/students', builder: (_, __) => const StudentsPage()),
+              GoRoute(
+                path: '/students',
+                builder: (_, __) => const StudentsPage(),
+              ),
             ],
           ),
           StatefulShellBranch(
             routes: [
-              GoRoute(path: '/admission', builder: (_, __) => const AdmissionPage()),
+              GoRoute(
+                path: '/admission',
+                builder: (_, __) => const AdmissionPage(),
+              ),
             ],
           ),
           StatefulShellBranch(
             routes: [
-              GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
+              GoRoute(
+                path: '/profile',
+                builder: (_, __) => const ProfilePage(),
+              ),
             ],
           ),
           StatefulShellBranch(
             routes: [
-              GoRoute(path: '/settings', builder: (_, __) => const SettingsPage()),
+              GoRoute(
+                path: '/settings',
+                builder: (_, __) => const SettingsPage(),
+              ),
             ],
           ),
         ],

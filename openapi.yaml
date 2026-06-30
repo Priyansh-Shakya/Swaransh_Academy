@@ -1,13 +1,14 @@
 openapi: 3.1.0
 info:
   title: Swaransh Academy of Music & Art - API
-  version: 2.1.0
+  version: 2.2.0
   description: |
     # Swaransh Academy API
 
     ## Summary
     Features:
     - Users: Identity record linked to Supabase Auth (Google Sign-In).
+      role is resolved server-side, never client-settable.
     - Courses: Public course catalogue. Full admin CRUD.
     - Students: Student records, role-aware shape (Admin = full, Student = basic).
       Full admin CRUD - many students are paper/cash enrollments who never
@@ -20,6 +21,21 @@ info:
     ## Key design decisions (do not re-litigate without reason)
     - Auth is handled by Supabase Auth (Google Sign-In). This API's `User` schema
       is a profile record keyed by the Supabase `user_id`, not a credential store.
+    - Role-selection-first model: on fresh install, the user picks Anon /
+      Student / Admin before any Supabase call happens.
+      - Anon: no auth at all, pure local UI state. Browse only.
+      - Admin: Google sign-in -> backend checks if the signed-in email is
+        pre-provisioned with role=admin in `users`. Rejected otherwise.
+      - Student: Google sign-in -> backend matches the signed-in email
+        against an existing `students.email`. If found, that student row is
+        linked (students.user_id set) and users.role becomes `student`. No
+        separate verification step - the matched email IS the proof,
+        since it's already Google-verified. If no match, the student is
+        told to contact the academy to get their email updated on file
+        (admin fixes via existing student-edit endpoints - no special
+        "request a fix" flow needed at this scale).
+      - `role` is therefore ALWAYS resolved server-side, never accepted
+        from the client on creation or update.
     - Student row is created at admission **approval** time, with
       `status = pending_payment`. Payment does NOT create the student row -
       it activates it. This avoids a nullable dual-FK on payments.
@@ -30,6 +46,10 @@ info:
       never install the app. Admin therefore has full manual CRUD on
       Students, Courses, AND Payments - the app must work as the academy's
       record system, not just a self-service portal for app users.
+      `email`/`contact` on StudentFull are nullable for exactly this reason -
+      a paper student may have neither captured yet. Typos/omissions are
+      expected and tolerated; admin's existing edit endpoints are the fix,
+      no extra verification machinery needed at this scale.
     - Payment corrections use a SUPERSEDE pattern, not in-place mutation:
       PUT does not overwrite a row. It inserts a new corrected row, then
       flags the old row `status = superseded` with `superseded_by` pointing
@@ -45,7 +65,7 @@ info:
       (limit/offset params), not breaking.
     - `StudentBasic` (visible to students about other students) intentionally
       excludes contact info, fees, religion, caste, address, dob - anything
-      personal/financial. `StudentFull` (admin only) has everything.
+      personal/financial. `StudentFull` (admin only, and self) has everything.
 servers:
   - url: /api/v1
 tags:
@@ -60,11 +80,18 @@ paths:
   /user:
     post:
       tags: [Users]
-      summary: Create/Sync User Profile
+      summary: Create/Sync User Profile + Resolve Role
       description: |
-        Called once after Supabase Auth (Google Sign-In) completes, to create
-        the app-side profile row keyed by the Supabase user_id. fcm_token is
-        for push notifications and is separate from auth.
+        Called once after Supabase Auth (Google Sign-In) completes. Creates
+        the app-side profile row keyed by the Supabase user_id, and resolves
+        `role` server-side:
+        - If the signed-in email matches a pre-provisioned admin -> admin.
+        - Else if the signed-in email matches an existing students.email ->
+          student, and that Student row's user_id is linked to this user.
+        - Else -> role stays unset/anon (no matching record found yet).
+        fcm_token is for push notifications and is separate from auth.
+        Client never sends `role` - it is computed here, ignored if present
+        in the request body.
       security:
         - bearerAuth: []
       requestBody:
@@ -297,11 +324,13 @@ paths:
       summary: Update Student
       description: |
         Admin can update any student, any field - this is the primary edit
-        path for paper/cash students who have no app account at all. A
-        student can update their own record (id must match JWT-bound
+        path for paper/cash students who have no app account at all, and
+        also how a wrong/missing email gets fixed so a student can log in.
+        A student can update their own record (id must match JWT-bound
         student) but only personal/contact fields - not fees, status,
-        scholar_no, date_of_joining, etc. Backend enforces field-level write
-        permission, not just row-level.
+        scholar_no, date_of_joining, email, etc. Backend enforces
+        field-level write permission, not just row-level (email is
+        excluded from self-edit since it's the login-linking key).
       security:
         - bearerAuth: []
       parameters:
@@ -665,6 +694,15 @@ components:
       type: string
       enum: [active, superseded]
 
+    UserRole:
+      type: string
+      enum: [anon, student, admin]
+      description: Always resolved server-side. Never accepted from the client.
+
+    StudentGender:
+      type: string
+      enum: [male, female, nonbinary]
+
     # ---------- Users ----------
 
     UserCreate:
@@ -690,6 +728,10 @@ components:
           description: Matches Supabase Auth user id.
         user_name:
           type: string
+        role:
+          allOf:
+            - $ref: '#/components/schemas/UserRole'
+          readOnly: true
         email:
           type: string
           format: email
@@ -725,6 +767,12 @@ components:
             Deliberately separate from course_name since admin may want a
             catchy display title ("Beginner Guitar Workshop") that differs
             from the standardized subject value the form expects ("Guitar").
+        image_url:
+          type: [string, "null"]
+          description: |
+            Points to a file in Supabase Storage, not a DB-stored blob.
+            Admin's create/edit-course flow uploads the file and saves the
+            returned public URL here.
 
     CourseCreate:
       type: object
@@ -745,6 +793,8 @@ components:
           $ref: '#/components/schemas/Department'
         maps_to_subject:
           type: string
+        image_url:
+          type: [string, "null"]
 
     # ---------- Students ----------
 
@@ -787,6 +837,10 @@ components:
               type: [string, "null"]
               format: uuid
               description: Null for paper/cash students who never created an app account.
+            image_url:
+              type: [string, "null"]
+              format: uri
+              description: Profile photo (URL) of student, can be null.
             status:
               $ref: '#/components/schemas/StudentStatus'
             dob:
@@ -794,13 +848,22 @@ components:
               format: date
             father_name:
               type: string
+            gender:
+              $ref: '#/components/schemas/StudentGender'
             education_qualification:
               $ref: '#/components/schemas/EducationQualification'
             contact:
-              type: string
+              type: [string, "null"]
+              description: Optional - paper-only students may not have one on file yet.
             email:
-              type: string
+              type: [string, "null"]
               format: email
+              description: |
+                Acts as the student login key: must match the Google account
+                the student signs in with for the account to be auto-linked.
+                Null for paper/cash students who have no app account yet -
+                admin can add it later (via PUT) to enable login. Not
+                editable by the student themself, since it's the linking key.
             address:
               type: string
             religion:
@@ -844,9 +907,11 @@ components:
 
     StudentUpdate:
       description: |
-        PUT body. Admin may send any field. If caller is the student
-        themself, backend rejects changes to fees/status/scholar_no/
-        date_of_joining/fee_paid_till regardless of what's sent.
+        PUT body. Admin may send any field, including email (this is how a
+        wrong/missing email gets corrected so a student can log in). If
+        caller is the student themself, backend rejects changes to
+        fees/status/scholar_no/date_of_joining/fee_paid_till/email
+        regardless of what's sent.
       allOf:
         - $ref: '#/components/schemas/StudentFull'
 
@@ -868,6 +933,8 @@ components:
               format: date
             father_name:
               type: string
+            gender:
+              $ref: '#/components/schemas/StudentGender'
             education_qualification:
               $ref: '#/components/schemas/EducationQualification'
             contact:
@@ -875,6 +942,11 @@ components:
             email:
               type: string
               format: email
+              description: |
+                Required at submission time (unlike StudentFull.email which
+                is nullable) - an applicant filling the form digitally is
+                expected to provide it, since this becomes their future
+                login key once approved.
             address:
               type: string
             religion:
