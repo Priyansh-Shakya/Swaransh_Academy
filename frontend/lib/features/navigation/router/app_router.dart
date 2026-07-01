@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:swaransh_academy/features/students/students_page.dart';
 
 import '../../admission/presentation/admission_page.dart';
 import '../../courses/data/courses_repository.dart';
@@ -8,8 +7,12 @@ import '../../courses/presentation/course_detail_page.dart';
 import '../../courses/presentation/course_form_page.dart';
 import '../../courses/presentation/courses_page.dart';
 import '../../profile/presentation/profile_page.dart';
+import '../../settings/presentation/about_academy_page.dart';
 import '../../settings/presentation/settings_page.dart';
 import '../../splash/presentation/splash_page.dart';
+import '../../students/presentation/student_create_page.dart';
+import '../../students/presentation/student_detail_page.dart';
+import '../../students/presentation/students_page.dart';
 import '../presentation/app_shell.dart';
 import '../presentation/chat_assistant_overlay.dart';
 
@@ -65,6 +68,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/students',
                 builder: (_, __) => const StudentsPage(),
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    builder: (_, __) => const StudentCreatePage(),
+                  ),
+                  GoRoute(
+                    path: ':id',
+                    builder: (_, state) => StudentDetailPage(
+                      studentId: int.parse(state.pathParameters['id']!),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -89,6 +104,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/settings',
                 builder: (_, __) => const SettingsPage(),
+                routes: [
+                  GoRoute(
+                    path: 'about',
+                    builder: (_, __) => const AboutAcademyPage(),
+                  ),
+                ],
               ),
             ],
           ),

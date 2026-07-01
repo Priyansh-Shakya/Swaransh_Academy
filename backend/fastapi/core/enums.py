@@ -1,41 +1,95 @@
 from enum import Enum
 
-class Learning_Mode(Enum):
-    online=0
-    offline=1
-    hybrid=2
+class Tag(Enum):
+    Instrumental = 'Instrumental'
+    Vocal = 'Vocal'
+
+class AdmissionType(Enum):
+    Regular = 'Regular'
+    Band_Training = 'Band_Training'
+    Summer_Camp = 'Summer_Camp'
+    Custom = 'Custom'
+
+
+class LearningMode(Enum):
+    Online = 'Online'
+    Offline = 'Offline'
+    Hybrid = 'Hybrid'
 
 
 class Department(Enum):
-    music =0
-    dance=1
-    acting=2
-    music_video_production=3
-    other=4
+    Music = 'Music'
+    Dance = 'Dance'
+    Acting = 'Acting'
+    Music_Video_Production = 'Music_Video_Production'
+    Other = 'Other'
+
 
 class Batch(Enum):
-    morning =0
-    evening =1
-
-class Student_Status(Enum):
-    payment_pending=0
-    active=1
-    inactive=2
-
-class Student_Gendre(Enum):
-    male=0
-    female=1
-    nonbinary=2
+    Morning = 'Morning'
+    Evening = 'Evening'
 
 
-class Education_Qualification(Enum):
-    primary_school =0
-    high_school =1
-    bachelors=2
-    masters=3
+class EducationQualification(Enum):
+    Primary_School = 'Primary_School'
+    High_School = 'High_School'
+    Bachelors = 'Bachelors'
+    Masters = 'Masters'
 
-class Fee_Type(Enum):
-    monthly=0
-    quarterly=1
-    half_yearly=2
-    yearly=3
+
+class FeeType(Enum):
+    Monthly = 'Monthly'
+    Quarterly = 'Quarterly'
+    Half_Yearly = 'Half_Yearly'
+    Yearly = 'Yearly'
+
+
+class AdmissionStatus(Enum):
+    Pending = 'Pending'
+    Approved = 'Approved'
+    Declined = 'Declined'
+
+
+class StudentStatus(Enum):
+    pending_payment = 'pending_payment'
+    active = 'active'
+    inactive = 'inactive'
+
+
+class PaymentType(Enum):
+    admission = 'admission'
+    monthly = 'monthly'
+    quarterly = 'quarterly'
+    half_yearly = 'half_yearly'
+    yearly = 'yearly'
+
+
+class PaymentMode(Enum):
+    Cash = 'Cash'
+    UPI = 'UPI'
+    Card = 'Card'
+    Bank_Transfer = 'Bank_Transfer'
+    Other = 'Other'
+
+
+class PaymentStatus(Enum):
+    active = 'active'
+    superseded = 'superseded'
+
+
+class UserRole(Enum):
+    anon = 'anon'
+    student = 'student'
+    admin = 'admin'
+
+
+class StudentGender(Enum):
+    male = 'male'
+    female = 'female'
+    nonbinary = 'nonbinary'
+
+
+class Role(Enum):
+    user = 'user'
+    assistant = 'assistant'
+

@@ -1,24 +1,29 @@
-from pydantic import BaseModel
+from typing import Optional
+
+from pydantic import BaseModel, EmailStr, Field
 from uuid import UUID
-from enum import Enum
-
-class user_role(Enum):
-    anon = 0
-    student =1
-    admin = 2
+from core import enums
 
 
-class User_Base(BaseModel):
-    user_name:str 
-    email:str
-    role: user_role
-    fcm_token:str
 
 
-class User_Create(User_Base):
-    pass
+class UserCreate(BaseModel):
+    user_name: Optional[str] = None
+    email: EmailStr
+    fcm_token: Optional[str] = Field(
+        None, description='Optional at creation; set/updated once push is configured.'
+    )
 
-class User_Read(User_Base):
+
+class User(BaseModel):
+    user_id: Optional[UUID] = Field(None, description='Matches Supabase Auth user id.')
+    user_name: Optional[str] = None
+    role: Optional[enums.UserRole] = None
+    email: Optional[EmailStr] = None
+    fcm_token: Optional[str] = None
+
+
+class User_Read(User):
     user_id: UUID
 
     

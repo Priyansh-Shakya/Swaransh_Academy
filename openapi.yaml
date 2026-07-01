@@ -777,6 +777,13 @@ components:
     CourseCreate:
       type: object
       description: Same as Course, minus server-generated id.
+      required:
+        - course_name
+        - duration
+        - fees
+        - mode 
+        - maps_to_subject
+        - maps_to_department
       properties:
         course_name:
           type: string
@@ -895,15 +902,31 @@ components:
       allOf:
         - $ref: '#/components/schemas/StudentFull'
         - type: object
-          properties:
-            id:
-              readOnly: true
-            status:
-              readOnly: true
-            scholar_no:
-              readOnly: true
-            fee_paid_till:
-              readOnly: true
+      required:
+        - name
+        - father_name
+        - dob
+        - contact
+        - email
+        - address
+        - subject
+        - department
+        - learning_mode
+        - batch
+        - fees
+        - start_time
+        - end_time
+        - gender
+        - education_qualification
+      properties:
+        id:
+          readOnly: true
+        status:
+          readOnly: true
+        scholar_no:
+          readOnly: true
+        fee_paid_till:
+          readOnly: true
 
     StudentUpdate:
       description: |
@@ -927,6 +950,19 @@ components:
       allOf:
         - $ref: '#/components/schemas/StudentBasic'
         - type: object
+          # --- ADD THIS REQUIRED BLOCK ---
+          required:
+            - dob
+            - name
+            - father_name
+            - gender
+            - contact
+            - email
+            - address
+            - fees
+            - fee_type
+            - education_qualification
+          # -------------------------------
           properties:
             dob:
               type: string
@@ -957,6 +993,7 @@ components:
               type: number
             fee_type:
               $ref: '#/components/schemas/FeeType'
+
 
     AdmissionForm:
       allOf:
