@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
@@ -70,7 +71,12 @@ class StudentFieldsForm extends StatelessWidget {
         ],
         if (visibleSections.contains(StudentFieldSection.contact)) ...[
           const _SectionHeader('Contact'),
-          _text(context, 'contact', 'Contact Number', keyboardType: TextInputType.phone),
+          _text(
+            context,
+            'contact',
+            'Contact Number',
+            keyboardType: TextInputType.phone,
+          ),
           _text(
             context,
             'email',
@@ -87,14 +93,28 @@ class StudentFieldsForm extends StatelessWidget {
           const _SectionHeader('Course & Enrollment'),
           _dropdown(context, 'department', 'Department', kDepartmentOptions),
           _text(context, 'subject', 'Subject'),
-          _dropdown(context, 'admissionType', 'Admission Type', kAdmissionTypeOptions),
-          _dropdown(context, 'learningMode', 'Learning Mode', kLearningModeOptions),
+          _dropdown(
+            context,
+            'admissionType',
+            'Admission Type',
+            kAdmissionTypeOptions,
+          ),
+          _dropdown(
+            context,
+            'learningMode',
+            'Learning Mode',
+            kLearningModeOptions,
+          ),
           _dropdown(context, 'batch', 'Batch', kBatchOptions),
           Row(
             children: [
-              Expanded(child: _text(context, 'startTime', 'Start Time', hint: 'HH:MM')),
+              Expanded(
+                child: _text(context, 'startTime', 'Start Time', hint: 'HH:MM'),
+              ),
               const SizedBox(width: AppSpacing.sm),
-              Expanded(child: _text(context, 'endTime', 'End Time', hint: 'HH:MM')),
+              Expanded(
+                child: _text(context, 'endTime', 'End Time', hint: 'HH:MM'),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
@@ -102,7 +122,12 @@ class StudentFieldsForm extends StatelessWidget {
         if (visibleSections.contains(StudentFieldSection.admin)) ...[
           const _SectionHeader('Admin / Fees (admin-only edits)'),
           _text(context, 'scholarNo', 'Scholar No.'),
-          _text(context, 'dateOfJoining', 'Date of Joining', hint: 'YYYY-MM-DD'),
+          _text(
+            context,
+            'dateOfJoining',
+            'Date of Joining',
+            hint: 'YYYY-MM-DD',
+          ),
           _text(
             context,
             'fees',
@@ -153,18 +178,29 @@ class StudentFieldsForm extends StatelessWidget {
     String label,
     List<String> options,
   ) {
-    final value = values[key];
+    final rawValue = values[key];
+    // treat empty string same as null - prevents DropdownButtonFormField
+    // assertion failure when notifier state is freshly initialised
+    final value = (rawValue == null || rawValue.isEmpty) ? null : rawValue;
     final locked = _isLocked(key);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: locked
-          ? _ReadOnlyField(label: label, value: value?.replaceAll('_', ' ') ?? '-')
+          ? _ReadOnlyField(
+              label: label,
+              value: value?.replaceAll('_', ' ') ?? '-',
+            )
           : DropdownButtonFormField<String>(
               initialValue: value,
               decoration: InputDecoration(labelText: label),
               items: options
-                  .map((o) => DropdownMenuItem(value: o, child: Text(o.replaceAll('_', ' '))))
+                  .map(
+                    (o) => DropdownMenuItem(
+                      value: o,
+                      child: Text(o.replaceAll('_', ' ')),
+                    ),
+                  )
                   .toList(),
               onChanged: (v) {
                 if (v != null) onDropdownChanged?.call(key, v);
@@ -184,7 +220,10 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Text(title, style: AppTypography.titleLarge.copyWith(color: AppColors.gold)),
+      child: Text(
+        title,
+        style: AppTypography.titleLarge.copyWith(color: AppColors.gold),
+      ),
     );
   }
 }
@@ -201,20 +240,33 @@ class _ReadOnlyField extends StatelessWidget {
       children: [
         Text(label, style: AppTypography.label),
         const SizedBox(height: 2),
-        Text(
-          value.isEmpty ? '-' : value,
-          style: AppTypography.bodyLarge,
-        ),
+        Text(value.isEmpty ? '-' : value, style: AppTypography.bodyLarge),
       ],
     );
   }
 }
 
 // ---- Shared enum option lists (mirror OpenAPI contract enums) ----
-const kGenderOptions = ['male', 'female', 'nonbinary'];
-const kEducationOptions = ['Primary_School', 'High_School', 'Bachelors', 'Masters'];
-const kDepartmentOptions = ['Music', 'Dance', 'Acting', 'Music_Video_Production', 'Other'];
-const kAdmissionTypeOptions = ['Regular', 'Band_Training', 'Summer_Camp', 'Custom'];
+const kGenderOptions = ['Male', 'Female', 'Non-binary'];
+const kEducationOptions = [
+  'Primary_School',
+  'High_School',
+  'Bachelors',
+  'Masters',
+];
+const kDepartmentOptions = [
+  'Music',
+  'Dance',
+  'Acting',
+  'Music_Video_Production',
+  'Other',
+];
+const kAdmissionTypeOptions = [
+  'Regular',
+  'Band_Training',
+  'Summer_Camp',
+  'Custom',
+];
 const kLearningModeOptions = ['Online', 'Offline', 'Hybrid'];
 const kBatchOptions = ['Morning', 'Evening'];
 const kFeeTypeOptions = ['Monthly', 'Quarterly', 'Half_Yearly', 'Yearly'];

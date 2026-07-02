@@ -6,7 +6,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from ..dependencies import *
+from features.ai_assistant.model import AssistanceQuery
+
 
 router = APIRouter(tags=['AI Assistance'])
 

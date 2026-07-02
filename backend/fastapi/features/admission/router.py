@@ -3,10 +3,15 @@
 #   timestamp: 2026-06-30T16:24:15+00:00
 
 from __future__ import annotations
+from typing import List, Optional
 
 from fastapi import APIRouter
 
-from ..dependencies import *
+from core.enums import AdmissionStatus
+from features.admission.model import AdmissionFormCreate , AdmissionForm
+from features.student.model import StudentFull
+
+
 
 router = APIRouter(tags=['Admission'])
 

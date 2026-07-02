@@ -3,8 +3,8 @@ from typing import Optional
 
 from pydantic import AwareDatetime, BaseModel, Field
 
-from backend.fastapi.core import enums
-from backend.fastapi.core.enums import PaymentMode, PaymentStatus, PaymentType
+from core import enums
+from core.enums import PaymentMode, PaymentStatus, PaymentType
 
 
 class PaymentCreate(BaseModel):

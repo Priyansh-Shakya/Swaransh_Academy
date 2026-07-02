@@ -7,9 +7,9 @@ from uuid import UUID
 
 from pydantic import AnyUrl, AwareDatetime, BaseModel, EmailStr, Field
 
-from backend.fastapi.core import enums
-from backend.fastapi.core.enums import AdmissionStatus, StudentGender
-from backend.fastapi.features.student.model import StudentBasic
+from core import enums
+from core.enums import AdmissionStatus, StudentGender
+from features.student.model import StudentBasic
 
 
 

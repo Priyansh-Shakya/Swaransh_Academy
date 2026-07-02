@@ -3,10 +3,13 @@
 #   timestamp: 2026-06-30T16:24:15+00:00
 
 from __future__ import annotations
+from typing import List
 
 from fastapi import APIRouter
 
-from ..dependencies import *
+from features.payment.model import Payment , PaymentCreate 
+
+
 
 router = APIRouter(tags=['Payments'])
 

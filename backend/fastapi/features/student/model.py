@@ -3,9 +3,8 @@ from typing import Any, List, Optional
 from uuid import UUID
 
 from pydantic import AnyUrl, BaseModel, EmailStr, Field
-from enum import Enum
 from core import enums
-from courses import model as course_model
+from features.courses import model as course_model
 
 
 
@@ -17,7 +16,7 @@ class StudentBasic(BaseModel):
     learning_mode: Optional[enums.LearningMode] = None
     department: Optional[enums.Department] = None
     batch: Optional[enums.Batch] = None
-    start_time: Optional[enums.time] = None
+    start_time: Optional[time] = None
     end_time: Optional[time] = None
     subject: Optional[str] = None
     courses: Optional[List[course_model.Course]] = None

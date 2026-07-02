@@ -1,5 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:swaransh_academy/features/admission/presentation/admission_form_screen.dart';
+import 'package:swaransh_academy/features/admission/presentation/admission_payment_screen.dart';
+import 'package:swaransh_academy/features/admission/presentation/admission_success_screen.dart';
+import 'package:swaransh_academy/features/admission/presentation/admission_terms_screen.dart';
 
 import '../../admission/presentation/admission_page.dart';
 import '../../courses/data/courses_repository.dart';
@@ -113,7 +117,37 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/admission',
+                builder: (_, __) => const SettingsPage(),
+                routes: [
+                  GoRoute(
+                    path: 'form',
+                    builder: (_, __) => const AdmissionFormScreen(),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ],
+      ),
+      GoRoute(
+        path: '/admission/form',
+        builder: (_, __) => const AdmissionFormScreen(),
+      ),
+      GoRoute(
+        path: '/admission/terms',
+        builder: (_, __) => const AdmissionTermsScreen(),
+      ),
+      GoRoute(
+        path: '/admission/payment',
+        builder: (_, __) => const AdmissionPaymentScreen(),
+      ),
+      GoRoute(
+        path: '/admission/success',
+        builder: (_, __) => const AdmissionSuccessScreen(),
       ),
     ],
   );
