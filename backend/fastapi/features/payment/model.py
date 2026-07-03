@@ -1,4 +1,5 @@
 
+from decimal import Decimal
 from typing import Optional
 
 from pydantic import AwareDatetime, BaseModel, Field
@@ -9,7 +10,7 @@ from core.enums import PaymentMode, PaymentStatus, PaymentType
 
 class PaymentCreate(BaseModel):
     payment_type: PaymentType
-    amount: float
+    amount: Decimal = Field(max_digits=10, decimal_places=2)
     mode: enums.PaymentMode
     txn_ref: Optional[str] = Field(
         None, description='Gateway transaction reference, if applicable.'

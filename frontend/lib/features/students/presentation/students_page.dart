@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
 import 'package:swaransh_academy/features/students/data/students_notifier.dart';
 import 'package:swaransh_academy/features/students/domain/student.dart';
+
 import '../../../../Core/auth/user_role.dart';
 import '../../../../Core/theme/app_colors.dart';
 import '../../../../Core/theme/app_spacing.dart';
@@ -32,7 +34,8 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
   List<Student> _filtered(List<Student> all) {
     return all.where((s) {
       final q = _searchQuery.toLowerCase();
-      final matchesSearch = q.isEmpty ||
+      final matchesSearch =
+          q.isEmpty ||
           s.name.toLowerCase().contains(q) ||
           s.subject.toLowerCase().contains(q);
       final matchesDept = _filterDept == null || s.department == _filterDept;
@@ -72,14 +75,22 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
         children: [
           if (isAdmin)
             Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, 0),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+                0,
+              ),
               child: Column(
                 children: [
                   TextField(
                     controller: _searchCtrl,
                     decoration: InputDecoration(
                       hintText: 'Search by name or subject...',
-                      prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: AppColors.textSecondary,
+                      ),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear, size: 18),
@@ -109,9 +120,11 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
             ),
           Expanded(
             child: studentsAsync.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator(color: AppColors.gold)),
-              error: (e, _) => Center(child: Text('Could not load students: $e')),
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: AppColors.gold),
+              ),
+              error: (e, _) =>
+                  Center(child: Text('Could not load students: $e')),
               data: (students) {
                 final filtered = _filtered(students);
                 if (filtered.isEmpty) {
@@ -125,7 +138,8 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
                 return ListView.separated(
                   padding: const EdgeInsets.all(AppSpacing.md),
                   itemCount: filtered.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(height: AppSpacing.sm),
                   itemBuilder: (context, i) => StudentListTile(
                     student: filtered[i],
                     onTap: () => _onTap(context, filtered[i], role),
@@ -140,7 +154,13 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
   }
 
   List<Widget> _deptFilters() {
-    const depts = ['Music', 'Dance', 'Acting', 'Music_Video_Production', 'Other'];
+    const depts = [
+      'Music',
+      'Dance',
+      'Acting',
+      'Music_Video_Production',
+      'Other',
+    ];
     return depts.map((d) {
       final selected = _filterDept == d;
       final color = AppColors.departmentColor(d);

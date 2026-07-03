@@ -25,6 +25,7 @@ class StudentFieldsForm extends StatelessWidget {
     required this.values,
     required this.editable,
     this.lockedFields = const {},
+    this.requiredFields = const {},
     this.visibleSections = const {
       StudentFieldSection.identity,
       StudentFieldSection.contact,
@@ -45,10 +46,17 @@ class StudentFieldsForm extends StatelessWidget {
 
   final bool editable;
   final Set<String> lockedFields;
+
+  /// Fields in this set get a red asterisk in their label when editable.
+  final Set<String> requiredFields;
   final Set<StudentFieldSection> visibleSections;
   final void Function(String fieldKey, String newValue)? onDropdownChanged;
 
   bool _isLocked(String key) => !editable || lockedFields.contains(key);
+  bool _isRequired(String key) => editable && requiredFields.contains(key);
+
+  String _labelWithMarker(String key, String label) =>
+      _isRequired(key) ? '$label *' : label;
 
   @override
   Widget build(BuildContext context) {
@@ -154,6 +162,7 @@ class StudentFieldsForm extends StatelessWidget {
     final controller = controllers[key];
     if (controller == null) return const SizedBox.shrink();
     final locked = _isLocked(key);
+    final displayLabel = _labelWithMarker(key, label);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -164,9 +173,13 @@ class StudentFieldsForm extends StatelessWidget {
               maxLines: maxLines,
               keyboardType: keyboardType,
               decoration: InputDecoration(
-                labelText: label,
+                labelText: displayLabel,
                 hintText: hint,
                 helperText: helperText,
+
+                labelStyle: _isRequired(key)
+                    ? TextStyle(color: AppColors.textSecondary)
+                    : null,
               ),
             ),
     );
@@ -179,10 +192,9 @@ class StudentFieldsForm extends StatelessWidget {
     List<String> options,
   ) {
     final rawValue = values[key];
-    // treat empty string same as null - prevents DropdownButtonFormField
-    // assertion failure when notifier state is freshly initialised
     final value = (rawValue == null || rawValue.isEmpty) ? null : rawValue;
     final locked = _isLocked(key);
+    final displayLabel = _labelWithMarker(key, label);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -193,12 +205,17 @@ class StudentFieldsForm extends StatelessWidget {
             )
           : DropdownButtonFormField<String>(
               initialValue: value,
-              decoration: InputDecoration(labelText: label),
+              dropdownColor: AppColors.surface,
+              decoration: InputDecoration(labelText: displayLabel),
+              iconEnabledColor: AppColors.textPrimary,
               items: options
                   .map(
                     (o) => DropdownMenuItem(
                       value: o,
-                      child: Text(o.replaceAll('_', ' ')),
+                      child: Text(
+                        o.replaceAll('_', ' '),
+                        style: AppTypography.bodyMedium,
+                      ),
                     ),
                   )
                   .toList(),
@@ -247,7 +264,7 @@ class _ReadOnlyField extends StatelessWidget {
 }
 
 // ---- Shared enum option lists (mirror OpenAPI contract enums) ----
-const kGenderOptions = ['Male', 'Female', 'Non-binary'];
+const kGenderOptions = ['Male', 'Female', 'Non-Binary'];
 const kEducationOptions = [
   'Primary_School',
   'High_School',

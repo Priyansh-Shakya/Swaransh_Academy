@@ -85,9 +85,27 @@ class _AdmissionTermsScreenState extends ConsumerState<AdmissionTermsScreen> {
                             ),
                           ),
                           const SizedBox(height: AppSpacing.lg),
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: _accepted,
+                                activeColor: AppColors.gold,
+                                onChanged: (v) =>
+                                    setState(() => _accepted = v ?? false),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  'I have read and agree to the Terms & Conditions of '
+                                  'Swaransh Academy of Music & Art.',
+                                  style: AppTypography.bodySmall,
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
+
                     //! Place language chip at bottom so that it is at Top of Stack
                     Positioned(top: 10, right: 10, child: const LanguageChip()),
                   ],
@@ -112,22 +130,6 @@ class _AdmissionTermsScreenState extends ConsumerState<AdmissionTermsScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  children: [
-                    Checkbox(
-                      value: _accepted,
-                      activeColor: AppColors.gold,
-                      onChanged: (v) => setState(() => _accepted = v ?? false),
-                    ),
-                    Expanded(
-                      child: Text(
-                        'I have read and agree to the Terms & Conditions of '
-                        'Swaransh Academy of Music & Art.',
-                        style: AppTypography.bodySmall,
-                      ),
-                    ),
-                  ],
-                ),
                 const SizedBox(height: AppSpacing.sm),
                 SizedBox(
                   width: double.infinity,

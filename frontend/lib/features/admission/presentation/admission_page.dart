@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
 import 'package:swaransh_academy/features/admission/domain/admission_prefill.dart';
+
 import '../../../Core/auth/user_role.dart';
 import '../../../Core/theme/app_colors.dart';
 import '../../../Core/theme/app_spacing.dart';
@@ -48,19 +50,24 @@ class AdmissionPage extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.school_outlined,
-                      color: AppColors.gold, size: 36),
+                  const Icon(
+                    Icons.school_outlined,
+                    color: AppColors.gold,
+                    size: 36,
+                  ),
                   const SizedBox(height: AppSpacing.md),
                   Text(
                     'Join Swaransh Academy',
-                    style: AppTypography.headlineLarge
-                        .copyWith(color: Colors.white),
+                    style: AppTypography.headlineLarge.copyWith(
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Begin your journey in music, dance, acting, or production.',
-                    style: AppTypography.bodyMedium
-                        .copyWith(color: Colors.white70),
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: Colors.white70,
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   SizedBox(
@@ -75,9 +82,7 @@ class AdmissionPage extends ConsumerWidget {
                           ref
                               .read(admissionFormProvider.notifier)
                               .prefill(prefill.department, prefill.subject);
-                          ref
-                              .read(admissionPrefillProvider.notifier)
-                              .clear();
+                          ref.read(admissionPrefillProvider.notifier).clear();
                         }
                         context.push('/admission/form');
                       },
@@ -116,8 +121,11 @@ class AdmissionPage extends ConsumerWidget {
 }
 
 class _Step extends StatelessWidget {
-  const _Step(
-      {required this.number, required this.title, required this.subtitle});
+  const _Step({
+    required this.number,
+    required this.title,
+    required this.subtitle,
+  });
   final int number;
   final String title;
   final String subtitle;
@@ -151,9 +159,12 @@ class _Step extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: AppTypography.bodyMedium
-                        .copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  title,
+                  style: AppTypography.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 Text(subtitle, style: AppTypography.bodySmall),
               ],
             ),

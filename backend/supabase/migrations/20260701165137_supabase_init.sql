@@ -22,6 +22,11 @@ CREATE TYPE department AS ENUM (
     'Other'
 );
 
+CREATE TYPE course_tag AS ENUM(
+    'Vocal',
+    'Instrumental',
+);
+
 CREATE TYPE batch AS ENUM (
     'Morning', 
     'Evening'
@@ -76,7 +81,7 @@ CREATE TYPE payment_status AS ENUM (
 
 -- Note: 'UserRole' description states this is resolved server-side.
 CREATE TYPE user_role AS ENUM (
-    'anon', 
+    'guest', 
     'student', 
     'admin'
 );
@@ -94,15 +99,30 @@ CREATE TYPE student_gender AS ENUM (
 CREATE TABLE users (
     user_id UUID Primary Key ,
     user_name TEXT  ,
-    role UserRole,
+    role user_role Not NULL DEFAULT 'guest',
     email TEXT UNIQUE NOT NULL,
     fcm_token TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+--- Courses Table
+CREATE TABLE courses(
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    course_name TEXT NOT NULL,
+    duration TEXT NOT NULL,
+    fees BIGINT NOT NULL,
+    mode learning_mode DEFAULT 'offline',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() ,
+    tag  course_tag NOT NULL,
+    maps_to_department department NOT NULL,
+    maps_to_subject TEXT NOT NULL,
+    image_url TEXT
 );
 
 --- Student Table
 CREATE TABLE students(
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     user_id UUID REFERENCES users(user_id),
     name TEXT NOT NULL,
     admission_type admission_type NOT NULL,
@@ -132,5 +152,77 @@ CREATE TABLE students(
     image_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-
 );
+
+CREATE TABLE payment (
+    -- Modern 8-byte auto-incrementing BIGINT primary key
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    
+    -- References standard 8-byte student ID (Assumes students.id is also BIGINT)
+    student_id BIGINT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    
+    payment_type payment_type NOT NULL,
+    amount BIGINT NOT NULL, -- Stored in minor units (e.g., cents)
+    mode payment_mode NOT NULL,
+    txn_ref TEXT,
+    
+    -- Fixed: Uses correct timestamp with time zone tracking
+    paid_on TIMESTAMPTZ DEFAULT now(),
+    
+    status payment_status DEFAULT 'active',
+    
+    -- Fixed: Matches the 8-byte 'id' column for self-referencing ledger updates
+    superseded_by BIGINT REFERENCES payment(id) ON DELETE SET NULL
+);
+
+
+--- Admissions TABLE
+CREATE TABLE admissions (
+    -- Auto-incrementing 8-byte ID matching your student ID scale
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    
+    -- Bound server-side from JWT; NULL if submitted anonymously
+    user_id UUID REFERENCES users(user_id) ON DELETE SET NULL,
+    
+    -- Core Application Lifecycle Status
+    status admission_status NOT NULL DEFAULT 'Pending',
+    
+    -- Basic Student Profile Fields
+    name TEXT NOT NULL,
+    dob DATE NOT NULL,
+    gender student_gender NOT NULL,
+    father_name TEXT NOT NULL,
+    education_qualification education_qualification NOT NULL,
+    
+    -- Contact & Address Information
+    contact TEXT NOT NULL,
+    email TEXT NOT NULL, -- Becomes their future login key once approved
+    address TEXT NOT NULL,
+    religion TEXT,
+    caste TEXT,
+    
+    -- Course Enrollment Details
+    admission_type admission_type NOT NULL,
+    learning_mode learning_mode NOT NULL,
+    department department NOT NULL,
+    batch batch NOT NULL,
+    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    end_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    subject TEXT NOT NULL,
+    
+    -- Stores the full array of course objects defined in your YAML contract
+    courses Text[],
+    
+    -- Financials: Upgraded from float to exact decimal precision
+    fees NUMERIC(10, 2) NOT NULL,
+    fee_type fee_type NOT NULL,
+    
+    -- Audit Tracking Timestamps
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Performance Indexing for common search/administrative flows
+CREATE INDEX idx_admissions_status ON admissions(status);
+CREATE INDEX idx_admissions_email ON admissions(email);
+CREATE INDEX idx_admissions_user_id ON admissions(user_id) WHERE user_id IS NOT NULL;

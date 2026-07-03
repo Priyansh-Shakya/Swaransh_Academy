@@ -1,9 +1,13 @@
+import 'dart:ui';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/features/admission/presentation/admission_form_screen.dart';
 import 'package:swaransh_academy/features/admission/presentation/admission_payment_screen.dart';
 import 'package:swaransh_academy/features/admission/presentation/admission_success_screen.dart';
 import 'package:swaransh_academy/features/admission/presentation/admission_terms_screen.dart';
+import 'package:swaransh_academy/features/auth/presentation/auth_screen.dart';
+import 'package:swaransh_academy/features/role_select/presentation/role_select_page.dart';
 
 import '../../admission/presentation/admission_page.dart';
 import '../../courses/data/courses_repository.dart';
@@ -148,6 +152,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admission/success',
         builder: (_, __) => const AdmissionSuccessScreen(),
+      ),
+      // Routes to add alongside /splash (top-level, outside StatefulShellRoute):
+      GoRoute(path: '/role-select', builder: (_, __) => const RoleSelectPage()),
+      GoRoute(
+        path: '/auth',
+        builder: (context, state) {
+          final onSuccess = state.extra as VoidCallback?;
+          return AuthScreen(onSuccess: onSuccess);
+        },
       ),
     ],
   );

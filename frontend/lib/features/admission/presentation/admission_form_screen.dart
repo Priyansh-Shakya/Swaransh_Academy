@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
 
 import '../../../Core/auth/user_role.dart';
 import '../../../Core/theme/app_colors.dart';
@@ -9,6 +10,27 @@ import '../../../Core/theme/app_typography.dart';
 import '../../../Core/widgets/student_fields_form.dart';
 import '../data/admission_notifier.dart';
 import '../domain/admission_form_state.dart';
+
+// ---- Required field keys (shown with * in label) ----
+const _requiredFields = {
+  'name',
+  'fatherName',
+  'dob',
+  'gender',
+  'educationQualification',
+  'contact',
+  'email',
+  'address',
+  'department',
+  'subject',
+  'admissionType',
+  'learningMode',
+  'batch',
+  'startTime',
+  'endTime',
+  'fees',
+  'feeType',
+};
 
 class AdmissionFormScreen extends ConsumerStatefulWidget {
   const AdmissionFormScreen({super.key});
@@ -20,13 +42,23 @@ class AdmissionFormScreen extends ConsumerStatefulWidget {
 
 class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
   final _formKey = GlobalKey<FormState>();
+
   late final Map<String, TextEditingController> _controllers;
   late Map<String, String?> _dropdowns;
   bool _initialized = false;
 
+  // Separate controllers for fields outside StudentFieldsForm
+  late final TextEditingController _religionCtrl;
+  late final TextEditingController _casteCtrl;
+  late final TextEditingController _feesCtrl;
+
   @override
   void initState() {
     super.initState();
+    _religionCtrl = TextEditingController();
+    _casteCtrl = TextEditingController();
+    _feesCtrl = TextEditingController();
+
     _controllers = {
       'name': TextEditingController(),
       'fatherName': TextEditingController(),
@@ -34,16 +66,17 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
       'contact': TextEditingController(),
       'email': TextEditingController(),
       'address': TextEditingController(),
-      'religion': TextEditingController(),
-      'caste': TextEditingController(),
       'subject': TextEditingController(),
       'startTime': TextEditingController(),
       'endTime': TextEditingController(),
-      // not used in admission but StudentFieldsForm needs these keys
+      // Unused in admission but StudentFieldsForm may reference these
       'scholarNo': TextEditingController(),
       'dateOfJoining': TextEditingController(),
-      'fees': TextEditingController(),
+      'fees': _feesCtrl,
+      'religion': _religionCtrl,
+      'caste': _casteCtrl,
     };
+
     _dropdowns = {
       'gender': null,
       'educationQualification': null,
@@ -57,12 +90,13 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
 
   @override
   void dispose() {
-    for (final c in _controllers.values) c.dispose();
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
+    // religion/caste/fees are inside _controllers so already disposed above
     super.dispose();
   }
 
-  /// Seed controllers from notifier state (handles pre-fill from course tap
-  /// and restoring in-progress state if user navigated away mid-form).
   void _seedFromState(AdmissionFormState s) {
     if (_initialized) return;
     _initialized = true;
@@ -73,13 +107,18 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
     _controllers['contact']!.text = s.contact;
     _controllers['email']!.text = s.email;
     _controllers['address']!.text = s.address;
-    _controllers['religion']!.text = s.religion;
-    _controllers['caste']!.text = s.caste;
     _controllers['subject']!.text = s.prefillSubject ?? s.subject;
-    _controllers['fees']!.text = s.fees?.toString() ?? '';
+    _controllers['startTime']!.text = s.startTime;
+    _controllers['endTime']!.text = s.endTime;
+    _religionCtrl.text = s.religion;
+    _casteCtrl.text = s.caste;
+    if (s.fees != null) _feesCtrl.text = s.fees!.toStringAsFixed(0);
+
     _dropdowns['gender'] = s.gender;
     _dropdowns['educationQualification'] = s.educationQualification;
-    _dropdowns['department'] = s.prefillDepartment ?? s.department;
+    _dropdowns['department'] = (s.prefillDepartment?.isNotEmpty == true)
+        ? s.prefillDepartment
+        : s.department;
     _dropdowns['admissionType'] = s.admissionType.isEmpty
         ? 'Regular'
         : s.admissionType;
@@ -101,38 +140,93 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
             contact: _controllers['contact']!.text.trim(),
             email: _controllers['email']!.text.trim(),
             address: _controllers['address']!.text.trim(),
-            religion: _controllers['religion']!.text.trim(),
-            caste: _controllers['caste']!.text.trim(),
             subject: _controllers['subject']!.text.trim(),
             startTime: _controllers['startTime']!.text.trim(),
             endTime: _controllers['endTime']!.text.trim(),
+            religion: _religionCtrl.text.trim(),
+            caste: _casteCtrl.text.trim(),
+            fees: double.tryParse(_feesCtrl.text.trim()),
             gender: _dropdowns['gender'],
             educationQualification: _dropdowns['educationQualification'],
             department: _dropdowns['department'] ?? '',
             admissionType: _dropdowns['admissionType'] ?? 'Regular',
             learningMode: _dropdowns['learningMode'] ?? 'Offline',
             batch: _dropdowns['batch'] ?? 'Morning',
-            fees: _controllers['fees']!.text.trim().isEmpty
-                ? null
-                : double.tryParse(_controllers['fees']!.text.trim()),
             feeType: _dropdowns['feeType'],
           ),
         );
   }
 
+  String? _validate() {
+    final name = _controllers['name']!.text.trim();
+    final fatherName = _controllers['fatherName']!.text.trim();
+    final dob = _controllers['dob']!.text.trim();
+    final contact = _controllers['contact']!.text.trim();
+    final email = _controllers['email']!.text.trim();
+    final address = _controllers['address']!.text.trim();
+    final subject = _controllers['subject']!.text.trim();
+    final startTime = _controllers['startTime']!.text.trim();
+    final endTime = _controllers['endTime']!.text.trim();
+    final feesText = _feesCtrl.text.trim();
+    final fees = double.tryParse(feesText);
+
+    if (name.isEmpty) return 'Please enter the student name.';
+    if (fatherName.isEmpty) return 'Please enter the father\'s name.';
+    if (dob.isEmpty) return 'Please enter the date of birth.';
+    if (_dropdowns['gender'] == null) return 'Please select a gender.';
+    if (_dropdowns['educationQualification'] == null)
+      return 'Please select education qualification.';
+    if (contact.isEmpty) return 'Please enter a contact number.';
+    if (!RegExp(r'^[0-9]{10}$').hasMatch(contact))
+      return 'Contact number must be exactly 10 digits.';
+    if (email.isEmpty) return 'Please enter an email address.';
+    if (!RegExp(
+      r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$',
+    ).hasMatch(email))
+      return 'Please enter a valid email address.';
+    if (address.isEmpty) return 'Please enter the address.';
+    if ((_dropdowns['department'] ?? '').isEmpty)
+      return 'Please select a department.';
+    if (subject.isEmpty) return 'Please enter the subject.';
+    if ((_dropdowns['admissionType'] ?? '').isEmpty)
+      return 'Please select an admission type.';
+    if ((_dropdowns['learningMode'] ?? '').isEmpty)
+      return 'Please select a learning mode.';
+    if ((_dropdowns['batch'] ?? '').isEmpty) return 'Please select a batch.';
+    if (startTime.isEmpty) return 'Please enter class start time.';
+    if (endTime.isEmpty) return 'Please enter class end time.';
+    if (feesText.isEmpty) return 'Please enter the fee amount.';
+    if (fees == null || fees <= 0)
+      return 'Fee amount must be greater than zero.';
+    if ((_dropdowns['feeType'] ?? '').isEmpty)
+      return 'Please select a fee type.';
+    return null;
+  }
+
   void _proceed() {
-    if (!_formKey.currentState!.validate()) return;
+    final error = _validate();
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     _saveToNotifier();
 
     final role = ref.read(currentRoleProvider);
     if (role == UserRole.guest) {
-      // Auth wall - guest must sign in before proceeding
       _showAuthWall();
       return;
     }
     context.push('/admission/terms');
   }
 
+  // In admission_form_screen.dart, replace _showAuthWall():
   void _showAuthWall() {
     showModalBottomSheet(
       context: context,
@@ -140,9 +234,12 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
       builder: (_) => _AuthWallSheet(
         onSignIn: () {
           Navigator.pop(context);
-          // TODO: trigger Supabase Google Sign-In, then re-call _proceed()
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Google Sign-In coming soon')),
+          context.push(
+            '/auth',
+            extra: () {
+              // After auth completes, resume the funnel
+              context.push('/admission/terms');
+            },
           );
         },
       ),
@@ -160,7 +257,7 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
         title: const Text('Admission Form'),
         backgroundColor: AppColors.ivory,
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(4),
+          preferredSize: const Size.fromHeight(20),
           child: _StepIndicator(current: 1, total: 3),
         ),
       ),
@@ -171,28 +268,24 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Admission form feels more formal - a brief heading sets the tone
               Text(
                 'Application for Admission',
                 style: AppTypography.headlineLarge,
               ),
               const SizedBox(height: 4),
               Text(
-                'Please fill all required fields carefully. '
-                'This information will be used to create your student record.',
-                style: AppTypography.bodySmall,
+                'Fields marked with * are required.',
+                style: AppTypography.bodySmall.copyWith(color: AppColors.error),
               ),
               const SizedBox(height: AppSpacing.xl),
 
+              // Identity + Contact + Course via shared widget
               StudentFieldsForm(
                 controllers: _controllers,
                 values: _dropdowns,
                 editable: true,
                 lockedFields: const {},
-                // Show all sections including fees; hide admin-only fields
-                // (scholarNo, dateOfJoining, religion, caste are in the admin
-                //  section but we still collect religion/caste on admission -
-                //  we'll show them via explicit fields below instead)
+                requiredFields: _requiredFields,
                 visibleSections: const {
                   StudentFieldSection.identity,
                   StudentFieldSection.contact,
@@ -202,36 +295,48 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
                     setState(() => _dropdowns[key] = value),
               ),
 
-              // Fees - admission form does collect this
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                'Fees',
-                style: AppTypography.titleLarge.copyWith(color: AppColors.gold),
+              // Optional fields section
+              const _SectionHeader('Additional Information (Optional)'),
+              TextFormField(
+                controller: _religionCtrl,
+                decoration: const InputDecoration(labelText: 'Religion'),
               ),
               const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                controller: _casteCtrl,
+                decoration: const InputDecoration(labelText: 'Caste'),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+
+              // Fees section
+              const _SectionHeader('Fees'),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: TextFormField(
-                      controller: _controllers['fees'],
+                      controller: _feesCtrl,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
-                        labelText: 'Amount (\u20B9)',
+                        labelText: 'Amount (\u20B9) *',
                       ),
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'Required' : null,
                     ),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       initialValue: _dropdowns['feeType'],
-                      decoration: const InputDecoration(labelText: 'Fee Type'),
+                      decoration: const InputDecoration(
+                        labelText: 'Fee Type *',
+                      ),
                       items: kFeeTypeOptions
                           .map(
                             (o) => DropdownMenuItem(
                               value: o,
-                              child: Text(o.replaceAll('_', ' ')),
+                              child: Text(
+                                o.replaceAll('_', ' '),
+                                style: AppTypography.bodyMedium,
+                              ),
                             ),
                           )
                           .toList(),
@@ -262,7 +367,23 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
   }
 }
 
-// ---- Step indicator ----
+// ---- Helpers ----
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader(this.title);
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Text(
+        title,
+        style: AppTypography.titleLarge.copyWith(color: AppColors.gold),
+      ),
+    );
+  }
+}
 
 class _StepIndicator extends StatelessWidget {
   const _StepIndicator({required this.current, required this.total});
@@ -281,17 +402,12 @@ class _StepIndicator extends StatelessWidget {
       child: Row(
         children: List.generate(total, (i) {
           final active = i < current;
-          final isCurrent = i == current - 1;
           return Expanded(
             child: Container(
               margin: EdgeInsets.only(right: i < total - 1 ? 4 : 0),
               height: 3,
               decoration: BoxDecoration(
-                color: active
-                    ? AppColors.gold
-                    : isCurrent
-                    ? AppColors.gold.withOpacity(0.4)
-                    : AppColors.divider,
+                color: active ? AppColors.gold : AppColors.divider,
                 borderRadius: BorderRadius.circular(AppRadius.pill),
               ),
             ),
@@ -301,8 +417,6 @@ class _StepIndicator extends StatelessWidget {
     );
   }
 }
-
-// ---- Auth wall sheet ----
 
 class _AuthWallSheet extends StatelessWidget {
   const _AuthWallSheet({required this.onSignIn});
