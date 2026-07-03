@@ -7,7 +7,7 @@ from typing import List
 
 from fastapi import APIRouter
 
-from features.courses.model import CourseCreate , Course
+from app.features.courses.model import CourseCreate , Course
 
 print("Loading courses router")
 

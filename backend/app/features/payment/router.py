@@ -7,7 +7,7 @@ from typing import List
 
 from fastapi import APIRouter
 
-from features.payment.model import Payment , PaymentCreate 
+from app.features.payment.model import Payment , PaymentCreate 
 
 
 

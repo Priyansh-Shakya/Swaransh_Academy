@@ -3,8 +3,8 @@ from typing import Any, List, Optional
 from uuid import UUID
 
 from pydantic import AnyUrl, BaseModel, EmailStr, Field
-from core import enums
-from features.courses import model as course_model
+from app.core import enums
+from app.features.courses import model as course_model
 
 
 

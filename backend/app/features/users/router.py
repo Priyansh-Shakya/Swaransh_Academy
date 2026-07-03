@@ -7,7 +7,7 @@ from uuid import UUID
 
 from fastapi import APIRouter
 
-from features.users.model import UserCreate , User  
+from app.features.users.model import UserCreate , User  
 
 
 

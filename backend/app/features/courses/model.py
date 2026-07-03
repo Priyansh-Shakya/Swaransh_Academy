@@ -2,7 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 from enum import Enum
-from core import enums
+from app.core import enums
 
 #* --------- Models
 

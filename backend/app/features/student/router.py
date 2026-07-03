@@ -8,8 +8,8 @@ from typing import List, Optional, Union
 
 from fastapi import APIRouter
 
-from core.enums import Department , AdmissionType , LearningMode , FeeType , Batch
-from features.student.model import StudentCreate , StudentFull , StudentBasic , StudentUpdate 
+from app.core.enums import Department , AdmissionType , LearningMode , FeeType , Batch
+from app.features.student.model import StudentCreate , StudentFull , StudentBasic , StudentUpdate 
 
 
 

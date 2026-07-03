@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from datetime import date, time
-from enum import Enum
-from typing import Any, List, Optional
+from datetime import date
+
+from typing import  Optional
 from uuid import UUID
 
 from pydantic import AnyUrl, AwareDatetime, BaseModel, EmailStr, Field
 
-from core import enums
-from core.enums import AdmissionStatus, StudentGender
-from features.student.model import StudentBasic
+from ...core import enums
+from ...core.enums import AdmissionStatus, StudentGender
+from ...features.student.model import StudentBasic
 
 
 

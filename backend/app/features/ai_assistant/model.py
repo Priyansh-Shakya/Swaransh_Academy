@@ -2,7 +2,7 @@
 from pydantic import BaseModel  , Field
 from typing import List, Optional
 
-from core.enums import Role 
+from app.core.enums import Role 
 
 
 class HistoryItem(BaseModel):

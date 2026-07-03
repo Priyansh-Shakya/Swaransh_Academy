@@ -4,8 +4,8 @@ from typing import Optional
 
 from pydantic import AwareDatetime, BaseModel, Field
 
-from core import enums
-from core.enums import PaymentMode, PaymentStatus, PaymentType
+from app.core import enums
+from app.core.enums import PaymentMode, PaymentStatus, PaymentType
 
 
 class PaymentCreate(BaseModel):

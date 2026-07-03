@@ -7,9 +7,9 @@ from typing import List, Optional
 
 from fastapi import APIRouter
 
-from core.enums import AdmissionStatus
-from features.admission.model import AdmissionFormCreate , AdmissionForm
-from features.student.model import StudentFull
+from app.core.enums import AdmissionStatus
+from app.features.admission.model import AdmissionFormCreate , AdmissionForm
+from app.features.student.model import StudentFull
 
 
 

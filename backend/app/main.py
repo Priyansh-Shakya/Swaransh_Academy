@@ -1,10 +1,10 @@
 from fastapi import FastAPI 
-from features.courses.router import router as course_router
-from features.users.router import router as user_router
-from features.student.router import router as student_router
-from features.ai_assistant.router import router as ai_assistant_router
-from features.payment.router import router as payment_router
-from features.admission.router import router as admission_router
+from app.features.courses.router import router as course_router
+from app.features.users.router import router as user_router
+from app.features.student.router import router as student_router
+from app.features.ai_assistant.router import router as ai_assistant_router
+from app.features.payment.router import router as payment_router
+from app.features.admission.router import router as admission_router
 
 
 app = FastAPI(

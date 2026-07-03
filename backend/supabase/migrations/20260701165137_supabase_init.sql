@@ -24,7 +24,7 @@ CREATE TYPE department AS ENUM (
 
 CREATE TYPE course_tag AS ENUM(
     'Vocal',
-    'Instrumental',
+    'Instrumental'
 );
 
 CREATE TYPE batch AS ENUM (
@@ -111,7 +111,7 @@ CREATE TABLE courses(
     course_name TEXT NOT NULL,
     duration TEXT NOT NULL,
     fees BIGINT NOT NULL,
-    mode learning_mode DEFAULT 'offline',
+    mode learning_mode DEFAULT 'Offline',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() ,
     tag  course_tag NOT NULL,
