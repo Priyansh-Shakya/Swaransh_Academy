@@ -2,15 +2,11 @@ from datetime import date, time
 from typing import Any, List, Optional
 from uuid import UUID
 
-from pydantic import AnyUrl, BaseModel, EmailStr, Field
 from app.core import enums
-from app.features.courses import model as course_model
-
-
+from pydantic import AnyUrl, BaseModel, EmailStr, Field
 
 
 class StudentBasic(BaseModel):
-    id: Optional[int] = None
     name: Optional[str] = None
     admission_type: Optional[enums.AdmissionType] = None
     learning_mode: Optional[enums.LearningMode] = None
@@ -19,7 +15,10 @@ class StudentBasic(BaseModel):
     start_time: Optional[time] = None
     end_time: Optional[time] = None
     subject: Optional[str] = None
-    courses: Optional[List[course_model.Course]] = None
+    courses: Optional[List[str]] = None
+
+class StudentBasicRead(StudentBasic):
+    id: int
 
 
 class StudentFull(StudentBasic):
@@ -64,9 +63,10 @@ class StudentFull(StudentBasic):
         description='Denormalized summary, advanced on each recorded (active) payment.',
     )
 
+class StudentFullRead(StudentFull):
+    id: int
 
 class StudentCreate(StudentFull):
-    id: Optional[int] = None
     status: Optional[Any] = None
     scholar_no: Optional[Any] = None
     fee_paid_till: Optional[Any] = None

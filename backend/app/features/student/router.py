@@ -3,51 +3,57 @@
 #   timestamp: 2026-06-30T16:24:15+00:00
 
 from __future__ import annotations
+
 from datetime import date
 from typing import List, Optional, Union
 
-from fastapi import APIRouter
-
-from app.core.enums import Department , AdmissionType , LearningMode , FeeType , Batch
-from app.features.student.model import StudentCreate , StudentFull , StudentBasic , StudentUpdate 
-
-
+from app.core.db import get_db
+from app.core.enums import AdmissionType, Batch, Department, FeeType, LearningMode
+from app.features.student import service
+from app.features.student.model import (
+    StudentBasic,
+    StudentCreate,
+    StudentFull,
+    StudentUpdate,
+)
+from fastapi import APIRouter, Depends
 
 router = APIRouter(tags=['Students'])
 
 
 @router.post('/student', response_model=StudentFull, tags=['Students'])
-def post_student(body: StudentCreate) -> StudentFull:
+async def post_student(body: StudentCreate, db=Depends(get_db)) -> StudentFull:
     """
     Create Student (manual, admin-only)
     """
-    pass
+    student_data = body.model_dump(mode='python')
+    return await service.create_student(student_data, db)
 
 
 @router.get(
     '/student/{id}', response_model=Union[StudentFull, StudentBasic], tags=['Students']
 )
-def get_student_id(id: int) -> Union[StudentFull, StudentBasic]:
+async def get_student_id(id: int, db=Depends(get_db)) -> Union[StudentFull, StudentBasic]:
     """
     Get Student
     """
-    pass
+    return await service.get_student(id, db)
 
 
 @router.put('/student/{id}', response_model=StudentFull, tags=['Students'])
-def put_student_id(id: int, body: StudentUpdate = ...) -> StudentFull:
+async def put_student_id(id: int, body: StudentUpdate = ..., db=Depends(get_db)) -> StudentFull:
     """
     Update Student
     """
-    pass
+    return await service.update_student(id, body, db)
 
 
 @router.delete('/student/{id}', response_model=None, tags=['Students'])
-def delete_student_id(id: int) -> None:
+async def delete_student_id(id: int, db=Depends(get_db)) -> None:
     """
     Delete Student
     """
-    pass
+    await service.delete_student(id, db)
 
 
 @router.get(
@@ -55,7 +61,7 @@ def delete_student_id(id: int) -> None:
     response_model=List[Union[StudentFull, StudentBasic]],
     tags=['Students'],
 )
-def get_student_list(
+async def get_student_list(
     department: Optional[Department] = None,
     admission_type: Optional[AdmissionType] = None,
     learning_mode: Optional[LearningMode] = None,
@@ -66,8 +72,22 @@ def get_student_list(
     joined_after: Optional[date] = None,
     joined_before: Optional[date] = None,
     search: Optional[str] = None,
+    db=Depends(get_db),
 ) -> List[Union[StudentFull, StudentBasic]]:
     """
     Get Students List
     """
-    pass
+    return await service.get_students_list(
+        db,
+        department=department,
+        admission_type=admission_type,
+        learning_mode=learning_mode,
+        fee_type=fee_type,
+        batch=batch,
+        fees_min=fees_min,
+        fees_max=fees_max,
+        joined_after=joined_after,
+        joined_before=joined_before,
+        search=search,
+    )
+

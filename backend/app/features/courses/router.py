@@ -3,11 +3,13 @@
 #   timestamp: 2026-06-30T16:24:15+00:00
 
 from __future__ import annotations
+
 from typing import List
 
-from fastapi import APIRouter
-
-from app.features.courses.model import CourseCreate , Course
+from app.core.db import get_db
+from app.features.courses import service
+from app.features.courses.model import Course, CourseCreate
+from fastapi import APIRouter, Depends
 
 print("Loading courses router")
 
@@ -15,36 +17,35 @@ router = APIRouter(tags=['Courses'])
 
 
 @router.post('/course', response_model=Course, tags=['Courses'])
-def post_course(body: CourseCreate) -> Course:
+async def post_course(body: CourseCreate, db=Depends(get_db)) -> Course:
     """
     Create Course
     """
-    print("post_course called with body:", body)
-    return body
+    return await service.create_course(body, db)
 
 
 @router.put('/course/{id}', response_model=Course, tags=['Courses'])
-def put_course_id(id: int, body: CourseCreate = ...) -> Course:
+async def put_course_id(id: int, body: CourseCreate = ..., db=Depends(get_db)) -> Course:
     """
     Update Course
     """
-    pass
+    return await service.update_course(id, body, db)
 
 
 @router.delete('/course/{id}', response_model=None, tags=['Courses'])
-def delete_course_id(id: int) -> None:
+async def delete_course_id(id: int, db=Depends(get_db)) -> None:
     """
     Delete Course
     """
-    pass
+    await service.delete_course(id, db)
 
 
 @router.get('/courseList', response_model=List[Course], tags=['Courses'])
-def get_course_list() -> List[Course]:
+async def get_course_list(db=Depends(get_db)) -> List[Course]:
     """
     Get list of all courses
     """
-    pass
+    return await service.get_all_courses(db)
 
 
 print("Routes:", router.routes)

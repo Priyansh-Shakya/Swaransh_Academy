@@ -3,60 +3,62 @@
 #   timestamp: 2026-06-30T16:24:15+00:00
 
 from __future__ import annotations
+
 from typing import List, Optional
+from uuid import UUID
 
-from fastapi import APIRouter
-
+from app.core.db import get_db
 from app.core.enums import AdmissionStatus
-from app.features.admission.model import AdmissionFormCreate , AdmissionForm
+from app.features.admission import service
+from app.features.admission.model import AdmissionForm, AdmissionFormCreate
 from app.features.student.model import StudentFull
-
-
+from fastapi import APIRouter, Depends
 
 router = APIRouter(tags=['Admission'])
 
 
 @router.post('/admissionForm', response_model=AdmissionForm, tags=['Admission'])
-def post_admission_form(body: AdmissionFormCreate) -> AdmissionForm:
+async def post_admission_form(body: AdmissionFormCreate, db= Depends(get_db)) -> AdmissionForm:
     """
     Submit Admission Form
     """
-    pass
+    return await service.create_admission_form(body, db)
 
 
 @router.get('/admissionForm/me', response_model=List[AdmissionForm], tags=['Admission'])
-def get_admission_form_me() -> List[AdmissionForm]:
+async def get_admission_form_me(user_id: UUID, db=Depends(get_db)) -> List[AdmissionForm]:
     """
-    My Admission Forms
+    My Admission Forms 
     """
-    pass
+    return await service.get_form_me(user_id, db)
 
 
 @router.post(
     '/admissionForm/{id}/approved', response_model=StudentFull, tags=['Admission']
 )
-def post_admission_form_id_approved(id: int) -> StudentFull:
+async def post_admission_form_id_approved(id: int, db=Depends(get_db)) -> StudentFull:
     """
     Approve Form
     """
-    pass
+    return await service.approve_form(id, db)
 
 
 @router.post('/admissionForm/{id}/declined', response_model=None, tags=['Admission'])
-def post_admission_form_id_declined(id: int) -> None:
+async def post_admission_form_id_declined(id: int, db=Depends(get_db)) -> None:
     """
     Decline Form
     """
-    pass
+    await service.decline_form(id, db)
 
 
 @router.get(
     '/admissionFormList', response_model=List[AdmissionForm], tags=['Admission']
 )
-def get_admission_form_list(
+async def get_admission_form_list(
     status: Optional[AdmissionStatus] = None,
+    db=Depends(get_db)
 ) -> List[AdmissionForm]:
     """
     Get Submitted Forms (Admin)
     """
-    pass
+    return await service.get_all_admissions(db, status.value if status else None)

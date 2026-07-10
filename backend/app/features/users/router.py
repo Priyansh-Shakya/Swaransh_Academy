@@ -3,28 +3,28 @@
 #   timestamp: 2026-06-30T16:24:15+00:00
 
 from __future__ import annotations
+
 from uuid import UUID
 
-from fastapi import APIRouter
-
-from app.features.users.model import UserCreate , User  
-
-
+from app.core.db import get_db
+from app.features.users import service
+from app.features.users.model import User, UserCreate
+from fastapi import APIRouter, Depends
 
 router = APIRouter(tags=['Users'])
 
 
 @router.post('/user', response_model=User, tags=['Users'])
-def post_user(body: UserCreate) -> User:
+async def post_user(body: UserCreate, user_id: UUID, db=Depends(get_db)) -> User:
     """
     Create/Sync User Profile + Resolve Role
     """
-    pass
+    return await service.create_user(body, user_id, db)
 
 
 @router.get('/user/{id}', response_model=User, tags=['Users'])
-def get_user_id(id: UUID) -> User:
+async def get_user_id(id: UUID, db=Depends(get_db)) -> User:
     """
     Get User By ID
     """
-    pass
+    return await service.get_user(id, db)

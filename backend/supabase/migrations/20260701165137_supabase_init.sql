@@ -132,8 +132,8 @@ CREATE TABLE students(
     education_qualification education_qualification NOT NULL,
     admission_status admission_status NOT NULL,
     status student_status NOT NULL,
-    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    end_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
     subject TEXT NOT NULL,
     courses TEXT[],
     dob DATE NOT NULL,
@@ -182,7 +182,7 @@ CREATE TABLE admissions (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     
     -- Bound server-side from JWT; NULL if submitted anonymously
-    user_id UUID REFERENCES users(user_id) ON DELETE SET NULL,
+    user_id UUID not null REFERENCES users(user_id) ON DELETE CASCADE,
     
     -- Core Application Lifecycle Status
     status admission_status NOT NULL DEFAULT 'Pending',

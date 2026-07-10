@@ -3,52 +3,53 @@
 #   timestamp: 2026-06-30T16:24:15+00:00
 
 from __future__ import annotations
+
 from typing import List
 
-from fastapi import APIRouter
-
-from app.features.payment.model import Payment , PaymentCreate 
-
-
+from app.core.db import get_db
+from app.features.payment import service
+from app.features.payment.model import Payment, PaymentCreate
+from fastapi import APIRouter, Depends
 
 router = APIRouter(tags=['Payments'])
 
 
 @router.post('/student/{id}/payment', response_model=Payment, tags=['Payments'])
-def post_student_id_payment(id: int, body: PaymentCreate = ...) -> Payment:
+async def post_student_id_payment(id: int, body: PaymentCreate = ..., db=Depends(get_db)) -> Payment:
     """
     Record a Payment
     """
-    pass
+    return await service.create_payment(id, body, db)
 
 
 @router.put(
     '/student/{id}/payment/{payment_id}', response_model=Payment, tags=['Payments']
 )
-def put_student_id_payment_payment_id(
-    id: int, payment_id: int = ..., body: PaymentCreate = ...
+async def put_student_id_payment_payment_id(
+    id: int, payment_id: int = ..., body: PaymentCreate = ..., db=Depends(get_db)
 ) -> Payment:
     """
     Correct a Payment (supersede)
     """
-    pass
+    return await service.correct_payment(id, payment_id, body, db)
 
 
 @router.delete(
     '/student/{id}/payment/{payment_id}', response_model=None, tags=['Payments']
 )
-def delete_student_id_payment_payment_id(id: int, payment_id: int = ...) -> None:
+async def delete_student_id_payment_payment_id(id: int, payment_id: int = ..., db=Depends(get_db)) -> None:
     """
     Delete a Payment (hard delete)
     """
-    pass
+    await service.delete_payment(payment_id, db)
 
 
 @router.get(
     '/student/{id}/paymentList', response_model=List[Payment], tags=['Payments']
 )
-def get_student_id_payment_list(id: int) -> List[Payment]:
+async def get_student_id_payment_list(id: int, db=Depends(get_db)) -> List[Payment]:
     """
     Get Payment History for a Student
     """
-    pass
+    return await service.get_payment_history(id, db)
+

@@ -4,17 +4,20 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
-
+from app.features.ai_assistant import service
 from app.features.ai_assistant.model import AssistanceQuery
-
+from fastapi import APIRouter
 
 router = APIRouter(tags=['AI Assistance'])
 
 
 @router.post('/assistance', response_model=str, tags=['AI Assistance'])
-def post_assistance(body: AssistanceQuery) -> str:
+async def post_assistance(body: AssistanceQuery) -> str:
     """
     Ask AI Assistant (streaming)
+    
+    The client maintains conversation history and sends it with each request.
+    The backend is stateless - all history tracking happens client-side.
     """
-    pass
+    return await service.get_assistance(body)
+

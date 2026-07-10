@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class Tag(Enum):
     Instrumental = 'Instrumental'
     Vocal = 'Vocal'
@@ -78,7 +79,7 @@ class PaymentStatus(Enum):
 
 
 class UserRole(Enum):
-    anon = 'anon'
+    anon = 'guest'
     student = 'student'
     admin = 'admin'
 
