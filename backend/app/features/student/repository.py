@@ -9,7 +9,9 @@ INSERT INTO students (
     date_of_joining, contact, email, fees, fee_type, image_url
 )
 VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+    $11, $12, $13, $14, $15, $16, $17, $18,
+    $19, $20, $21, $22, $23, $24, $25
 )
 RETURNING *;
 """
@@ -56,6 +58,7 @@ UPDATE students SET
 WHERE id = $26
 RETURNING *;
 """
+#! WE WERE DEELING WITH SCHOLAR_NO NOT UPDATING ISSUE
 
 # Delete student
 delete_student_query = """

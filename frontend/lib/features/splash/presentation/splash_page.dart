@@ -57,7 +57,7 @@ class _SplashPageState extends State<SplashPage>
     _controller.forward();
 
     Future.delayed(_totalDuration + _holdAfter, () {
-      if (mounted) context.go('/home');
+      if (mounted) context.go('/role-select');
     });
   }
 

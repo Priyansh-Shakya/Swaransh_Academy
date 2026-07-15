@@ -13,16 +13,17 @@ from app.features.admission import service
 from app.features.admission.model import AdmissionForm, AdmissionFormCreate
 from app.features.student.model import StudentFull
 from fastapi import APIRouter, Depends
+from app.core.auth.auth import get_current_user
 
 router = APIRouter(tags=['Admission'])
 
 
 @router.post('/admissionForm', response_model=AdmissionForm, tags=['Admission'])
-async def post_admission_form(body: AdmissionFormCreate, db= Depends(get_db)) -> AdmissionForm:
+async def post_admission_form(body: AdmissionFormCreate ,user=Depends(get_current_user),db= Depends(get_db)) -> AdmissionForm:
     """
     Submit Admission Form
     """
-    return await service.create_admission_form(body, db)
+    return await service.create_admission_form(body,user, db)
 
 
 @router.get('/admissionForm/me', response_model=List[AdmissionForm], tags=['Admission'])

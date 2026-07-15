@@ -218,33 +218,31 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
 
     _saveToNotifier();
 
-    final role = ref.read(currentRoleProvider);
-    if (role == UserRole.guest) {
-      _showAuthWall();
-      return;
-    }
+    
+final isSignedIn = ref.read(isSignedInProvider);
+if (!isSignedIn) {
+  _showAuthWall();
+  return;
+}
     context.push('/admission/terms');
   }
 
   // In admission_form_screen.dart, replace _showAuthWall():
   void _showAuthWall() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _AuthWallSheet(
-        onSignIn: () {
-          Navigator.pop(context);
-          context.push(
-            '/auth',
-            extra: () {
-              // After auth completes, resume the funnel
-              context.push('/admission/terms');
-            },
-          );
-        },
-      ),
-    );
-  }
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _AuthWallSheet(
+      onSignIn: () {
+        Navigator.pop(context);
+        final router = GoRouter.of(context); // capture before pop
+        router.push('/auth', extra: () {
+          router.push('/admission/terms');
+        });
+      },
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -281,6 +279,7 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
 
               // Identity + Contact + Course via shared widget
               StudentFieldsForm(
+                isCreate: false,
                 controllers: _controllers,
                 values: _dropdowns,
                 editable: true,

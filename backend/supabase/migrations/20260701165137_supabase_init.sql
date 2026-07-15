@@ -89,7 +89,7 @@ CREATE TYPE user_role AS ENUM (
 CREATE TYPE student_gender AS ENUM (
     'male', 
     'female', 
-    'nonbinary'
+    'non-binary'
 );
 
 
@@ -97,10 +97,10 @@ CREATE TYPE student_gender AS ENUM (
 
 --- Users Table
 CREATE TABLE users (
-    user_id UUID Primary Key ,
+    user_id UUID PRIMARY KEY REFERENCES auth.users(id),
     user_name TEXT  ,
     role user_role Not NULL DEFAULT 'guest',
-    email TEXT UNIQUE NOT NULL,
+    email TEXT  NOT NULL,
     fcm_token TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
@@ -206,8 +206,8 @@ CREATE TABLE admissions (
     learning_mode learning_mode NOT NULL,
     department department NOT NULL,
     batch batch NOT NULL,
-    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    end_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
     subject TEXT NOT NULL,
     
     -- Stores the full array of course objects defined in your YAML contract

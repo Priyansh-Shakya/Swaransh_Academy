@@ -28,11 +28,13 @@ FIELDS = (
 )
 
 
-async def create_admission_form(form: model.AdmissionFormCreate, db):
+async def create_admission_form(form: model.AdmissionFormCreate,user, db):
     """Create a new admission form"""
+    user_id = user['id']
     data = form.model_dump(mode='python')
     data = convert_enums_to_values(data)
     values = [data[field] for field in FIELDS]
+    values.append(user_id) #! inserting user_id at the end
     row = await db.fetchrow(queries.create_addmision, *values)
     print("Admission Created:", row)
     return dict(row)

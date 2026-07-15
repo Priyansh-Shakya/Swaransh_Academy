@@ -2,12 +2,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'user_role.dart';
 
-/// Combines the Supabase identity (User) with the app-level role resolved
-/// by the backend (POST /user). Kept separate from Supabase's own User type
-/// so the rest of the app never imports supabase_flutter directly - only
-/// this file and auth_notifier.dart need to.
-class Auth_User {
-  const Auth_User({
+class AppUser {
+  const AppUser({
     required this.supabaseUser,
     required this.role,
     this.displayName,
@@ -21,13 +17,22 @@ class Auth_User {
 
   String get id => supabaseUser.id;
   String get email => supabaseUser.email ?? '';
+  bool get isAuthenticated => id.isNotEmpty;
 
-  static const Auth_User guest = _GuestAuth_User();
+  /// Unauthenticated sentinel — returned when there is no Supabase session.
+  static const AppUser guest = _GuestAuthUser();
+
+  /// Debug-only: creates a fake authenticated user with the given role.
+  /// Used when kDebugRole is set in auth_notifier.dart.
+  factory AppUser.debugUser(UserRole role) => AppUser(
+    supabaseUser: const _FakeUser(),
+    role: role,
+    displayName: role == UserRole.admin ? 'Debug Admin' : 'Debug Student',
+  );
 }
 
-/// Sentinel for unauthenticated state - avoids nullable AuthUser? everywhere.
-class _GuestAuth_User extends Auth_User {
-  const _GuestAuth_User()
+class _GuestAuthUser extends AppUser {
+  const _GuestAuthUser()
     : super(supabaseUser: const _FakeUser(), role: UserRole.guest);
 
   @override
@@ -36,7 +41,6 @@ class _GuestAuth_User extends Auth_User {
   String get email => '';
 }
 
-/// Minimal fake to satisfy the non-nullable field when role is guest.
 class _FakeUser implements User {
   const _FakeUser();
 

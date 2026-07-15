@@ -68,11 +68,10 @@ class StudentFullRead(StudentFull):
 
 class StudentCreate(StudentFull):
     status: Optional[Any] = None
-    scholar_no: Optional[Any] = None
-    fee_paid_till: Optional[Any] = None
+    fee_paid_till: Optional[date] = None
     name: str
     father_name: Any
-    dob: Any
+    dob: date
     contact: Any
     email: Any
     address: Any
@@ -80,7 +79,7 @@ class StudentCreate(StudentFull):
     department: enums.Department
     learning_mode: enums.LearningMode
     batch: enums.Batch
-    fees: Any
+    fees: float
     start_time: time
     end_time: time
     gender: Any

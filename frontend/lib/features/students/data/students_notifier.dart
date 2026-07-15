@@ -1,11 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:swaransh_academy/features/students/data/students_api_service.dart';
 import 'package:swaransh_academy/features/students/domain/student.dart';
 
-
-/// MOCK repository, backed by an in-memory list. Swap each method body for
-/// a real Dio call (POST /student, PUT /student/{id}, DELETE /student/{id},
-/// GET /studentList) once the backend exists - method signatures and the
-/// optimistic-update pattern should not need to change.
+/// Uses real API calls (POST /student, PUT /student/{id}, DELETE /student/{id},
+/// GET /studentList).
 ///
 /// OPTIMISTIC UPDATE PATTERN: every mutation updates local state
 /// immediately, then "calls the API" in the background. If that call
@@ -13,54 +12,30 @@ import 'package:swaransh_academy/features/students/domain/student.dart';
 /// surfacing the error (the UI layer catches the rethrown exception and
 /// shows a snackbar - see students_list_page.dart / student_detail_page.dart).
 class StudentsNotifier extends AsyncNotifier<List<Student>> {
-  int _nextId = 7;
-
   @override
   Future<List<Student>> build() async {
-    await Future.delayed(const Duration(milliseconds: 400)); // simulate network
-    return List.of(_seedStudents);
+    final students = await ref
+        .read(studentsApiServiceProvider)
+        .getAllStudents();
+
+    debugPrint("Students List: $students");
+    return students;
   }
 
-  Future<void> addStudent(Student draft) async {
+  Future<void> addStudent(CreateStudent draft) async {
     final previous = state;
     final current = state.valueOrNull ?? [];
-    final created = draft.copyWith().let((_) => Student(
-          id: _nextId++,
-          name: draft.name,
-          admissionType: draft.admissionType,
-          learningMode: draft.learningMode,
-          department: draft.department,
-          batch: draft.batch,
-          startTime: draft.startTime,
-          endTime: draft.endTime,
-          subject: draft.subject,
-          userId: draft.userId,
-          imageUrl: draft.imageUrl,
-          status: draft.status ?? 'active',
-          dob: draft.dob,
-          fatherName: draft.fatherName,
-          gender: draft.gender,
-          educationQualification: draft.educationQualification,
-          contact: draft.contact,
-          email: draft.email,
-          address: draft.address,
-          religion: draft.religion,
-          caste: draft.caste,
-          scholarNo: draft.scholarNo,
-          dateOfJoining: draft.dateOfJoining,
-          fees: draft.fees,
-          feeType: draft.feeType,
-          feePaidTill: draft.feePaidTill,
-        ));
 
-    // Optimistic: show it immediately.
-    state = AsyncValue.data([...current, created]);
+    state = const AsyncValue.loading();
 
     try {
-      await Future.delayed(const Duration(milliseconds: 300)); // simulate network
-      // real call would go here; on success nothing further to do.
+      final created = await ref
+          .read(studentsApiServiceProvider)
+          .createStudent(draft);
+      state = AsyncValue.data([...current, created]);
     } catch (e) {
-      state = previous; // rollback
+      debugPrint("Error Creating Student from Notifier: $e");
+      state = previous;
       rethrow;
     }
   }
@@ -70,12 +45,14 @@ class StudentsNotifier extends AsyncNotifier<List<Student>> {
     final current = state.valueOrNull ?? [];
 
     state = AsyncValue.data([
-      for (final s in current) if (s.id == updated.id) updated else s,
+      for (final s in current)
+        if (s.id == updated.id) updated else s,
     ]);
 
     try {
-      await Future.delayed(const Duration(milliseconds: 300));
+      await ref.read(studentsApiServiceProvider).updateStudent(updated);
     } catch (e) {
+      debugPrint("Error from student notifier (UPDATE STUDENT): $e");
       state = previous;
       rethrow;
     }
@@ -88,7 +65,7 @@ class StudentsNotifier extends AsyncNotifier<List<Student>> {
     state = AsyncValue.data(current.where((s) => s.id != id).toList());
 
     try {
-      await Future.delayed(const Duration(milliseconds: 300));
+      await ref.read(studentsApiServiceProvider).deleteStudent(id);
     } catch (e) {
       state = previous;
       rethrow;
@@ -108,10 +85,7 @@ final studentsProvider = AsyncNotifierProvider<StudentsNotifier, List<Student>>(
   StudentsNotifier.new,
 );
 
-extension _Let<T> on T {
-  R let<R>(R Function(T) f) => f(this);
-}
-
+// Mock data kept for reference/testing, not used in build()
 final List<Student> _seedStudents = [
   const Student(
     id: 1,

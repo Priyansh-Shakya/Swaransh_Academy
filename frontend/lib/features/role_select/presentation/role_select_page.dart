@@ -1,25 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../Core/auth/auth_notifier.dart';
-import '../../../../Core/auth/auth_user.dart';
-import '../../../../Core/theme/app_colors.dart';
-import '../../../../Core/theme/app_spacing.dart';
-import '../../../../Core/theme/app_typography.dart';
-import '../../../../Core/theme/staff_line_divider.dart';
+import 'package:swaransh_academy/features/role_select/presentation/selectedRoleprovider.dart';
+import '../../../Core/auth/auth_notifier.dart';
+import '../../../Core/auth/user_role.dart';
+import '../../../Core/theme/app_colors.dart';
+import '../../../Core/theme/app_spacing.dart';
+import '../../../Core/theme/app_typography.dart';
+import '../../../Core/theme/staff_line_divider.dart';
 
 class RoleSelectPage extends ConsumerWidget {
   const RoleSelectPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // If user already has an active session (app reopened), skip this screen.
-    final authState = ref.watch(authProvider);
-    if (authState.valueOrNull != null &&
-        authState.valueOrNull != Auth_User.guest) {
+    // If already authenticated, skip straight to home.
+    final isSignedIn = ref.watch(isSignedInProvider);
+    if (isSignedIn) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.go('/home');
+        if (context.mounted) context.go('/home');
       });
     }
 
@@ -29,39 +28,27 @@ class RoleSelectPage extends ConsumerWidget {
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: AppSpacing.xl),
-
-              // Branding
               Image.asset(
                 'assets/app_logo.png',
                 width: 88,
                 height: 88,
-                errorBuilder: (_, __, ___) => const Icon(
-                  Icons.music_note,
-                  size: 64,
-                  color: AppColors.gold,
-                ),
+                errorBuilder: (_, __, ___) =>
+                    const Icon(Icons.music_note, size: 64, color: AppColors.gold),
               ),
               const SizedBox(height: AppSpacing.md),
-              Text(
-                'Swaransh Academy',
-                style: AppTypography.headlineLarge,
-                textAlign: TextAlign.center,
-              ),
+              Text('Swaransh Academy',
+                  style: AppTypography.headlineLarge, textAlign: TextAlign.center),
               const SizedBox(height: 4),
               Text(
                 'How would you like to continue?',
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+                style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
               ),
               const SizedBox(height: AppSpacing.md),
               const StaffLineDivider(width: 56),
               const SizedBox(height: AppSpacing.xl),
 
-              // Role cards
               _RoleCard(
                 icon: Icons.explore_outlined,
                 iconColor: AppColors.deptActing,
@@ -73,10 +60,12 @@ class RoleSelectPage extends ConsumerWidget {
               _RoleCard(
                 icon: Icons.school_outlined,
                 iconColor: AppColors.gold,
-                title: 'I\'m a Student',
-                subtitle:
-                    'Sign in to view your profile, fees, and fellow students.',
-                onTap: () => context.push('/auth'),
+                title: "I'm a Student",
+                subtitle: 'Sign in to view your profile, fees, and fellow students.',
+                onTap: () {
+                  ref.read(selectedRoleProvider.notifier).state = UserRole.student;
+                  context.push('/auth');
+                },
               ),
               const SizedBox(height: AppSpacing.md),
               _RoleCard(
@@ -84,7 +73,10 @@ class RoleSelectPage extends ConsumerWidget {
                 iconColor: AppColors.navy,
                 title: 'Admin Access',
                 subtitle: 'Manage students, admissions, and academy settings.',
-                onTap: () => context.push('/auth'),
+                onTap: () {
+                  ref.read(selectedRoleProvider.notifier).state = UserRole.admin;
+                  context.push('/auth');
+                },
               ),
 
               const Spacer(),
@@ -128,8 +120,7 @@ class _RoleCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 48, height: 48,
                 decoration: BoxDecoration(
                   color: iconColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -147,11 +138,8 @@ class _RoleCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(
-                Icons.chevron_right,
-                color: AppColors.textSecondary,
-                size: 20,
-              ),
+              const Icon(Icons.chevron_right,
+                  color: AppColors.textSecondary, size: 20),
             ],
           ),
         ),
@@ -159,3 +147,6 @@ class _RoleCard extends StatelessWidget {
     );
   }
 }
+
+
+

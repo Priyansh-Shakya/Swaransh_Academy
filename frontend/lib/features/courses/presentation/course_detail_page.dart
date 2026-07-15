@@ -127,6 +127,8 @@ class _CourseDetailBody extends ConsumerWidget {
                             AdmissionPrefill(
                               department: course.mapsToDepartment,
                               subject: course.mapsToSubject,
+                              fees: course.fees,
+                              
                             ),
                           );
                       context.go('/admission');

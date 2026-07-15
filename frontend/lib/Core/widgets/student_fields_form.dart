@@ -19,8 +19,10 @@ import '../theme/app_typography.dart';
 /// profile must never be able to change fees/status/scholar_no/email, but
 /// admin editing the same student can.
 class StudentFieldsForm extends StatelessWidget {
+  final bool isCreate;
   const StudentFieldsForm({
     super.key,
+    required this.isCreate,
     required this.controllers,
     required this.values,
     required this.editable,
@@ -129,7 +131,15 @@ class StudentFieldsForm extends StatelessWidget {
         ],
         if (visibleSections.contains(StudentFieldSection.admin)) ...[
           const _SectionHeader('Admin / Fees (admin-only edits)'),
-          _text(context, 'scholarNo', 'Scholar No.'),
+          if (!isCreate)
+            _text(
+              context,
+              'scholarNo',
+              'Scholar No.',
+              helperText: _isLocked('scholarNo')
+                  ? 'Scholar Number is asigned by Database itself and cannot be changed.'
+                  : null,
+            ), //* Only Show Scholar Number in Read Mode
           _text(
             context,
             'dateOfJoining',
@@ -264,7 +274,7 @@ class _ReadOnlyField extends StatelessWidget {
 }
 
 // ---- Shared enum option lists (mirror OpenAPI contract enums) ----
-const kGenderOptions = ['Male', 'Female', 'Non-Binary'];
+const kGenderOptions = ['male', 'female', 'non-binary'];
 const kEducationOptions = [
   'Primary_School',
   'High_School',

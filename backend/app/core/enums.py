@@ -79,7 +79,7 @@ class PaymentStatus(Enum):
 
 
 class UserRole(Enum):
-    anon = 'guest'
+    guest = 'guest'
     student = 'student'
     admin = 'admin'
 
@@ -87,7 +87,7 @@ class UserRole(Enum):
 class StudentGender(Enum):
     male = 'male'
     female = 'female'
-    nonbinary = 'nonbinary'
+    nonbinary = 'non-binary'
 
 
 class Role(Enum):

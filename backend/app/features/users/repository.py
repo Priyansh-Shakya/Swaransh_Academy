@@ -2,8 +2,8 @@
 
 # SQL Queries for User operations
 create_user_query = """
-INSERT INTO users (user_id, user_name, role, email, fcm_token)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO users (user_id , user_name, email, fcm_token, role)
+VALUES ($1, $2, $3, $4 , $5)
 RETURNING *;
 """
 
@@ -27,4 +27,8 @@ SELECT * FROM students WHERE email = $1;
 link_user_to_student_query = """
 UPDATE students SET user_id = $1 WHERE id = $2
 RETURNING *;
+"""
+
+check_role = """
+SELECT * FROM users WHERE user_id = $1
 """

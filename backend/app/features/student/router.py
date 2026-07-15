@@ -5,15 +5,14 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from app.core.db import get_db
 from app.core.enums import AdmissionType, Batch, Department, FeeType, LearningMode
 from app.features.student import service
 from app.features.student.model import (
-    StudentBasic,
     StudentCreate,
-    StudentFull,
+    StudentFullRead,
     StudentUpdate,
 )
 from fastapi import APIRouter, Depends
@@ -21,8 +20,8 @@ from fastapi import APIRouter, Depends
 router = APIRouter(tags=['Students'])
 
 
-@router.post('/student', response_model=StudentFull, tags=['Students'])
-async def post_student(body: StudentCreate, db=Depends(get_db)) -> StudentFull:
+@router.post('/student', response_model=StudentFullRead, tags=['Students'])
+async def post_student(body: StudentCreate, db=Depends(get_db)) -> StudentFullRead:
     """
     Create Student (manual, admin-only)
     """
@@ -31,17 +30,17 @@ async def post_student(body: StudentCreate, db=Depends(get_db)) -> StudentFull:
 
 
 @router.get(
-    '/student/{id}', response_model=Union[StudentFull, StudentBasic], tags=['Students']
+    '/student/{id}', response_model=StudentFullRead, tags=['Students']
 )
-async def get_student_id(id: int, db=Depends(get_db)) -> Union[StudentFull, StudentBasic]:
+async def get_student_id(id: int, db=Depends(get_db)) -> StudentFullRead:
     """
     Get Student
     """
     return await service.get_student(id, db)
 
 
-@router.put('/student/{id}', response_model=StudentFull, tags=['Students'])
-async def put_student_id(id: int, body: StudentUpdate = ..., db=Depends(get_db)) -> StudentFull:
+@router.put('/student/{id}', response_model=StudentFullRead, tags=['Students'])
+async def put_student_id(id: int, body: StudentUpdate = ..., db=Depends(get_db)) -> StudentFullRead:
     """
     Update Student
     """
@@ -58,7 +57,7 @@ async def delete_student_id(id: int, db=Depends(get_db)) -> None:
 
 @router.get(
     '/studentList',
-    response_model=List[Union[StudentFull, StudentBasic]],
+    response_model=List[StudentFullRead],
     tags=['Students'],
 )
 async def get_student_list(
@@ -73,7 +72,7 @@ async def get_student_list(
     joined_before: Optional[date] = None,
     search: Optional[str] = None,
     db=Depends(get_db),
-) -> List[Union[StudentFull, StudentBasic]]:
+) -> List[StudentFullRead]:
     """
     Get Students List
     """

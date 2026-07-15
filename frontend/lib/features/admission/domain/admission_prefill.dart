@@ -1,9 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class AdmissionPrefill {
-  const AdmissionPrefill({required this.department, required this.subject});
+  const AdmissionPrefill({
+    required this.department,
+    required this.subject,
+    required this.fees,
+   
+  });
   final String department;
   final String subject;
+  final double fees;
+  
 }
 
 /// Set by CourseDetailPage's "Apply Now" button, read (and cleared) by the
@@ -21,5 +28,5 @@ class AdmissionPrefillNotifier extends Notifier<AdmissionPrefill?> {
 
 final admissionPrefillProvider =
     NotifierProvider<AdmissionPrefillNotifier, AdmissionPrefill?>(
-  AdmissionPrefillNotifier.new,
-);
+      AdmissionPrefillNotifier.new,
+    );

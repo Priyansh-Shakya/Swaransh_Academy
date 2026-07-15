@@ -6,20 +6,22 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from app.core.auth.auth import get_current_user
 from app.core.db import get_db
 from app.features.users import service
-from app.features.users.model import User, UserCreate
+from app.features.users.model import User, UserCreate, VerifyAdminPassword
 from fastapi import APIRouter, Depends
 
 router = APIRouter(tags=['Users'])
 
 
 @router.post('/user', response_model=User, tags=['Users'])
-async def post_user(body: UserCreate, user_id: UUID, db=Depends(get_db)) -> User:
+async def post_user(body: UserCreate, user = Depends(get_current_user) ,db=Depends(get_db)) -> User:
     """
     Create/Sync User Profile + Resolve Role
     """
-    return await service.create_user(body, user_id, db)
+    print(f"User from router:{body.email,body.role}")
+    return await service.create_user(body,user, db)
 
 
 @router.get('/user/{id}', response_model=User, tags=['Users'])
@@ -28,3 +30,18 @@ async def get_user_id(id: UUID, db=Depends(get_db)) -> User:
     Get User By ID
     """
     return await service.get_user(id, db)
+
+
+#? To get role of user
+@router.get('/users/me')
+async def get_user_role(user  = Depends(get_current_user), db = Depends(get_db)):
+    print("From router:", user['id'])
+    return await service.check_user_role(user, db)
+
+
+#! Verify admin password
+@router.post('/admin/verification')
+async def admin_verification(request: VerifyAdminPassword) -> bool:
+    return await service.verify_admin(request.password)
+
+

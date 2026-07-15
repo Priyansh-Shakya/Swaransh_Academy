@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
 import 'package:swaransh_academy/features/admission/presentation/admission_form_screen.dart';
 import 'package:swaransh_academy/features/admission/presentation/admission_payment_screen.dart';
 import 'package:swaransh_academy/features/admission/presentation/admission_success_screen.dart';
@@ -24,12 +25,25 @@ import '../../students/presentation/students_page.dart';
 import '../presentation/app_shell.dart';
 import '../presentation/chat_assistant_overlay.dart';
 
+
+// TODO: Admin AUth is not showing Password Screen ... Admission Funnel is breaking on Auth
+
 /// Branch order here MUST match kAllDestinations order in
 /// nav_destinations.dart - both drive index-based navigation off the same
 /// list. If you add/reorder a destination, mirror it here.
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/splash',
+    redirect: (context, state) {
+      final isSignedIn = ref.watch(isSignedInProvider);
+      final isOnAuth = state.matchedLocation == '/auth';
+      final isOnRoleSelect = state.matchedLocation == '/role-select';
+      final isOnSplash = state.matchedLocation == '/splash';
+
+      // Already signed in — skip role-select and auth screens
+      if (isSignedIn && (isOnRoleSelect || isOnAuth)) return '/home';
+      return null;
+    },
     routes: [
       GoRoute(path: '/splash', builder: (_, __) => const SplashPage()),
       StatefulShellRoute.indexedStack(

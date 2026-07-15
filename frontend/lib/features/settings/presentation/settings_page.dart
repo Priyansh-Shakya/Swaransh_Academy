@@ -15,7 +15,8 @@ class SettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final role = ref.watch(currentRoleProvider);
-    final isSignedIn = role != UserRole.guest;
+    final isSignedIn = ref.watch(isSignedInProvider);
+    final appUser = ref.watch(authProvider).valueOrNull;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -24,22 +25,16 @@ class SettingsPage extends ConsumerWidget {
         children: [
           // ---- Account section ----
           _SectionLabel('Account'),
-          if (isSignedIn)
-            _AccountTile(role: role)
-          else
+          if (isSignedIn) ...[
+            _AccountTile(role: role, email: appUser?.email ?? ''),
+          ] else
             _SettingsTile(
               icon: Icons.login,
               iconColor: AppColors.navy,
               title: 'Sign In',
               subtitle: 'Access your student profile or admin panel',
               onTap: () {
-                context.push(
-                  '/auth',
-                  extra: () {
-                    // After auth completes, resume the funnel
-                    context.push('/admission/terms');
-                  },
-                );
+                context.push('/auth');
               },
             ),
 
@@ -113,8 +108,6 @@ class SettingsPage extends ConsumerWidget {
                 label: const Text('Sign Out'),
               ),
             ),
-
-          const SizedBox(height: AppSpacing.xxl),
         ],
       ),
     );
@@ -165,8 +158,9 @@ class SettingsPage extends ConsumerWidget {
 // ---- Account tile (signed-in state) ----
 
 class _AccountTile extends StatelessWidget {
-  const _AccountTile({required this.role});
+  const _AccountTile({required this.role ,required this.email});
   final UserRole role;
+  final String email;
 
   @override
   Widget build(BuildContext context) {
@@ -192,11 +186,11 @@ class _AccountTile extends StatelessWidget {
         'Signed in as $label',
         style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
       ),
+      
       subtitle: Text(
-        // TODO: replace with real email from Supabase session
-        'user@gmail.com',
-        style: AppTypography.bodySmall,
-      ),
+  email,
+  style: AppTypography.bodySmall,
+),
     );
   }
 }

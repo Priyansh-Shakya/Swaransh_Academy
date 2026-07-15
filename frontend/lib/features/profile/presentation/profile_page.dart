@@ -100,6 +100,7 @@ class _ProfileBody extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         StudentFieldsForm(
+                          isCreate: false,
                           controllers: controllers,
                           values: values,
                           editable: false,

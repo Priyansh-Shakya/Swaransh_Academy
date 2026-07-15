@@ -10,6 +10,7 @@ from pydantic import AnyUrl, BaseModel, EmailStr
 
 class UserProfile(BaseModel):
     """User profile with basic info"""
+    id: int  #! changed NEED TO CHECK
     user_id: UUID
     user_name: Optional[str] = None
     email: Optional[EmailStr] = None

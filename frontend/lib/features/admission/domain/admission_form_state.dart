@@ -96,7 +96,8 @@ class AdmissionFormState {
       fatherName: fatherName ?? this.fatherName,
       dob: dob ?? this.dob,
       gender: gender ?? this.gender,
-      educationQualification: educationQualification ?? this.educationQualification,
+      educationQualification:
+          educationQualification ?? this.educationQualification,
       contact: contact ?? this.contact,
       email: email ?? this.email,
       address: address ?? this.address,
@@ -112,4 +113,26 @@ class AdmissionFormState {
   }
 
   bool get isEmpty => name.isEmpty && contact.isEmpty && email.isEmpty;
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'father_name': fatherName,
+    'dob': dob.isEmpty ? null : dob,
+    'gender': gender,
+    'education_qualification': educationQualification,
+    'contact': contact,
+    'email': email,
+    'address': address,
+    'religion': religion.isEmpty ? null : religion,
+    'caste': caste.isEmpty ? null : caste,
+    'department': department,
+    'subject': subject,
+    'admission_type': admissionType,
+    'learning_mode': learningMode,
+    'batch': batch,
+    'start_time': startTime,
+    'end_time': endTime,
+    'fees': fees,
+    'fee_type': feeType,
+  };
 }

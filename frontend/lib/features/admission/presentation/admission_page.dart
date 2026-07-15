@@ -81,7 +81,7 @@ class AdmissionPage extends ConsumerWidget {
                         if (prefill != null) {
                           ref
                               .read(admissionFormProvider.notifier)
-                              .prefill(prefill.department, prefill.subject);
+                              .prefill(prefill.department, prefill.subject, prefill.fees );
                           ref.read(admissionPrefillProvider.notifier).clear();
                         }
                         context.push('/admission/form');

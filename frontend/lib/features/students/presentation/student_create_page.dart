@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/features/students/data/students_notifier.dart';
 import 'package:swaransh_academy/features/students/domain/student.dart';
+
 import '../../../../../Core/theme/app_colors.dart';
 import '../../../../../Core/theme/app_spacing.dart';
 import '../../../../../Core/widgets/student_fields_form.dart';
-
 
 class StudentCreatePage extends ConsumerStatefulWidget {
   const StudentCreatePage({super.key});
@@ -56,8 +56,7 @@ class _StudentCreatePageState extends ConsumerState<StudentCreatePage> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
 
-    final draft = Student(
-      id: 0, // ignored by notifier
+    final draft = CreateStudent(
       name: _controllers['name']!.text.trim(),
       admissionType: _dropdowns['admissionType'] ?? 'Regular',
       learningMode: _dropdowns['learningMode'] ?? 'Offline',
@@ -69,27 +68,30 @@ class _StudentCreatePageState extends ConsumerState<StudentCreatePage> {
       status: 'active',
       fatherName: _controllers['fatherName']!.text.trim(),
       dob: _controllers['dob']!.text.trim(),
-      gender: _dropdowns['gender'],
-      educationQualification: _dropdowns['educationQualification'],
+      gender: _dropdowns['gender']!,
+      educationQualification: _dropdowns['educationQualification']!,
       contact: _controllers['contact']!.text.trim(),
       email: _controllers['email']!.text.trim(),
       address: _controllers['address']!.text.trim(),
-      scholarNo: _controllers['scholarNo']!.text.trim(),
       dateOfJoining: _controllers['dateOfJoining']!.text.trim(),
-      fees: double.tryParse(_controllers['fees']!.text.trim()),
-      feeType: _dropdowns['feeType'],
+      fees: double.tryParse(_controllers['fees']!.text.trim())!,
+      feeType: _dropdowns['feeType']!,
       religion: _controllers['religion']!.text.trim(),
       caste: _controllers['caste']!.text.trim(),
     );
 
+    debugPrint("Create Student Object: ${draft.toJson()}");
     try {
       await ref.read(studentsProvider.notifier).addStudent(draft);
       if (mounted) context.pop();
-    } catch (_) {
+    } catch (e) {
+      debugPrint("Error creating student: $e");
       if (mounted) {
         setState(() => _saving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to add student — please try again')),
+          const SnackBar(
+            content: Text('Failed to add student — please try again'),
+          ),
         );
       }
     }
@@ -107,7 +109,10 @@ class _StudentCreatePageState extends ConsumerState<StudentCreatePage> {
                   child: SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.gold,
+                    ),
                   ),
                 )
               : TextButton(
@@ -123,6 +128,7 @@ class _StudentCreatePageState extends ConsumerState<StudentCreatePage> {
           child: Column(
             children: [
               StudentFieldsForm(
+                isCreate: true,
                 controllers: _controllers,
                 values: _dropdowns,
                 editable: true,

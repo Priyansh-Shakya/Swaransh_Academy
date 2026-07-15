@@ -6,7 +6,7 @@
 /// decides whether it shows, not two parallel model classes).
 class Student {
   const Student({
-    required this.id,
+    this.id,
     required this.name,
     required this.admissionType,
     required this.learningMode,
@@ -35,7 +35,7 @@ class Student {
   });
 
   // ---- StudentBasic fields (always present) ----
-  final int id;
+  final int? id;
   final String name;
   final String admissionType;
   final String learningMode;
@@ -111,7 +111,8 @@ class Student {
       dob: dob ?? this.dob,
       fatherName: fatherName ?? this.fatherName,
       gender: gender ?? this.gender,
-      educationQualification: educationQualification ?? this.educationQualification,
+      educationQualification:
+          educationQualification ?? this.educationQualification,
       contact: contact ?? this.contact,
       email: email ?? this.email,
       address: address ?? this.address,
@@ -126,60 +127,180 @@ class Student {
   }
 
   factory Student.fromJson(Map<String, dynamic> json) => Student(
-        id: json['id'] as int,
-        name: json['name'] as String,
-        admissionType: json['admission_type'] as String,
-        learningMode: json['learning_mode'] as String,
-        department: json['department'] as String,
-        batch: json['batch'] as String,
-        startTime: json['start_time'] as String,
-        endTime: json['end_time'] as String,
-        subject: json['subject'] as String,
-        userId: json['user_id'] as String?,
-        imageUrl: json['image_url'] as String?,
-        status: json['status'] as String?,
-        dob: json['dob'] as String?,
-        fatherName: json['father_name'] as String?,
-        gender: json['gender'] as String?,
-        educationQualification: json['education_qualification'] as String?,
-        contact: json['contact'] as String?,
-        email: json['email'] as String?,
-        address: json['address'] as String?,
-        religion: json['religion'] as String?,
-        caste: json['caste'] as String?,
-        scholarNo: json['scholar_no'] as String?,
-        dateOfJoining: json['date_of_joining'] as String?,
-        fees: (json['fees'] as num?)?.toDouble(),
-        feeType: json['fee_type'] as String?,
-        feePaidTill: json['fee_paid_till'] as String?,
-      );
+    id: json['id'] as int?,
+    name: json['name'] as String,
+    admissionType: json['admission_type'] as String,
+    learningMode: json['learning_mode'] as String,
+    department: json['department'] as String,
+    batch: json['batch'] as String,
+    startTime: json['start_time'] as String,
+    endTime: json['end_time'] as String,
+    subject: json['subject'] as String,
+    userId: json['user_id'] as String?,
+    imageUrl: json['image_url'] as String?,
+    status: json['status'] as String?,
+    dob: json['dob'] as String?,
+    fatherName: json['father_name'] as String?,
+    gender: json['gender'] as String?,
+    educationQualification: json['education_qualification'] as String?,
+    contact: json['contact'] as String?,
+    email: json['email'] as String?,
+    address: json['address'] as String?,
+    religion: json['religion'] as String?,
+    caste: json['caste'] as String?,
+    scholarNo: json['scholar_no'] as String?,
+    dateOfJoining: json['date_of_joining'] as String?,
+    fees: (json['fees'] as num?)?.toDouble(),
+    feeType: json['fee_type'] as String?,
+    feePaidTill: json['fee_paid_till'] as String?,
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'admission_type': admissionType,
-        'learning_mode': learningMode,
-        'department': department,
-        'batch': batch,
-        'start_time': startTime,
-        'end_time': endTime,
-        'subject': subject,
-        'user_id': userId,
-        'image_url': imageUrl,
-        'status': status,
-        'dob': dob,
-        'father_name': fatherName,
-        'gender': gender,
-        'education_qualification': educationQualification,
-        'contact': contact,
-        'email': email,
-        'address': address,
-        'religion': religion,
-        'caste': caste,
-        'scholar_no': scholarNo,
-        'date_of_joining': dateOfJoining,
-        'fees': fees,
-        'fee_type': feeType,
-        'fee_paid_till': feePaidTill,
-      };
+    'id': id,
+    'name': name,
+    'admission_type': admissionType,
+    'learning_mode': learningMode,
+    'department': department,
+    'batch': batch,
+    'start_time': startTime,
+    'end_time': endTime,
+    'subject': subject,
+    'user_id': userId,
+    'image_url': imageUrl,
+    'status': status,
+    'dob': dob,
+    'father_name': fatherName,
+    'gender': gender,
+    'education_qualification': educationQualification,
+    'contact': contact,
+    'email': email,
+    'address': address,
+    'religion': religion,
+    'caste': caste,
+    'scholar_no': scholarNo,
+    'date_of_joining': dateOfJoining,
+    'fees': fees,
+    'fee_type': feeType,
+    'fee_paid_till': feePaidTill,
+  };
+
+  @override
+  String toString() {
+    return "Student(id:$id , name:$name , admissionType:$admissionType , learningMode:$learningMode , department:$department , batch:$batch , startTime:$startTime , endTime:$endTime , subject:$subject , userId:$userId , imageUrl:$imageUrl , status:$status , dob:$dob , fatherName:$fatherName , gender:$gender , educationQualification:$educationQualification , contact:$contact)";
+  }
+}
+
+//! --------------- Write Model -----------------------------------
+
+class CreateStudent {
+  const CreateStudent({
+    required this.name,
+    required this.admissionType,
+    required this.learningMode,
+    required this.department,
+    required this.batch,
+    required this.startTime,
+    required this.endTime,
+    required this.subject,
+    required this.status,
+    required this.dob,
+    required this.fatherName,
+    required this.gender,
+    required this.educationQualification,
+    required this.email,
+    required this.address,
+    required this.dateOfJoining,
+    required this.fees,
+    required this.feeType,
+    this.userId,
+    this.imageUrl,
+    this.contact,
+    this.religion,
+    this.caste,
+    this.feePaidTill,
+  });
+
+  final String name;
+  final String admissionType;
+  final String learningMode;
+  final String department;
+  final String batch;
+  final String startTime;
+  final String endTime;
+  final String subject;
+
+  final String? userId;
+  final String? imageUrl;
+  final String status;
+  final String dob;
+  final String fatherName;
+  final String gender;
+  final String educationQualification;
+  final String? contact;
+  final String email;
+  final String address;
+  final String? religion;
+  final String? caste;
+  final String dateOfJoining;
+  final double fees;
+  final String feeType;
+  final String? feePaidTill;
+
+  factory CreateStudent.fromJson(Map<String, dynamic> json) {
+    return CreateStudent(
+      name: json['name'] as String,
+      admissionType: json['admission_type'] as String,
+      learningMode: json['learning_mode'] as String,
+      department: json['department'] as String,
+      batch: json['batch'] as String,
+      startTime: json['start_time'] as String,
+      endTime: json['end_time'] as String,
+      subject: json['subject'] as String,
+      userId: json['user_id'] as String?,
+      imageUrl: json['image_url'] as String?,
+      status: json['status'] as String,
+      dob: json['dob'] as String,
+      fatherName: json['father_name'] as String,
+      gender: json['gender'] as String,
+      educationQualification: json['education_qualification'] as String,
+      contact: json['contact'] as String?,
+      email: json['email'] as String,
+      address: json['address'] as String,
+      religion: json['religion'] as String?,
+      caste: json['caste'] as String?,
+      dateOfJoining: json['date_of_joining'] as String,
+      fees: (json['fees'] as num).toDouble(),
+      feeType: json['fee_type'] as String,
+      feePaidTill: json['fee_paid_till'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'admission_type': admissionType,
+      'learning_mode': learningMode,
+      'department': department,
+      'batch': batch,
+      'start_time': startTime,
+      'end_time': endTime,
+      'subject': subject,
+      'user_id': userId,
+      'image_url': imageUrl,
+      'status': status,
+      'dob': dob,
+      'father_name': fatherName,
+      'gender': gender,
+      'education_qualification': educationQualification,
+      'contact': contact,
+      'email': email,
+      'address': address,
+      'religion': religion,
+      'caste': caste,
+      'date_of_joining': dateOfJoining,
+      'fees': fees,
+      'fee_type': feeType,
+      'fee_paid_till': feePaidTill,
+    };
+  }
 }

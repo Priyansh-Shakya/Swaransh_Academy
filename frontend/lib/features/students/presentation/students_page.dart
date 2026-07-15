@@ -45,6 +45,8 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
   }
 
   void _onTap(BuildContext context, Student student, UserRole role) {
+    debugPrint("Student ID: ${student.id}");
+    debugPrint("Navigating to Students Details...\n${student.toJson()}");
     if (role == UserRole.admin) {
       context.push('/students/${student.id}');
     } else {

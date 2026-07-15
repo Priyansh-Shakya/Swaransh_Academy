@@ -1,30 +1,62 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+import 'package:swaransh_academy/features/auth/data/users_api_service.dart';
+import 'package:swaransh_academy/features/auth/domain/user.dart' as model;
 
 import 'auth_user.dart';
 import 'user_role.dart';
 
-final _supabase = Supabase.instance.client;
+final _supabase = supabase.Supabase.instance.client;
 
-/// Single source of truth for identity + role across the whole app.
-/// Replaces the manual RoleNotifier stub.
-///
-/// On sign-in, calls POST /user (your FastAPI backend) which resolves the
-/// role server-side (admin pre-provisioned, student matched by email) and
-/// returns it. Never trust a client-supplied role claim.
-class AuthNotifier extends AsyncNotifier<Auth_User> {
+/// Set to a UserRole to bypass Supabase entirely during development.
+/// Set to null to use real Supabase auth. Remove before production.
+const UserRole? kDebugRole = null;
+
+//! ADMIN Only Role Provider
+final isAdminRoleProvider = StateProvider<UserRole>((ref) => UserRole.guest);
+
+class AuthNotifier extends AsyncNotifier<AppUser> {
+  // In AuthNotifier, add a field:
+
   @override
-  Future<Auth_User> build() async {
-    // Listen to Supabase session changes (token refresh, sign-out etc.)
-    // and rebuild the provider automatically.
-    ref.listenSelf((_, __) {});
-    _supabase.auth.onAuthStateChange.listen((_) {
-      ref.invalidateSelf();
-    });
+  Future<AppUser> build() async {
+    if (kDebugRole != null) {
+      debugPrint('[Auth] DEBUG override: $kDebugRole');
+      return AppUser.debugUser(kDebugRole!);
+    }
 
+    // Update state directly from stream events — never call invalidateSelf()
+    // inside the listener, that re-runs build() and causes an infinite loop.
+    final subscription = _supabase.auth.onAuthStateChange.listen((event) async {
+      debugPrint(
+        "Handling AUTH ... From subscription function: $handlingAdminVerification",
+      );
+      if (handlingAdminVerification) {
+        //? for admin purpose. ...
+        debugPrint(
+          '[Auth] Skipping state update — admin verification in progress',
+        );
+        return;
+      }
+      if (event.event == supabase.AuthChangeEvent.signedIn)
+        return; // handled explicitly
+      debugPrint('[Auth] Event: ${event.event}');
+      final user = event.session?.user;
+      if (user == null) {
+        state = const AsyncValue.data(AppUser.guest);
+      } else {
+        state = AsyncValue.data(await _resolveUser(user));
+      }
+    });
+    ref.onDispose(subscription.cancel);
+
+    // Initial state on cold start
     final session = _supabase.auth.currentSession;
-    if (session == null) return Auth_User.guest;
+    if (session == null) return AppUser.guest;
     return _resolveUser(session.user);
   }
 
@@ -47,9 +79,10 @@ class AuthNotifier extends AsyncNotifier<Auth_User> {
 
   Future<void> signUpWithEmail(
     String email,
-    String password, {
+    String password, 
     String? displayName,
-  }) async {
+    String? role,
+  ) async {
     state = const AsyncValue.loading();
     try {
       final response = await _supabase.auth.signUp(
@@ -57,6 +90,11 @@ class AuthNotifier extends AsyncNotifier<Auth_User> {
         password: password,
         data: displayName != null ? {'display_name': displayName} : null,
       );
+
+      //* CREATE USER ...
+      final user = model.User(email: email, userName: displayName, role: role);
+      await ref.read(usersApiServiceProvider).createUser(user);
+
       if (response.user == null) throw Exception('Sign-up failed');
       state = AsyncValue.data(await _resolveUser(response.user!));
     } catch (e, st) {
@@ -68,21 +106,14 @@ class AuthNotifier extends AsyncNotifier<Auth_User> {
   Future<void> signInWithGoogle() async {
     state = const AsyncValue.loading();
     try {
-      // Web/desktop - uses Supabase OAuth redirect flow.
-      // Android - uses google_sign_in package for native experience.
-      final isNative = _isAndroid();
-
-      if (isNative) {
+      if (_isAndroid()) {
         await _nativeGoogleSignIn();
       } else {
         await _supabase.auth.signInWithOAuth(
-          OAuthProvider.google,
+          supabase.OAuthProvider.google,
           redirectTo: 'io.supabase.swaranshacademy://login-callback',
         );
       }
-      // Session is picked up by the onAuthStateChange listener above,
-      // which invalidates this provider. No explicit state update needed here
-      // for the OAuth redirect flow; for native it completes synchronously.
     } catch (e, st) {
       state = AsyncValue.error(_friendlyError(e), st);
       rethrow;
@@ -90,46 +121,51 @@ class AuthNotifier extends AsyncNotifier<Auth_User> {
   }
 
   Future<void> signOut() async {
+    ref.invalidate(isAdminRoleProvider);
     await _supabase.auth.signOut();
-    state = const AsyncValue.data(Auth_User.guest);
+    state = const AsyncValue.data(AppUser.guest);
   }
 
-  // ---- Private helpers ----
+  // ---- Role resolution ----
 
-  Future<Auth_User> _resolveUser(User supabaseUser) async {
-    // Call your FastAPI POST /user endpoint which:
-    // 1. Creates/syncs the users table row
-    // 2. Resolves role (admin pre-provisioned, student matched by email)
-    // 3. Returns the User row including role
-    //
-    // TODO: replace with real Dio call once backend is ready.
-    // For now, returns a mock role so the rest of the app is testable.
-    final mockRole = _mockResolveRole(supabaseUser.email ?? '');
+  Future<AppUser> _resolveUser(supabase.User user) async {
+    //? Send query ro users table to check role.
+    final isAdmin = ref.read(isAdminRoleProvider);
+    if (isAdmin == UserRole.admin) {
+      debugPrint("Switching to ADMIN MODE via adminRoleProvider");
+      return _makeUser(user, UserRole.admin);
+    }
+    debugPrint("User in resolve user: ${user.toJson()}");
+    try {
+      final role = await ref.read(usersApiServiceProvider).checkRole();
 
-    return Auth_User(
-      supabaseUser: supabaseUser,
-      role: mockRole,
-      displayName:
-          supabaseUser.userMetadata?['full_name'] as String? ??
-          supabaseUser.userMetadata?['display_name'] as String?,
-      avatarUrl: supabaseUser.userMetadata?['avatar_url'] as String?,
-    );
+      if (role == null) {
+        debugPrint('[Auth] ${user.email} → no users row found → guest');
+        return _makeUser(user, UserRole.guest);
+      }
+
+      debugPrint("Role fetched from DB: ${role.name}"); // admin
+
+      return _makeUser(user, role);
+    } catch (e) {
+      debugPrint('[Auth] users table query failed: $e → guest');
+      return _makeUser(user, UserRole.guest);
+    }
   }
 
-  /// MOCK role resolution. Replace with real API call:
-  /// ```
-  /// final dio = ref.read(dioProvider);
-  /// final res = await dio.post('/user', data: {'email': email, 'fcm_token': null});
-  /// return UserRole.values.byName(res.data['role']);
-  /// ```
-  UserRole _mockResolveRole(String email) {
-    if (email.contains('admin')) return UserRole.admin;
-    return UserRole.student;
-  }
+  AppUser _makeUser(supabase.User user, UserRole role) => AppUser(
+    supabaseUser: user,
+    role: role,
+    displayName:
+        user.userMetadata?['full_name'] as String? ??
+        user.userMetadata?['display_name'] as String?,
+    avatarUrl: user.userMetadata?['avatar_url'] as String?,
+  );
 
   Future<void> _nativeGoogleSignIn() async {
-    const webClientId =
-        'YOUR_GOOGLE_WEB_CLIENT_ID'; // set in .env or here directly
+    // Web Client ID from Google Cloud Console — same one configured in
+    // Supabase Auth → Providers → Google.
+    const webClientId = 'YOUR_GOOGLE_WEB_CLIENT_ID';
     final googleSignIn = GoogleSignIn(serverClientId: webClientId);
     final googleUser = await googleSignIn.signIn();
     if (googleUser == null) throw Exception('Google sign-in cancelled');
@@ -140,27 +176,26 @@ class AuthNotifier extends AsyncNotifier<Auth_User> {
     }
 
     final response = await _supabase.auth.signInWithIdToken(
-      provider: OAuthProvider.google,
+      provider: supabase.OAuthProvider.google,
       idToken: googleAuth.idToken!,
       accessToken: googleAuth.accessToken,
     );
-
     if (response.user != null) {
       state = AsyncValue.data(await _resolveUser(response.user!));
     }
   }
 
   bool _isAndroid() {
+    if (kIsWeb) return false;
     try {
-      // Platform check without dart:io import issues on web
-      return identical(0, 0.0) == false; // always false, triggers dart:io check
+      return Platform.isAndroid;
     } catch (_) {
       return false;
     }
   }
 
   String _friendlyError(Object e) {
-    if (e is AuthException) {
+    if (e is supabase.AuthException) {
       return switch (e.message.toLowerCase()) {
         String m when m.contains('invalid login') =>
           'Incorrect email or password.',
@@ -175,20 +210,27 @@ class AuthNotifier extends AsyncNotifier<Auth_User> {
     }
     return e.toString();
   }
+
+  Future<void> refreshRole() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+    state = AsyncValue.data(await _resolveUser(user));
+  }
+
+  // In AuthNotifier, add a field:
+  bool handlingAdminVerification = false;
+  bool handlingSignUp = false;
 }
 
-final authProvider = AsyncNotifierProvider<AuthNotifier, Auth_User>(
+final authProvider = AsyncNotifierProvider<AuthNotifier, AppUser>(
   AuthNotifier.new,
 );
 
-/// Replaces the old manual `currentRoleProvider` stub.
-/// Every feature that previously used `currentRoleProvider` continues to work
-/// with no changes — only this file changed.
 final currentRoleProvider = Provider<UserRole>((ref) {
   return ref.watch(authProvider).valueOrNull?.role ?? UserRole.guest;
 });
 
-/// Convenience: true when Supabase session exists (any role except guest).
+// To (session-based — CORRECT):
 final isSignedInProvider = Provider<bool>((ref) {
-  return ref.watch(currentRoleProvider) != UserRole.guest;
+  return ref.watch(authProvider).valueOrNull?.isAuthenticated ?? false;
 });

@@ -69,7 +69,7 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
   }
 
   Student _buildUpdated(Student original) {
-    return original.copyWith(
+    final updated = original.copyWith(
       name: _controllers['name']!.text.trim(),
       fatherName: _controllers['fatherName']!.text.trim(),
       dob: _controllers['dob']!.text.trim(),
@@ -92,6 +92,10 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
       batch: _dropdowns['batch'] ?? original.batch,
       feeType: _dropdowns['feeType'],
     );
+    debugPrint(
+      "Updated Student Model , Details page (_buildUpdate function): $updated",
+    );
+    return updated;
   }
 
   Future<void> _save(Student original) async {
@@ -109,8 +113,9 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
           context,
         ).showSnackBar(const SnackBar(content: Text('Saved')));
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
+        debugPrint("From Student Details Page (_save FUNCTION): $e");
         setState(() => _saving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to save — changes reverted')),
@@ -143,7 +148,9 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
     if (confirmed != true || !mounted) return;
 
     try {
-      await ref.read(studentsProvider.notifier).deleteStudent(student.id);
+      await ref
+          .read(studentsProvider.notifier)
+          .deleteStudent(student.id!); //! Forced not-null
       if (mounted) context.pop();
     } catch (_) {
       if (mounted) {
@@ -248,6 +255,7 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
                 const SizedBox(height: AppSpacing.xl),
                 // Main form widget (shared with Profile + Admission)
                 StudentFieldsForm(
+                  isCreate: false,
                   controllers: _controllers,
                   values: _dropdowns,
                   editable: _editing,

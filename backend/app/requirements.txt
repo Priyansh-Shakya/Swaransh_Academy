@@ -3,3 +3,5 @@ fastapi
 python-dotenv
 pydantic[email]
 asyncpg
+httpx
+python-jose

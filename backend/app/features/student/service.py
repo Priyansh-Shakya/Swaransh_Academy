@@ -8,7 +8,7 @@ from app.core.helper import convert_enums_to_values
 from app.features.student import model, repository
 
 
-async def create_student(student_data: dict, db) -> model.StudentFull:
+async def create_student(student_data: dict, db) -> model.StudentFullRead:
     """Create a new student record"""
     
     # Convert enums to values
@@ -41,10 +41,13 @@ async def create_student(student_data: dict, db) -> model.StudentFull:
         student_data.get('fees'),
         student_data.get('fee_type'),
         student_data.get('image_url'),
+        
+
     ]
-    
+    print(f"Create Student: {values}")
     row = await db.fetchrow(repository.create_student_query, *values)
-    return model.StudentFull(**dict(row))
+    print(f"Row:{row}")
+    return model.StudentFullRead(**dict(row))
 
 
 async def get_student(student_id: int, db) -> Union[model.StudentFull, model.StudentBasic]:
@@ -52,7 +55,7 @@ async def get_student(student_id: int, db) -> Union[model.StudentFull, model.Stu
     row = await db.fetchrow(repository.get_student_by_id_query, student_id)
     if not row:
         raise ValueError(f"Student {student_id} not found")
-    return model.StudentFull(**dict(row))
+    return model.StudentFullRead(**dict(row))
 
 
 async def update_student(student_id: int, student_update: model.StudentUpdate, db) -> model.StudentFull:
@@ -92,10 +95,11 @@ async def update_student(student_id: int, student_update: model.StudentUpdate, d
         data.get('fee_paid_till'),
         data.get('image_url'),
         student_id,  # Last parameter is the ID
+       
     ]
     
     row = await db.fetchrow(repository.update_student_query, *values)
-    return model.StudentFull(**dict(row))
+    return model.StudentFullRead(**dict(row))
 
 
 async def delete_student(student_id: int, db) -> None:
@@ -139,4 +143,12 @@ async def get_students_list(
         search,
     )
     
-    return [model.StudentFull(**dict(row)) for row in rows]
+    students =  [model.StudentFullRead(**dict(row)) for row in rows]
+    
+
+    print(type(students[0]))
+    print(students[0])
+    print(students[0].model_dump())
+
+
+    return students

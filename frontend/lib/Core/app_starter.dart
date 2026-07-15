@@ -13,9 +13,11 @@ class Bootstrap {
     // Supabase init
     await Supabase.initialize(
       url: dotenv.env['SUPABASE_URL'] ?? '',
-      anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
+      publishableKey: dotenv.env['SUPABASE_PUBLISHABLE_KEY'],
     );
-
+    debugPrint(
+      "Supabase initilized ... Project URL: ${dotenv.env['SUPABASE_URL']}",
+    );
     // Firebase init (when needed)
     // Dependency injection
     // Error handlers

@@ -8,61 +8,49 @@ from app.features.users import repository
 from app.features.users.model import User, UserCreate
 
 
-async def create_user(user_create: UserCreate, user_id: UUID, db) -> User:
+async def create_user(user_create: UserCreate, user,db) -> User:
     """
     Create or sync user profile and resolve role server-side.
     
     Role resolution logic:
-    1. Check if user_id exists in pre-provisioned admin list
+    1. Admin role will be determined by client side password verification...
     2. Check if email matches an existing student email
     3. Otherwise set role as guest
     """
-    
+    user_id = user['id']
     data = user_create.model_dump(mode='python')
+    data['user_id'] = user_id
     data = convert_enums_to_values(data)
     
     user_name = data.get('user_name')
     email = data.get('email')
     fcm_token = data.get('fcm_token')
+    role = data.get("role", UserRole.guest.value)
+    print(f"Role from service function: {role}")
     
-    # Default role is guest
-    role = UserRole.anon.value
     
-    # Check if email is pre-provisioned admin
-    admin_check = await db.fetchrow(
-        "SELECT * FROM users WHERE email = $1 AND role = 'admin'",
-        email
+    student_check = await db.fetchrow(
+        repository.get_student_by_email_query, email
     )
-    
-    if admin_check:
-        role = UserRole.admin.value
-    else:
-        # Check if email matches a student email
-        student_check = await db.fetchrow(
-            repository.get_student_by_email_query,
-            email
-        )
-        
-        if student_check:
-            # Link student to this user
-            await db.fetchrow(
-                repository.link_user_to_student_query,
-                user_id,
-                student_check['id']
-            )
-            role = UserRole.student.value
-    
-    # Create/update user profile
+    if student_check:
+        role = UserRole.student.value
+
+    # 2. Create the user row (NOW we have user_id)
     user_row = await db.fetchrow(
         repository.create_user_query,
-        user_id,
-        user_name,
-        role,
-        email,
-        fcm_token
+        user_id , user_name, email, fcm_token, role  # pass resolved role here
     )
-    
+
     user_dict = dict(user_row)
+
+    # 3. Link student AFTER user is created, using the new user_id
+    if role == UserRole.student.value and student_check:
+        await db.execute(
+            repository.link_user_to_student_query,
+            user_dict['user_id'],   # now available
+            student_check['id']
+        )
+
     return User(**user_dict)
 
 
@@ -93,3 +81,26 @@ async def update_fcm_token(user_id: UUID, fcm_token: str, db) -> User:
     
     user_dict = dict(user_row)
     return User(**user_dict)
+
+async def check_user_role(user, db):
+    user_id = user["id"]
+    print("user_id:", user_id)
+
+    row = await db.fetchrow(repository.check_role, user_id)
+    print("row:", row)
+
+    if row is None:
+        print("No row found!")
+        return None
+
+    dict_row = dict(row)
+    print(dict_row)
+
+    return User(**dict_row)
+
+#! THIS FUNCTION CHECKS IF USER HAS ENTERED "correct" Password FOR ADMIN Access.
+async def verify_admin(password: str) -> bool:
+    # TODO: Check from db or Ask claude the best design , maybe .env ...
+    #? For now , using test password.
+
+    return (password == "swaransh2024") 

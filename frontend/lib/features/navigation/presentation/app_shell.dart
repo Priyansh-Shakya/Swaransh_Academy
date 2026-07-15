@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
-import '../../../Core/auth/user_role.dart';
+
 import '../../../Core/theme/app_colors.dart';
 import 'nav_destinations.dart';
 
@@ -13,10 +13,7 @@ import 'nav_destinations.dart';
 const double kRailBreakpoint = 700;
 
 class AppShell extends ConsumerWidget {
-  const AppShell({
-    super.key,
-    required this.navigationShell,
-  });
+  const AppShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
@@ -33,8 +30,27 @@ class AppShell extends ConsumerWidget {
     // So we must map "tapped position in the visible list" back to its
     // real branch index - never pass the visible-list position straight
     // into goBranch, or a guest's tab taps will open the wrong screen.
-    final branchIndices = destinations.map((d) => kAllDestinations.indexOf(d)).toList();
-    final selectedVisibleIndex = branchIndices.indexOf(navigationShell.currentIndex);
+    final branchIndices = destinations
+        .map((d) => kAllDestinations.indexOf(d))
+        .toList();
+
+    // Replace the selectedVisibleIndex line with a safe fallback:
+    final selectedVisibleIndex = branchIndices.indexOf(
+      navigationShell.currentIndex,
+    );
+    // If current branch isn't visible for this role (e.g. role just changed),
+    // default to 0 so the nav bar never gets -1.
+    final safeIndex = selectedVisibleIndex < 0 ? 0 : selectedVisibleIndex;
+
+    //? Debugging Prints
+    // debugPrint(
+    //   'AppShell: role=$role, width=$width, useRail=$useRail, '
+    //   'selectedVisibleIndex=$selectedVisibleIndex, '
+    //   'branchIndices=$branchIndices',
+    // );
+    // debugPrint("selectedVisibleIndex = $selectedVisibleIndex");
+    // debugPrint("destinations.length = ${destinations.length}");
+    // debugPrint("destinations = $destinations");
 
     void onSelect(int visibleIndex) {
       final branchIndex = branchIndices[visibleIndex];
@@ -51,7 +67,7 @@ class AppShell extends ConsumerWidget {
         body: Row(
           children: [
             NavigationRail(
-              selectedIndex: selectedVisibleIndex,
+              selectedIndex: safeIndex,
               onDestinationSelected: onSelect,
               labelType: NavigationRailLabelType.all,
               backgroundColor: Colors.white,
@@ -79,7 +95,7 @@ class AppShell extends ConsumerWidget {
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: selectedVisibleIndex,
+        selectedIndex: safeIndex,
         onDestinationSelected: onSelect,
         destinations: destinations
             .map(
@@ -106,11 +122,8 @@ class _RailBrandMark extends StatelessWidget {
           'assets/app_logo.png',
           width: 40,
           height: 40,
-          errorBuilder: (_, __, ___) => const Icon(
-            Icons.music_note,
-            color: AppColors.gold,
-            size: 32,
-          ),
+          errorBuilder: (_, __, ___) =>
+              const Icon(Icons.music_note, color: AppColors.gold, size: 32),
         ),
       ],
     );
