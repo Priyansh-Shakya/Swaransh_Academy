@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
 
-import '../../../Core/auth/user_role.dart';
 import '../../../Core/theme/app_colors.dart';
 import '../../../Core/theme/app_spacing.dart';
 import '../../../Core/theme/app_typography.dart';
@@ -218,31 +217,33 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
 
     _saveToNotifier();
 
-    
-final isSignedIn = ref.read(isSignedInProvider);
-if (!isSignedIn) {
-  _showAuthWall();
-  return;
-}
+    final isSignedIn = ref.read(isSignedInProvider);
+    if (!isSignedIn) {
+      _showAuthWall();
+      return;
+    }
     context.push('/admission/terms');
   }
 
   // In admission_form_screen.dart, replace _showAuthWall():
   void _showAuthWall() {
-  showModalBottomSheet(
-    context: context,
-    backgroundColor: Colors.transparent,
-    builder: (_) => _AuthWallSheet(
-      onSignIn: () {
-        Navigator.pop(context);
-        final router = GoRouter.of(context); // capture before pop
-        router.push('/auth', extra: () {
-          router.push('/admission/terms');
-        });
-      },
-    ),
-  );
-}
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _AuthWallSheet(
+        onSignIn: () {
+          Navigator.pop(context);
+          final router = GoRouter.of(context); // capture before pop
+          router.push(
+            '/auth',
+            extra: () {
+              router.push('/admission/terms');
+            },
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

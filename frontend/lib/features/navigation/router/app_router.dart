@@ -1,5 +1,4 @@
-import 'dart:ui';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
@@ -25,8 +24,7 @@ import '../../students/presentation/students_page.dart';
 import '../presentation/app_shell.dart';
 import '../presentation/chat_assistant_overlay.dart';
 
-
-// TODO: Admin AUth is not showing Password Screen ... Admission Funnel is breaking on Auth
+// TODO:  Admission Funnel is breaking on Auth
 
 /// Branch order here MUST match kAllDestinations order in
 /// nav_destinations.dart - both drive index-based navigation off the same
@@ -34,16 +32,21 @@ import '../presentation/chat_assistant_overlay.dart';
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/splash',
-    redirect: (context, state) {
-      final isSignedIn = ref.watch(isSignedInProvider);
-      final isOnAuth = state.matchedLocation == '/auth';
-      final isOnRoleSelect = state.matchedLocation == '/role-select';
-      final isOnSplash = state.matchedLocation == '/splash';
+    // redirect: (context, state) {
+    //   debugPrint("Router Redirect Called");
+    //   final isSignedIn = ref.watch(isSignedInProvider);
+    //   final isOnAuth = state.matchedLocation == '/auth';
+    //   final isOnRoleSelect = state.matchedLocation == '/role-select';
 
-      // Already signed in — skip role-select and auth screens
-      if (isSignedIn && (isOnRoleSelect || isOnAuth)) return '/home';
-      return null;
-    },
+    //   debugPrint("Is signed in: $isSignedIn");
+    //   // Don't auto-redirect while AuthScreen is mid-flow (signup role write,
+    //   // refreshRole, admin verification, etc.) — it will navigate itself via onSuccess.
+    //   final authInProgress = ref.read(authProvider.notifier).authFlowInProgress;
+    //   if (authInProgress) return null;
+
+    //   if (isSignedIn && (isOnRoleSelect || isOnAuth)) return '/home';
+    //   return null;
+    // },
     routes: [
       GoRoute(path: '/splash', builder: (_, __) => const SplashPage()),
       StatefulShellRoute.indexedStack(

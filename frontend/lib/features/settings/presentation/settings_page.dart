@@ -18,6 +18,8 @@ class SettingsPage extends ConsumerWidget {
     final isSignedIn = ref.watch(isSignedInProvider);
     final appUser = ref.watch(authProvider).valueOrNull;
 
+    final currentRole = appUser?.role;
+    debugPrint("From Settings , Current Role: $currentRole");
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
@@ -40,6 +42,21 @@ class SettingsPage extends ConsumerWidget {
 
           const _Divider(),
 
+          //* Only visible if Role is Guest.
+          if (currentRole == UserRole.guest || currentRole == null) ...[
+            _SectionLabel('Change Role'),
+            _SettingsTile(
+              icon: Icons.manage_accounts,
+              iconColor: AppColors.navy,
+              title: 'Select Role',
+              subtitle: 'Change your role to (Guest , Student , Admin)',
+              onTap: () {
+                context.push('/role-select');
+              },
+            ),
+
+            const _Divider(),
+          ],
           // ---- Support & Info ----
           _SectionLabel('Support & Info'),
           _SettingsTile(
@@ -158,7 +175,7 @@ class SettingsPage extends ConsumerWidget {
 // ---- Account tile (signed-in state) ----
 
 class _AccountTile extends StatelessWidget {
-  const _AccountTile({required this.role ,required this.email});
+  const _AccountTile({required this.role, required this.email});
   final UserRole role;
   final String email;
 
@@ -186,11 +203,8 @@ class _AccountTile extends StatelessWidget {
         'Signed in as $label',
         style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
       ),
-      
-      subtitle: Text(
-  email,
-  style: AppTypography.bodySmall,
-),
+
+      subtitle: Text(email, style: AppTypography.bodySmall),
     );
   }
 }

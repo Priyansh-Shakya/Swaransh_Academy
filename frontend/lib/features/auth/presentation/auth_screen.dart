@@ -48,6 +48,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   Future<void> _submitEmail() async {
+    debugPrint(
+      "Name ${_nameCtrl.text} , email ${_emailCtrl.text} , pass ${_passwordCtrl.text}",
+    );
     if (!_formKey.currentState!.validate()) return;
     setState(() => _busy = true);
 
@@ -64,19 +67,22 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         return;
       }
     }
-
+    ref.read(authProvider.notifier).authFlowInProgress = true;
     try {
       if (_isSignUp) {
-        ref.read(authProvider.notifier).handlingSignUp =
-            true; //? so that resolve user does'nt fire.
+        //* First sign Up , then create user , then Resolve user ...
+
+        ref.read(authProvider.notifier).handlingSignUp = true;
+
         //* Manual Admin Switch
         if (selectedRole == UserRole.admin) {
           debugPrint("Manually Changing Role to ADMIN in AUTH Screen");
           ref.read(isAdminRoleProvider.notifier).state = UserRole.admin;
         }
 
-        // 1. Supabase auth first  (this function does both: 1st signup , 2nd create user before resolve_user)
-        final role = selectedRole?.name ?? 'student';
+        // 1. Supabase auth only
+        final role = selectedRole?.name ?? UserRole.guest.name;
+        debugPrint("Signing UP ...");
         await ref
             .read(authProvider.notifier)
             .signUpWithEmail(
@@ -87,23 +93,27 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             );
         if (!mounted) return;
 
+        debugPrint("Handling SignUp flow false");
+        await ref.read(authProvider.notifier).refreshRole();
+        // 3. Now resolve real role from DB
+        ref.read(authProvider.notifier).handlingSignUp = false;
         if (!mounted) return;
 
-        // 3. Re-resolve role now that users row exists
-        ref.read(authProvider.notifier).handlingSignUp = false;
-        await ref.read(authProvider.notifier).refreshRole();
         if (!mounted) return;
       } else {
-        // Sign-in: just auth, role comes from existing users row
+        // Sign-in
         await ref
             .read(authProvider.notifier)
             .signInWithEmail(_emailCtrl.text.trim(), _passwordCtrl.text);
         if (!mounted) return;
       }
 
+      // This always runs for both sign-in and sign-up
       ref.read(selectedRoleProvider.notifier).state = null;
-      _onSuccess();
+      _onSuccess(); // ← now guaranteed to be called
     } catch (e) {
+      debugPrint("ERROR: $e");
+      debugPrintStack();
       if (mounted) _showError(e.toString());
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -114,33 +124,35 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     setState(() => _busy = true);
     final selectedRole = ref.read(selectedRoleProvider);
     debugPrint("Selected ROLE: $selectedRole");
+
     if (selectedRole == UserRole.admin) {
-      ref.read(authProvider.notifier).handlingAdminVerification = true;
-      debugPrint("Admin Password Verification ...");
       final isVerified = await _handlePostAuth();
       debugPrint(
         "Verification result = ${isVerified ? "Successful" : "Failed"}",
       );
-      ref.read(authProvider.notifier).handlingAdminVerification = false;
 
-      //! If admin password verification FALSE -> return
       if (!isVerified) {
-        if (mounted) setState(() => _busy = false);
-        debugPrint("Admin Verification Failed");
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(
-              content: Text("Incorrect Password", textAlign: TextAlign.center),
-              backgroundColor: Color(0xFFC1473B),
-            ),
-          );
-
+        if (mounted) {
+          setState(() => _busy = false);
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              const SnackBar(
+                content: Text(
+                  "Incorrect Password",
+                  textAlign: TextAlign.center,
+                ),
+                backgroundColor: Color(0xFFC1473B),
+              ),
+            );
+        }
         return;
       }
     }
+
     try {
       await ref.read(authProvider.notifier).signInWithGoogle();
+      if (!mounted) return;
     } catch (e) {
       if (mounted) _showError(e.toString());
     } finally {
@@ -160,8 +172,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     ref.read(authProvider.notifier).handlingAdminVerification = false;
     debugPrint("Entered Password: $verified");
 
-    // Clear the selected role intent now that auth is done.
-    ref.read(selectedRoleProvider.notifier).state = null;
+    if (verified) {
+      // Only clear the selected role intent once admin auth actually succeeds.
+      ref.read(selectedRoleProvider.notifier).state = null;
+    }
 
     return verified;
     // Admin verified — role will be set by backend on POST /user call.
@@ -233,6 +247,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   void _onSuccess() {
+    debugPrint("onSuccess is null? ${widget.onSuccess == null}");
     if (widget.onSuccess != null) {
       widget.onSuccess!();
     } else {
@@ -540,399 +555,3 @@ class _Field extends StatelessWidget {
     );
   }
 }
-
-// import 'package:flutter/material.dart';
-// import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:go_router/go_router.dart';
-// import 'package:swaransh_academy/features/auth/data/users_api_service.dart';
-// import 'package:swaransh_academy/features/auth/domain/user.dart';
-
-// import '../../../Core/auth/auth_notifier.dart';
-// import '../../../Core/theme/app_colors.dart';
-// import '../../../Core/theme/app_spacing.dart';
-// import '../../../Core/theme/app_typography.dart';
-// import 'widgets/google_logo.dart';
-
-// /// Reusable auth screen — email+password (sign-in/sign-up toggle) + Google.
-// /// Shown when:
-// /// - User selects "Student" or "Admin" on the role-select screen.
-// /// - Guest taps "Sign In" in Settings.
-// /// - Guest tries to submit an admission form.
-// ///
-// /// [onSuccess] is called after successful auth so callers can decide
-// /// where to navigate next (role-select → home, auth wall → resume funnel).
-// class AuthScreen extends ConsumerStatefulWidget {
-//   const AuthScreen({super.key, this.onSuccess});
-
-//   /// Called after auth completes. Defaults to context.go('/home') if null.
-//   final VoidCallback? onSuccess;
-
-//   @override
-//   ConsumerState<AuthScreen> createState() => _AuthScreenState();
-// }
-
-// class _AuthScreenState extends ConsumerState<AuthScreen> {
-//   final _formKey = GlobalKey<FormState>();
-//   final _emailCtrl = TextEditingController();
-//   final _passwordCtrl = TextEditingController();
-//   final _nameCtrl = TextEditingController();
-
-//   bool _isSignUp = false;
-//   bool _obscurePassword = true;
-//   bool _busy = false;
-
-//   @override
-//   void dispose() {
-//     _emailCtrl.dispose();
-//     _passwordCtrl.dispose();
-//     _nameCtrl.dispose();
-//     super.dispose();
-//   }
-
-//   void _toggleMode() {
-//     setState(() {
-//       _isSignUp = !_isSignUp;
-//       _formKey.currentState?.reset();
-//     });
-//   }
-
-//   Future<void> _submitEmail() async {
-//     if (!_formKey.currentState!.validate()) return;
-//     setState(() => _busy = true);
-//     try {
-//       if (_isSignUp) {
-//         await ref
-//             .read(authProvider.notifier)
-//             .signUpWithEmail(
-//               _emailCtrl.text.trim(),
-//               _passwordCtrl.text,
-//               displayName: _nameCtrl.text.trim(),
-//             );
-
-//         //! CREATE USER API
-//         debugPrint("Creating User ...");
-//         debugPrint(
-//           "Email:${_emailCtrl.text.trim()} , UserName:${_nameCtrl.text.trim()}",
-//         );
-//         await ref
-//             .read(usersApiServiceProvider)
-//             .createUser(
-//               User(
-//                 email: _emailCtrl.text.trim(),
-//                 userName: _nameCtrl.text.trim(),
-//               ),
-//             );
-//         debugPrint("Created User From Auth Screen");
-
-//       } else {
-//         await ref
-//             .read(authProvider.notifier)
-//             .signInWithEmail(_emailCtrl.text.trim(), _passwordCtrl.text);
-//       }
-//       _onSuccess();
-//     } catch (e) {
-//       debugPrint("Auth Screen ERROR: $e");
-//       if (mounted) _showError(e.toString());
-//     } finally {
-//       if (mounted) setState(() => _busy = false);
-//     }
-//   }
-
-//   Future<void> _submitGoogle() async {
-//     setState(() => _busy = true);
-//     try {
-//       await ref.read(authProvider.notifier).signInWithGoogle();
-//       _onSuccess();
-//     } catch (e) {
-//       if (mounted) _showError(e.toString());
-//     } finally {
-//       if (mounted) setState(() => _busy = false);
-//     }
-//   }
-
-//   void _onSuccess() {
-//     if (widget.onSuccess != null) {
-//       widget.onSuccess!();
-//       debugPrint(widget.onSuccess.toString());
-//     } else {
-//       context.go('/home');
-//     }
-//   }
-
-//   void _showError(String message) {
-//     ScaffoldMessenger.of(context).showSnackBar(
-//       SnackBar(
-//         content: Text(message),
-//         backgroundColor: AppColors.error,
-//         behavior: SnackBarBehavior.floating,
-//       ),
-//     );
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: AppColors.ivory,
-//       body: SafeArea(
-//         child: SingleChildScrollView(
-//           padding: const EdgeInsets.all(AppSpacing.lg),
-//           child: Column(
-//             crossAxisAlignment: CrossAxisAlignment.start,
-//             children: [
-//               const SizedBox(height: AppSpacing.lg),
-
-//               // ---- Branding ----
-//               Center(
-//                 child: Column(
-//                   children: [
-//                     Image.asset(
-//                       'assets/app_logo.png',
-//                       width: 72,
-//                       height: 72,
-//                       errorBuilder: (_, __, ___) => const Icon(
-//                         Icons.music_note,
-//                         size: 56,
-//                         color: AppColors.gold,
-//                       ),
-//                     ),
-//                     const SizedBox(height: AppSpacing.md),
-//                     Text(
-//                       'Swaransh Academy',
-//                       style: AppTypography.headlineLarge,
-//                     ),
-//                     const SizedBox(height: 4),
-//                     Text(
-//                       _isSignUp ? 'Create your account' : 'Welcome back',
-//                       style: AppTypography.bodyMedium.copyWith(
-//                         color: AppColors.textSecondary,
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//               ),
-
-//               const SizedBox(height: AppSpacing.xxl),
-
-//               // ---- Form ----
-//               Form(
-//                 key: _formKey,
-//                 child: Column(
-//                   children: [
-//                     if (_isSignUp)
-//                       _Field(
-//                         controller: _nameCtrl,
-//                         label: 'Full Name',
-//                         icon: Icons.person_outline,
-//                         validator: (v) => (v == null || v.trim().isEmpty)
-//                             ? 'Please enter your name'
-//                             : null,
-//                       ),
-//                     if (_isSignUp) const SizedBox(height: AppSpacing.md),
-//                     _Field(
-//                       controller: _emailCtrl,
-//                       label: 'Email address',
-//                       icon: Icons.email_outlined,
-//                       keyboardType: TextInputType.emailAddress,
-//                       validator: (v) {
-//                         if (v == null || v.trim().isEmpty)
-//                           return 'Please enter your email';
-//                         if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(v))
-//                           return 'Enter a valid email';
-//                         return null;
-//                       },
-//                     ),
-//                     const SizedBox(height: AppSpacing.md),
-//                     _Field(
-//                       controller: _passwordCtrl,
-//                       label: 'Password',
-//                       icon: Icons.lock_outline,
-//                       obscureText: _obscurePassword,
-//                       suffix: IconButton(
-//                         icon: Icon(
-//                           _obscurePassword
-//                               ? Icons.visibility_outlined
-//                               : Icons.visibility_off_outlined,
-//                           color: AppColors.textSecondary,
-//                           size: 20,
-//                         ),
-//                         onPressed: () => setState(
-//                           () => _obscurePassword = !_obscurePassword,
-//                         ),
-//                       ),
-//                       validator: (v) {
-//                         if (v == null || v.isEmpty)
-//                           return 'Please enter a password';
-//                         if (_isSignUp && v.length < 6)
-//                           return 'Password must be at least 6 characters';
-//                         return null;
-//                       },
-//                     ),
-//                     const SizedBox(height: AppSpacing.xl),
-
-//                     // ---- Email submit button ----
-//                     SizedBox(
-//                       width: double.infinity,
-//                       child: FilledButton(
-//                         onPressed: _busy ? null : _submitEmail,
-//                         child: _busy
-//                             ? const SizedBox(
-//                                 height: 18,
-//                                 width: 18,
-//                                 child: CircularProgressIndicator(
-//                                   strokeWidth: 2,
-//                                   color: Colors.white,
-//                                 ),
-//                               )
-//                             : Padding(
-//                                 padding: const EdgeInsets.symmetric(
-//                                   vertical: AppSpacing.xs,
-//                                 ),
-//                                 child: Text(
-//                                   _isSignUp ? 'Create Account' : 'Sign In',
-//                                 ),
-//                               ),
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//               ),
-
-//               const SizedBox(height: AppSpacing.lg),
-
-//               // ---- Divider ----
-//               Row(
-//                 children: [
-//                   const Expanded(child: Divider()),
-//                   Padding(
-//                     padding: const EdgeInsets.symmetric(
-//                       horizontal: AppSpacing.md,
-//                     ),
-//                     child: Text(
-//                       'or',
-//                       style: AppTypography.bodySmall.copyWith(
-//                         color: AppColors.textSecondary,
-//                       ),
-//                     ),
-//                   ),
-//                   const Expanded(child: Divider()),
-//                 ],
-//               ),
-
-//               const SizedBox(height: AppSpacing.lg),
-
-//               // ---- Google sign-in ----
-//               SizedBox(
-//                 width: double.infinity,
-//                 child: OutlinedButton(
-//                   onPressed: _busy ? null : _submitGoogle,
-//                   style: OutlinedButton.styleFrom(
-//                     backgroundColor: Colors.white,
-//                     side: const BorderSide(color: AppColors.divider),
-//                     padding: const EdgeInsets.symmetric(
-//                       vertical: AppSpacing.md,
-//                     ),
-//                   ),
-//                   child: Row(
-//                     mainAxisAlignment: MainAxisAlignment.center,
-//                     children: [
-//                       const GoogleLogo(size: 20),
-//                       const SizedBox(width: AppSpacing.sm),
-//                       Text(
-//                         'Continue with Google',
-//                         style: AppTypography.button.copyWith(
-//                           color: AppColors.textPrimary,
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-//                 ),
-//               ),
-
-//               const SizedBox(height: AppSpacing.xl),
-
-//               // ---- Toggle sign-in / sign-up ----
-//               Center(
-//                 child: Row(
-//                   mainAxisSize: MainAxisSize.min,
-//                   children: [
-//                     Text(
-//                       _isSignUp
-//                           ? 'Already have an account? '
-//                           : "Don't have an account? ",
-//                       style: AppTypography.bodySmall,
-//                     ),
-//                     GestureDetector(
-//                       onTap: _toggleMode,
-//                       child: Text(
-//                         _isSignUp ? 'Sign In' : 'Sign Up',
-//                         style: AppTypography.bodySmall.copyWith(
-//                           color: AppColors.gold,
-//                           fontWeight: FontWeight.w700,
-//                         ),
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//               ),
-
-//               const SizedBox(height: AppSpacing.md),
-
-//               // ---- Back / cancel ----
-//               Center(
-//                 child: TextButton(
-//                   onPressed: () =>
-//                       context.canPop() ? context.pop() : context.go('/home'),
-//                   child: Text(
-//                     'Continue as Guest',
-//                     style: AppTypography.bodySmall.copyWith(
-//                       color: AppColors.textSecondary,
-//                     ),
-//                   ),
-//                 ),
-//               ),
-
-//               const SizedBox(height: AppSpacing.xxl),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-// // ---- Shared form field widget ----
-
-// class _Field extends StatelessWidget {
-//   const _Field({
-//     required this.controller,
-//     required this.label,
-//     required this.icon,
-//     this.keyboardType,
-//     this.obscureText = false,
-//     this.suffix,
-//     this.validator,
-//   });
-
-//   final TextEditingController controller;
-//   final String label;
-//   final IconData icon;
-//   final TextInputType? keyboardType;
-//   final bool obscureText;
-//   final Widget? suffix;
-//   final String? Function(String?)? validator;
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return TextFormField(
-//       controller: controller,
-//       keyboardType: keyboardType,
-//       obscureText: obscureText,
-//       validator: validator,
-//       decoration: InputDecoration(
-//         labelText: label,
-//         prefixIcon: Icon(icon, size: 20, color: AppColors.textSecondary),
-//         suffixIcon: suffix,
-//       ),
-//     );
-//   }
-// }

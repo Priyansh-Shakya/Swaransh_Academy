@@ -1,6 +1,7 @@
 """Service for Student operations"""
 
 from datetime import date
+from http.client import HTTPException
 from typing import List, Optional, Union
 
 from app.core import enums
@@ -47,6 +48,24 @@ async def create_student(student_data: dict, db) -> model.StudentFullRead:
     print(f"Create Student: {values}")
     row = await db.fetchrow(repository.create_student_query, *values)
     print(f"Row:{row}")
+
+    if student_data['email']:
+        user = await db.fetchrow(
+            "SELECT user_id FROM users WHERE email = $1", 
+            student_data['email']
+        )
+        
+        if user:
+            # Link: write user_id into the new student row
+            await db.execute(
+                "UPDATE students SET user_id = $1 WHERE email = $2",
+                user['user_id'], student_data['email']
+            )
+            # Upgrade their role in users table
+            await db.execute(
+                "UPDATE users SET role = 'student' WHERE user_id = $1",
+                user['user_id']
+            )
     return model.StudentFullRead(**dict(row))
 
 
@@ -145,7 +164,13 @@ async def get_students_list(
     
     students =  [model.StudentFullRead(**dict(row)) for row in rows]
     
-
+    if not students:
+        raise HTTPException(
+            status_code=404,
+            detail="No students found."
+        )
+        
+        
     print(type(students[0]))
     print(students[0])
     print(students[0].model_dump())

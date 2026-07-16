@@ -90,11 +90,9 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
         password: password,
         data: displayName != null ? {'display_name': displayName} : null,
       );
-
       //* CREATE USER ...
       final user = model.User(email: email, userName: displayName, role: role);
       await ref.read(usersApiServiceProvider).createUser(user);
-
       if (response.user == null) throw Exception('Sign-up failed');
       state = AsyncValue.data(await _resolveUser(response.user!));
     } catch (e, st) {
@@ -212,6 +210,7 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
   }
 
   Future<void> refreshRole() async {
+    debugPrint("Resolving user from refresh role function ...");
     final user = _supabase.auth.currentUser;
     if (user == null) return;
     state = AsyncValue.data(await _resolveUser(user));
@@ -220,6 +219,7 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
   // In AuthNotifier, add a field:
   bool handlingAdminVerification = false;
   bool handlingSignUp = false;
+  bool authFlowInProgress = false;
 }
 
 final authProvider = AsyncNotifierProvider<AuthNotifier, AppUser>(
