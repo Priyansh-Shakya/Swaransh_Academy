@@ -76,6 +76,7 @@ class _ChatAssistantOverlayState extends ConsumerState<ChatAssistantOverlay>
     final text = _inputCtrl.text.trim();
     if (text.isEmpty) return;
     _inputCtrl.clear();
+    _inputFocus.unfocus(); // dismiss keyboard
     // TODO: call aiAssistantProvider.notifier.askAssistant(text)
     _scrollToBottom();
   }
@@ -135,8 +136,13 @@ class _ChatAssistantOverlayState extends ConsumerState<ChatAssistantOverlay>
 
   // ── Mobile panel ──────────────────────────────────────────────────────────
   Widget _mobilePanel(BoxConstraints constraints) {
-    final panelH = constraints.maxHeight - widget.bottomNavHeight;
-    return Positioned(
+    final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
+    final panelH =
+        constraints.maxHeight - widget.bottomNavHeight - keyboardInset;
+
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 120),
+      curve: Curves.easeOut,
       left: 0,
       right: 0,
       top: 0,
@@ -156,8 +162,7 @@ class _ChatAssistantOverlayState extends ConsumerState<ChatAssistantOverlay>
                 scrollCtrl: _scrollCtrl,
                 isDesktop: false,
                 onSend: _send,
-                onClose: null, // FAB closes on mobile
-                // Shift content left of the notch on the bottom-right
+                onClose: null,
                 inputRightPadding: _kIconSize + 8,
               ),
             ),
@@ -359,7 +364,9 @@ class _Header extends StatelessWidget {
           Expanded(
             child: Text(
               'Sargam · AI Assistant',
-              style: AppTypography.titleLarge.copyWith(color: AppColors.ivory),
+              style: AppTypography.titleLarge.copyWith(
+                color: AppColors.goldLight,
+              ),
             ),
           ),
           if (onClose != null)
@@ -612,56 +619,3 @@ class _NotchedClipper extends CustomClipper<Path> {
   bool shouldReclip(covariant _NotchedClipper old) =>
       old.notchRadius != notchRadius || old.cornerRadius != cornerRadius;
 }
-
-
-// /// Persistent floating action button, present above every tab/route -
-// /// the Flipkart-style chat bubble. Wrapping AppShell in this (rather than
-// /// putting it inside each page) means it survives tab switches and keeps
-// /// its own state once the real AI Assistance feature replaces the
-// /// placeholder onTap below.
-// class ChatAssistantOverlay extends StatelessWidget {
-//   const ChatAssistantOverlay({super.key, required this.child});
-
-//   final Widget child;
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final isMobile = MediaQuery.of(context).size.width < 700;
-//     return Stack(
-//       children: [
-//         child,
-//         Positioned(
-//           right: 16,
-//           bottom: isMobile ? 70 : 16,
-//           child: IconButton(
-//             onPressed: () {
-//               ScaffoldMessenger.of(
-//                 context,
-//               ).showSnackBar(SnackBar(content: Text("Sargam Coming Soon ...")));
-//             },
-//             icon: Container(
-//               width: 60,
-//               height: 60,
-//               decoration: const BoxDecoration(
-//                 color: Color(0xFFFBF6EC), // Background color
-//                 shape: BoxShape.circle, // Or remove for a square
-//               ),
-//               padding: const EdgeInsets.all(6),
-//               child: IconButton(
-//                 onPressed: () {
-//                   // Handle tap
-//                   AiAssistantOverlay();
-//                 },
-//                 iconSize: 80,
-//                 icon: Image.asset(
-//                   'assets/chat_assistant_icon.png',
-//                   fit: BoxFit.contain,
-//                 ),
-//               ),
-//             ),
-//           ),
-//         ),
-//       ],
-//     );
-//   }
-// }

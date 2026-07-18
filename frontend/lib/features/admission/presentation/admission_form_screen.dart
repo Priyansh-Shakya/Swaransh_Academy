@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
+import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
 
 import '../../../Core/theme/app_colors.dart';
 import '../../../Core/theme/app_spacing.dart';
@@ -50,6 +51,12 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
   late final TextEditingController _religionCtrl;
   late final TextEditingController _casteCtrl;
   late final TextEditingController _feesCtrl;
+
+  // Add at top of _AdmissionFormScreenState:
+  String? _imageUrl;
+
+  String get _userEmail =>
+      ref.read(authProvider).valueOrNull?.email ?? 'unknown';
 
   @override
   void initState() {
@@ -133,6 +140,7 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
         .read(admissionFormProvider.notifier)
         .update(
           (s) => s.copyWith(
+            imageUrl: _imageUrl,
             name: _controllers['name']!.text.trim(),
             fatherName: _controllers['fatherName']!.text.trim(),
             dob: _controllers['dob']!.text.trim(),
@@ -280,19 +288,27 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
 
               // Identity + Contact + Course via shared widget
               StudentFieldsForm(
-                isCreate: false,
                 controllers: _controllers,
                 values: _dropdowns,
+                isCreate: false,
                 editable: true,
                 lockedFields: const {},
                 requiredFields: _requiredFields,
+                onDropdownChanged: (key, value) =>
+                    setState(() => _dropdowns[key] = value),
                 visibleSections: const {
                   StudentFieldSection.identity,
                   StudentFieldSection.contact,
                   StudentFieldSection.course,
                 },
-                onDropdownChanged: (key, value) =>
-                    setState(() => _dropdowns[key] = value),
+                // Image picker config:
+                onImageUploaded: (url) => setState(() => _imageUrl = url),
+                imageBucket: StorageBucket.admissionPhotos,
+                imageStoragePath: StoragePath.admissionPhoto(
+                  _userEmail,
+                  '${DateTime.now().millisecondsSinceEpoch}.jpg',
+                ),
+                currentImageUrl: _imageUrl,
               ),
 
               // Optional fields section

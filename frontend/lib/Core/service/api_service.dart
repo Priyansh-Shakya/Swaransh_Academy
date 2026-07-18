@@ -202,14 +202,18 @@ class ApiService<T> {
     Map<String, dynamic>? queryParams,
     Map<String, String>? headers,
   }) async {
-    final response = await _dio.post(
-      endpoint,
-      data: data,
-      queryParameters: queryParams,
-      options: Options(headers: headers),
-    );
+    try {
+      final response = await _dio.post(
+        endpoint,
+        data: data,
+        queryParameters: queryParams,
+        options: Options(headers: headers),
+      );
 
-    return parser(response.data);
+      return parser(response.data);
+    } catch (e) {
+      throw mapDioExceptionToApiException(e);
+    }
   }
 
   //? for another non JSON query

@@ -18,6 +18,4 @@ In that design, students never insert directly into the payments table. They cal
 ```
 
 
-```dart
-// In Admin View in Admissions screen where all the admissions are shows for approval or decline , they should be able to get opened onTap() , so that admin can view application!
-```
+

@@ -4,6 +4,7 @@
 class AdmissionFormState {
   const AdmissionFormState({
     // Basic (StudentBasic fields)
+    this.imageUrl = '',
     this.name = '',
     this.department = '',
     this.subject = '',
@@ -35,6 +36,7 @@ class AdmissionFormState {
     this.submittedFormId,
   });
 
+  final String imageUrl;
   final String name;
   final String department;
   final String subject;
@@ -60,6 +62,7 @@ class AdmissionFormState {
   final int? submittedFormId; // set after successful POST /admissionForm
 
   AdmissionFormState copyWith({
+    String? imageUrl,
     String? name,
     String? department,
     String? subject,
@@ -85,6 +88,7 @@ class AdmissionFormState {
     int? submittedFormId,
   }) {
     return AdmissionFormState(
+      imageUrl: imageUrl ?? this.imageUrl,
       name: name ?? this.name,
       department: department ?? this.department,
       subject: subject ?? this.subject,
@@ -115,6 +119,7 @@ class AdmissionFormState {
   bool get isEmpty => name.isEmpty && contact.isEmpty && email.isEmpty;
 
   Map<String, dynamic> toJson() => {
+    'imageUrl': imageUrl,
     'name': name,
     'father_name': fatherName,
     'dob': dob.isEmpty ? null : dob,

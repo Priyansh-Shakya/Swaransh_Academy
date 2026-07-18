@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:swaransh_academy/Core/service/api_exceptions.dart';
 import 'package:swaransh_academy/features/auth/data/users_api_service.dart';
 import 'package:swaransh_academy/features/role_select/presentation/selectedRoleprovider.dart';
 
@@ -226,24 +227,33 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     if (result != true) return false;
     debugPrint("result: $result");
     // Sending Verification API
-    final isVerified = await ref
-        .read(usersApiServiceProvider)
-        .verifyAdmin(codeCtrl.text.trim());
-    debugPrint("Verification: $isVerified");
+    try {
+      final isVerified = await ref
+          .read(usersApiServiceProvider)
+          .verifyAdmin(codeCtrl.text.trim());
+      debugPrint("Verification: $isVerified");
+      if (!isVerified) {
+        if (mounted) setState(() => _busy = false);
+        debugPrint("Admin Verification Failed");
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text("Incorrect Password", textAlign: TextAlign.center),
+              backgroundColor: Color(0xFFC1473B),
+            ),
+          );
+      }
+      return isVerified;
 
-    if (!isVerified) {
-      if (mounted) setState(() => _busy = false);
-      debugPrint("Admin Verification Failed");
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text("Incorrect Password", textAlign: TextAlign.center),
-            backgroundColor: Color(0xFFC1473B),
-          ),
-        );
+      // use isVerified
+    } on ApiException catch (e) {
+      setState(() {
+        _busy = false;
+      });
+      _showError(e.message);
+      return false;
     }
-    return isVerified;
   }
 
   void _onSuccess() {

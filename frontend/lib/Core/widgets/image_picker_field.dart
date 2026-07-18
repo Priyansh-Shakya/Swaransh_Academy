@@ -1,8 +1,10 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:swaransh_academy/Core/service/supabase_object_storage/object_storage.dart';
+
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
@@ -66,7 +68,9 @@ class _ImagePickerFieldState extends ConsumerState<ImagePickerField> {
     });
 
     try {
-      final url = await ref.read(supabaseStorageServiceProvider).upload(
+      final url = await ref
+          .read(supabaseStorageServiceProvider)
+          .upload(
             bucket: widget.bucket,
             path: widget.storagePath,
             file: File(picked.path),
@@ -94,18 +98,24 @@ class _ImagePickerFieldState extends ConsumerState<ImagePickerField> {
       builder: (_) => Container(
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppRadius.lg),
+          ),
         ),
         padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xl),
+          AppSpacing.lg,
+          AppSpacing.md,
+          AppSpacing.lg,
+          AppSpacing.xl,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
               child: Container(
-                width: 36, height: 4,
+                width: 36,
+                height: 4,
                 decoration: BoxDecoration(
                   color: AppColors.divider,
                   borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -148,9 +158,7 @@ class _ImagePickerFieldState extends ConsumerState<ImagePickerField> {
   Widget build(BuildContext context) {
     final imageProvider = _localPreviewPath != null
         ? FileImage(File(_localPreviewPath!)) as ImageProvider
-        : (widget.currentUrl != null
-            ? NetworkImage(widget.currentUrl!)
-            : null);
+        : (widget.currentUrl != null ? NetworkImage(widget.currentUrl!) : null);
 
     return GestureDetector(
       onTap: _uploading ? null : _showPickerSheet,
@@ -164,28 +172,35 @@ class _ImagePickerFieldState extends ConsumerState<ImagePickerField> {
               shape: widget.shape,
               color: AppColors.ivoryDeep,
               border: Border.all(
-                  color: AppColors.gold.withOpacity(0.4), width: 2),
+                color: AppColors.gold.withOpacity(0.4),
+                width: 2,
+              ),
               image: imageProvider != null && !_uploading
-                  ? DecorationImage(
-                      image: imageProvider, fit: BoxFit.cover)
+                  ? DecorationImage(image: imageProvider, fit: BoxFit.cover)
                   : null,
             ),
             child: _uploading
                 ? const Center(
                     child: CircularProgressIndicator(
-                        color: AppColors.gold, strokeWidth: 2))
+                      color: AppColors.gold,
+                      strokeWidth: 2,
+                    ),
+                  )
                 : imageProvider == null
-                    ? Icon(Icons.add_a_photo_outlined,
-                        color: AppColors.gold, size: widget.size * 0.35)
-                    : null,
+                ? Icon(
+                    Icons.add_a_photo_outlined,
+                    color: AppColors.gold,
+                    size: widget.size * 0.35,
+                  )
+                : null,
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
             _uploading
                 ? 'Uploading...'
                 : imageProvider != null
-                    ? 'Tap to change'
-                    : 'Add ${widget.label}',
+                ? 'Tap to change'
+                : 'Add ${widget.label}',
             style: AppTypography.caption,
           ),
         ],
@@ -214,7 +229,9 @@ class _SheetOption extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppRadius.md),
       child: Padding(
         padding: const EdgeInsets.symmetric(
-            vertical: AppSpacing.md, horizontal: AppSpacing.sm),
+          vertical: AppSpacing.md,
+          horizontal: AppSpacing.sm,
+        ),
         child: Row(
           children: [
             Container(
@@ -226,12 +243,42 @@ class _SheetOption extends StatelessWidget {
               child: Icon(icon, color: color, size: 20),
             ),
             const SizedBox(width: AppSpacing.md),
-            Text(label,
-                style: AppTypography.bodyMedium.copyWith(
-                    color: color, fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: AppTypography.bodyMedium.copyWith(
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+}
+
+class StorageBucket {
+  StorageBucket._();
+  static const String studentPhotos = 'student-photos';
+  static const String admissionPhotos = 'admission-photos';
+}
+
+class StoragePath {
+  StoragePath._();
+
+  static String studentPhoto(String userId, String filename) {
+    final ts = DateTime.now().millisecondsSinceEpoch;
+    return 'students/$userId/${ts}_photo${_ext(filename)}';
+  }
+
+  static String admissionPhoto(String userEmail, String filename) {
+    final ts = DateTime.now().millisecondsSinceEpoch;
+    final safe = userEmail.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
+    return 'admissions/$safe/${ts}_photo${_ext(filename)}';
+  }
+
+  static String _ext(String filename) {
+    final i = filename.lastIndexOf('.');
+    return i != -1 ? filename.substring(i) : '.jpg';
   }
 }

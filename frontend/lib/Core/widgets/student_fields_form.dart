@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:swaransh_academy/Core/widgets/image_picker.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
@@ -35,6 +36,11 @@ class StudentFieldsForm extends StatelessWidget {
       StudentFieldSection.admin,
     },
     this.onDropdownChanged,
+    // ── Image picker (optional) ──
+    this.onImageUploaded,
+    this.imageBucket,
+    this.imageStoragePath,
+    this.currentImageUrl,
   });
 
   /// One TextEditingController per free-text field key
@@ -54,6 +60,12 @@ class StudentFieldsForm extends StatelessWidget {
   final Set<StudentFieldSection> visibleSections;
   final void Function(String fieldKey, String newValue)? onDropdownChanged;
 
+  /// Profile Image  fields
+  final void Function(String url)? onImageUploaded;
+  final String? imageBucket;
+  final String? imageStoragePath;
+  final String? currentImageUrl;
+
   bool _isLocked(String key) => !editable || lockedFields.contains(key);
   bool _isRequired(String key) => editable && requiredFields.contains(key);
 
@@ -67,7 +79,24 @@ class StudentFieldsForm extends StatelessWidget {
       children: [
         if (visibleSections.contains(StudentFieldSection.identity)) ...[
           const _SectionHeader('Personal Details'),
-          //TODO: Add a image picker for profile photo.
+          //* Image picker — shown only when config is provided
+          if (onImageUploaded != null &&
+              imageBucket != null &&
+              imageStoragePath != null) ...[
+            Center(
+              child: ImagePickerField(
+                bucket: imageBucket!,
+                storagePath: imageStoragePath!,
+                onUploaded: onImageUploaded!,
+                label: 'Profile Photo',
+                currentUrl: currentImageUrl,
+                size: 100,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+          ],
+
           _text(context, 'name', 'Full Name'),
           _text(context, 'fatherName', "Father's Name"),
           _pickerField(context, 'dob', 'Date of Birth', isDate: true),

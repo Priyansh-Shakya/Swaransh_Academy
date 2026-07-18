@@ -1,12 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
+import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
 import 'package:swaransh_academy/features/students/data/students_notifier.dart';
 import 'package:swaransh_academy/features/students/domain/student.dart';
 
 import '../../../../../Core/theme/app_colors.dart';
 import '../../../../../Core/theme/app_spacing.dart';
 import '../../../../../Core/widgets/student_fields_form.dart';
+
+// ---- Required field keys (shown with * in label) ----
+const _requiredFields = {
+  'name',
+  'fatherName',
+  'dob',
+  'gender',
+  'educationQualification',
+  'contact',
+  'email',
+  'address',
+  'department',
+  'subject',
+  'admissionType',
+  'learningMode',
+  'batch',
+  'startTime',
+  'endTime',
+  'fees',
+  'feeType',
+};
 
 class StudentCreatePage extends ConsumerStatefulWidget {
   const StudentCreatePage({super.key});
@@ -18,6 +42,13 @@ class StudentCreatePage extends ConsumerStatefulWidget {
 class _StudentCreatePageState extends ConsumerState<StudentCreatePage> {
   final _formKey = GlobalKey<FormState>();
   bool _saving = false;
+
+  // Add at top of _StudentCreatePageState:
+  String? _imageUrl;
+
+  // Get the current user id for the storage path
+  // (available from authProvider once signed in)
+  String get _userId => ref.read(authProvider).valueOrNull?.id ?? 'unknown';
 
   final _controllers = <String, TextEditingController>{
     'name': TextEditingController(),
@@ -57,6 +88,7 @@ class _StudentCreatePageState extends ConsumerState<StudentCreatePage> {
     setState(() => _saving = true);
 
     final draft = CreateStudent(
+      imageUrl: _imageUrl,
       name: _controllers['name']!.text.trim(),
       admissionType: _dropdowns['admissionType'] ?? 'Regular',
       learningMode: _dropdowns['learningMode'] ?? 'Offline',
@@ -128,13 +160,22 @@ class _StudentCreatePageState extends ConsumerState<StudentCreatePage> {
           child: Column(
             children: [
               StudentFieldsForm(
-                isCreate: true,
                 controllers: _controllers,
                 values: _dropdowns,
                 editable: true,
+                isCreate: true,
                 lockedFields: const {},
+                requiredFields: _requiredFields,
                 onDropdownChanged: (key, value) =>
                     setState(() => _dropdowns[key] = value),
+                // Image picker config:
+                onImageUploaded: (url) => setState(() => _imageUrl = url),
+                imageBucket: StorageBucket.studentPhotos,
+                imageStoragePath: StoragePath.studentPhoto(
+                  _userId,
+                  '${DateTime.now().millisecondsSinceEpoch}.jpg',
+                ),
+                currentImageUrl: _imageUrl,
               ),
               const SizedBox(height: AppSpacing.xl),
               SizedBox(
