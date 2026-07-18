@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
+
 import '../../../Core/auth/user_role.dart';
 import '../../../Core/theme/app_colors.dart';
 import '../../../Core/theme/app_spacing.dart';
@@ -24,7 +25,9 @@ class CourseDetailPage extends ConsumerWidget {
 
     return Scaffold(
       body: coursesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator(color: AppColors.gold)),
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.gold),
+        ),
         error: (err, _) => Center(child: Text('Could not load course: $err')),
         data: (courses) {
           final course = courses.where((c) => c.id == courseId).firstOrNull;
@@ -59,7 +62,8 @@ class _CourseDetailBody extends ConsumerWidget {
               ? [
                   IconButton(
                     icon: const Icon(Icons.edit_outlined),
-                    onPressed: () => context.push('/home/course/${course.id}/edit'),
+                    onPressed: () =>
+                        context.push('/home/course/${course.id}/edit'),
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete_outline),
@@ -73,14 +77,19 @@ class _CourseDetailBody extends ConsumerWidget {
                 : Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [deptColor.withOpacity(0.85), deptColor.withOpacity(0.5)],
+                        colors: [
+                          deptColor.withOpacity(0.85),
+                          deptColor.withOpacity(0.5),
+                        ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                     ),
                     child: Center(
                       child: Icon(
-                        course.tag == 'Vocal' ? Icons.mic_none : Icons.music_note,
+                        course.tag == 'Vocal'
+                            ? Icons.mic_none
+                            : Icons.music_note,
                         size: 72,
                         color: Colors.white.withOpacity(0.85),
                       ),
@@ -97,7 +106,9 @@ class _CourseDetailBody extends ConsumerWidget {
               Wrap(
                 spacing: AppSpacing.xs,
                 children: [
-                  Chip(label: Text(course.mapsToDepartment.replaceAll('_', ' '))),
+                  Chip(
+                    label: Text(course.mapsToDepartment.replaceAll('_', ' ')),
+                  ),
                   Chip(label: Text(course.tag)),
                   Chip(label: Text(course.mode)),
                 ],
@@ -105,13 +116,21 @@ class _CourseDetailBody extends ConsumerWidget {
               const SizedBox(height: AppSpacing.lg),
               const StaffLineDivider(),
               const SizedBox(height: AppSpacing.lg),
-              _InfoRow(icon: Icons.schedule, label: 'Duration', value: course.duration),
+              _InfoRow(
+                icon: Icons.schedule,
+                label: 'Duration',
+                value: course.duration,
+              ),
               _InfoRow(
                 icon: Icons.currency_rupee,
                 label: 'Fees',
                 value: '\u20B9${course.fees.toStringAsFixed(0)}',
               ),
-              _InfoRow(icon: Icons.laptop_mac, label: 'Mode', value: course.mode),
+              _InfoRow(
+                icon: Icons.laptop_mac,
+                label: 'Mode',
+                value: course.mode,
+              ),
               _InfoRow(
                 icon: Icons.menu_book_outlined,
                 label: 'Subject',
@@ -123,12 +142,16 @@ class _CourseDetailBody extends ConsumerWidget {
                   width: double.infinity,
                   child: FilledButton(
                     onPressed: () {
-                      ref.read(admissionPrefillProvider.notifier).set(
+                      debugPrint(
+                        "Prefilling datra: department: ${course.mapsToDepartment}",
+                      );
+                      ref
+                          .read(admissionPrefillProvider.notifier)
+                          .set(
                             AdmissionPrefill(
                               department: course.mapsToDepartment,
                               subject: course.mapsToSubject,
                               fees: course.fees,
-                              
                             ),
                           );
                       context.go('/admission');
@@ -151,7 +174,9 @@ class _CourseDetailBody extends ConsumerWidget {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete this course?'),
-        content: Text('"${course.courseName}" will be removed from the catalogue.'),
+        content: Text(
+          '"${course.courseName}" will be removed from the catalogue.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
@@ -173,7 +198,11 @@ class _CourseDetailBody extends ConsumerWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.label, required this.value});
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   final IconData icon;
   final String label;
@@ -189,7 +218,12 @@ class _InfoRow extends StatelessWidget {
           const SizedBox(width: AppSpacing.sm),
           Text(label, style: AppTypography.bodyMedium),
           const Spacer(),
-          Text(value, style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
+          Text(
+            value,
+            style: AppTypography.bodyMedium.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );

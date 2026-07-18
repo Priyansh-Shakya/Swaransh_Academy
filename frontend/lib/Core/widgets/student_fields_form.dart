@@ -67,9 +67,10 @@ class StudentFieldsForm extends StatelessWidget {
       children: [
         if (visibleSections.contains(StudentFieldSection.identity)) ...[
           const _SectionHeader('Personal Details'),
+          //TODO: Add a image picker for profile photo.
           _text(context, 'name', 'Full Name'),
           _text(context, 'fatherName', "Father's Name"),
-          _text(context, 'dob', 'Date of Birth', hint: 'YYYY-MM-DD'),
+          _pickerField(context, 'dob', 'Date of Birth', isDate: true),
           _dropdown(context, 'gender', 'Gender', kGenderOptions),
           _dropdown(
             context,
@@ -119,11 +120,21 @@ class StudentFieldsForm extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _text(context, 'startTime', 'Start Time', hint: 'HH:MM'),
+                child: _pickerField(
+                  context,
+                  'startTime',
+                  'Start Time',
+                  isDate: false,
+                ),
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: _text(context, 'endTime', 'End Time', hint: 'HH:MM'),
+                child: _pickerField(
+                  context,
+                  'endTime',
+                  'End Time',
+                  isDate: false,
+                ),
               ),
             ],
           ),
@@ -140,11 +151,11 @@ class StudentFieldsForm extends StatelessWidget {
                   ? 'Scholar Number is asigned by Database itself and cannot be changed.'
                   : null,
             ), //* Only Show Scholar Number in Read Mode
-          _text(
+          _pickerField(
             context,
             'dateOfJoining',
             'Date of Joining',
-            hint: 'YYYY-MM-DD',
+            isDate: true,
           ),
           _text(
             context,
@@ -192,6 +203,101 @@ class StudentFieldsForm extends StatelessWidget {
                     : null,
               ),
             ),
+    );
+  }
+
+  //? For Date Time Picking
+  Widget _pickerField(
+    BuildContext context,
+    String key,
+    String label, {
+    required bool isDate,
+  }) {
+    final controller = controllers[key];
+    if (controller == null) return const SizedBox.shrink();
+    final locked = _isLocked(key);
+
+    if (locked) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.md),
+        child: _ReadOnlyField(label: label, value: controller.text),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: ValueListenableBuilder<TextEditingValue>(
+        valueListenable: controller,
+        builder: (context, value, _) {
+          return GestureDetector(
+            onTap: () async {
+              if (isDate) {
+                DateTime initial = DateTime.now();
+                if (value.text.isNotEmpty) {
+                  try {
+                    initial = DateTime.parse(value.text);
+                  } catch (_) {}
+                }
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: initial,
+                  firstDate: DateTime(1950),
+                  lastDate: DateTime(2100),
+                );
+                if (picked != null) {
+                  controller.text =
+                      '${picked.year.toString().padLeft(4, '0')}-'
+                      '${picked.month.toString().padLeft(2, '0')}-'
+                      '${picked.day.toString().padLeft(2, '0')}';
+                }
+              } else {
+                TimeOfDay initial = TimeOfDay.now();
+                if (value.text.isNotEmpty) {
+                  try {
+                    final parts = value.text.split(':');
+                    initial = TimeOfDay(
+                      hour: int.parse(parts[0]),
+                      minute: int.parse(parts[1]),
+                    );
+                  } catch (_) {}
+                }
+                final picked = await showTimePicker(
+                  context: context,
+                  initialTime: initial,
+                );
+                if (picked != null) {
+                  controller.text =
+                      '${picked.hour.toString().padLeft(2, '0')}:'
+                      '${picked.minute.toString().padLeft(2, '0')}:00';
+                }
+              }
+            },
+            child: InputDecorator(
+              decoration: InputDecoration(
+                labelText: _labelWithMarker(key, label),
+                suffixIcon: Icon(
+                  isDate
+                      ? Icons.calendar_today_outlined
+                      : Icons.access_time_outlined,
+                  size: 18,
+                  color: AppColors.textSecondary,
+                ),
+                border: const OutlineInputBorder(),
+              ),
+              child: Text(
+                value.text.isEmpty
+                    ? (isDate ? 'Select date' : 'Select time')
+                    : value.text,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: value.text.isEmpty
+                      ? AppColors.textSecondary
+                      : AppColors.textPrimary,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 

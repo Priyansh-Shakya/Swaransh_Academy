@@ -5,8 +5,7 @@ import 'package:swaransh_academy/features/profile/data/profile_api_service.dart'
 class ProfileNotifier extends AsyncNotifier<dynamic> {
   @override
   Future<dynamic> build() async {
-    // Empty until load is called with user_id
-    return null;
+    //! loadMyProfile();
   }
 
   /// Load the current user's profile (resolves to student or user profile).

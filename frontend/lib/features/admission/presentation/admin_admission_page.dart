@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/features/admission/data/admission_notifier.dart';
 import 'package:swaransh_academy/features/admission/domain/admission_form_record.dart';
+
 import '../../../Core/theme/app_colors.dart';
 import '../../../Core/theme/app_spacing.dart';
 import '../../../Core/theme/app_typography.dart';
-
 
 class AdminAdmissionPage extends ConsumerStatefulWidget {
   const AdminAdmissionPage({super.key});
@@ -15,7 +16,8 @@ class AdminAdmissionPage extends ConsumerStatefulWidget {
 }
 
 class _AdminAdmissionPageState extends ConsumerState<AdminAdmissionPage> {
-  String _filter = 'Pending'; // default to pending - what admin cares about most
+  String _filter =
+      'Pending'; // default to pending - what admin cares about most
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +30,11 @@ class _AdminAdmissionPageState extends ConsumerState<AdminAdmissionPage> {
           // Status filter chips
           Padding(
             padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md, AppSpacing.md, AppSpacing.md, 0),
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.md,
+              0,
+            ),
             child: Row(
               children: ['Pending', 'Approved', 'Declined'].map((status) {
                 final selected = _filter == status;
@@ -41,8 +47,7 @@ class _AdminAdmissionPageState extends ConsumerState<AdminAdmissionPage> {
                     selectedColor: color.withOpacity(0.15),
                     labelStyle: AppTypography.bodySmall.copyWith(
                       color: selected ? color : AppColors.textSecondary,
-                      fontWeight:
-                          selected ? FontWeight.w700 : FontWeight.w500,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                     ),
                     showCheckmark: false,
                     onSelected: (_) => setState(() => _filter = status),
@@ -55,16 +60,19 @@ class _AdminAdmissionPageState extends ConsumerState<AdminAdmissionPage> {
           Expanded(
             child: formsAsync.when(
               loading: () => const Center(
-                  child: CircularProgressIndicator(color: AppColors.gold)),
-              error: (e, _) =>
-                  Center(child: Text('Could not load forms: $e')),
+                child: CircularProgressIndicator(color: AppColors.gold),
+              ),
+              error: (e, _) => Center(child: Text('Could not load forms: $e')),
               data: (forms) {
-                final filtered =
-                    forms.where((f) => f.status == _filter).toList();
+                final filtered = forms
+                    .where((f) => f.status == _filter)
+                    .toList();
                 if (filtered.isEmpty) {
                   return Center(
-                    child: Text('No $_filter applications',
-                        style: AppTypography.bodyMedium),
+                    child: Text(
+                      'No $_filter applications',
+                      style: AppTypography.bodyMedium,
+                    ),
                   );
                 }
                 return ListView.separated(
@@ -114,7 +122,8 @@ class _AdminAdmissionPageState extends ConsumerState<AdminAdmissionPage> {
     final confirmed = await _confirm(
       context,
       title: 'Decline ${form.name}?',
-      body: 'The applicant will be notified. No student record will be created.',
+      body:
+          'The applicant will be notified. No student record will be created.',
       confirmLabel: 'Decline',
       confirmColor: AppColors.error,
     );
@@ -144,8 +153,9 @@ class _AdminAdmissionPageState extends ConsumerState<AdminAdmissionPage> {
             content: Text(body),
             actions: [
               TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Cancel')),
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
               FilledButton(
                 style: FilledButton.styleFrom(backgroundColor: confirmColor),
                 onPressed: () => Navigator.pop(ctx, true),
@@ -158,10 +168,10 @@ class _AdminAdmissionPageState extends ConsumerState<AdminAdmissionPage> {
   }
 
   Color _statusColor(String status) => switch (status) {
-        'Approved' => AppColors.active,
-        'Declined' => AppColors.error,
-        _ => AppColors.pendingPayment,
-      };
+    'Approved' => AppColors.active,
+    'Declined' => AppColors.error,
+    _ => AppColors.pendingPayment,
+  };
 }
 
 class _AdmissionFormCard extends StatelessWidget {
@@ -179,79 +189,92 @@ class _AdmissionFormCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final deptColor = AppColors.departmentColor(form.department);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: deptColor.withOpacity(0.15),
-                  child: Text(
-                    form.name.isNotEmpty ? form.name[0].toUpperCase() : '?',
-                    style: AppTypography.titleLarge.copyWith(color: deptColor),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(form.name, style: AppTypography.titleLarge),
-                      Text(
-                        '${form.department.replaceAll('_', ' ')} · ${form.subject}',
-                        style: AppTypography.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-                _StatusChip(status: form.status),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Wrap(
-              spacing: AppSpacing.md,
-              children: [
-                _InfoChip(Icons.phone_outlined, form.contact),
-                _InfoChip(Icons.email_outlined, form.email),
-                if (form.fees != null)
-                  _InfoChip(Icons.currency_rupee,
-                      '${form.fees!.toStringAsFixed(0)} / ${form.feeType?.replaceAll('_', ' ') ?? ''}'),
-              ],
-            ),
-            if (onApprove != null || onDecline != null) ...[
-              const SizedBox(height: AppSpacing.md),
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      onTap: () {
+        // In _AdmissionFormCard's InkWell onTap:
+        context.push('/admission/review', extra: form);
+        debugPrint("Nvigating to Full details...");
+      },
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Row(
                 children: [
-                  if (onDecline != null)
-                    Expanded(
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.error,
-                          side: const BorderSide(color: AppColors.error),
-                        ),
-                        onPressed: onDecline,
-                        child: const Text('Decline'),
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: deptColor.withOpacity(0.15),
+                    child: Text(
+                      form.name.isNotEmpty ? form.name[0].toUpperCase() : '?',
+                      style: AppTypography.titleLarge.copyWith(
+                        color: deptColor,
                       ),
                     ),
-                  if (onApprove != null && onDecline != null)
-                    const SizedBox(width: AppSpacing.sm),
-                  if (onApprove != null)
-                    Expanded(
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.active),
-                        onPressed: onApprove,
-                        child: const Text('Approve'),
-                      ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(form.name, style: AppTypography.titleLarge),
+                        Text(
+                          '${form.department.replaceAll('_', ' ')} · ${form.subject}',
+                          style: AppTypography.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  _StatusChip(status: form.status),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.md,
+                children: [
+                  _InfoChip(Icons.phone_outlined, form.contact),
+                  _InfoChip(Icons.email_outlined, form.email),
+                  if (form.fees != null)
+                    _InfoChip(
+                      Icons.currency_rupee,
+                      '${form.fees!.toStringAsFixed(0)} / ${form.feeType?.replaceAll('_', ' ') ?? ''}',
                     ),
                 ],
               ),
+              if (onApprove != null || onDecline != null) ...[
+                const SizedBox(height: AppSpacing.md),
+                Row(
+                  children: [
+                    if (onDecline != null)
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.error,
+                            side: const BorderSide(color: AppColors.error),
+                          ),
+                          onPressed: onDecline,
+                          child: const Text('Decline'),
+                        ),
+                      ),
+                    if (onApprove != null && onDecline != null)
+                      const SizedBox(width: AppSpacing.sm),
+                    if (onApprove != null)
+                      Expanded(
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.active,
+                          ),
+                          onPressed: onApprove,
+                          child: const Text('Approve'),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -278,7 +301,9 @@ class _StatusChip extends StatelessWidget {
       child: Text(
         status,
         style: AppTypography.caption.copyWith(
-            color: color, fontWeight: FontWeight.w700),
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

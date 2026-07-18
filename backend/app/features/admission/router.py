@@ -5,15 +5,14 @@
 from __future__ import annotations
 
 from typing import List, Optional
-from uuid import UUID
 
+from app.core.auth.auth import get_current_user
 from app.core.db import get_db
 from app.core.enums import AdmissionStatus
 from app.features.admission import service
 from app.features.admission.model import AdmissionForm, AdmissionFormCreate
 from app.features.student.model import StudentFull
 from fastapi import APIRouter, Depends
-from app.core.auth.auth import get_current_user
 
 router = APIRouter(tags=['Admission'])
 
@@ -27,11 +26,11 @@ async def post_admission_form(body: AdmissionFormCreate ,user=Depends(get_curren
 
 
 @router.get('/admissionForm/me', response_model=List[AdmissionForm], tags=['Admission'])
-async def get_admission_form_me(user_id: UUID, db=Depends(get_db)) -> List[AdmissionForm]:
+async def get_admission_form_me(user = Depends(get_current_user), db=Depends(get_db)) -> List[AdmissionForm]:
     """
     My Admission Forms 
     """
-    return await service.get_form_me(user_id, db)
+    return await service.get_form_me(user, db)
 
 
 @router.post(

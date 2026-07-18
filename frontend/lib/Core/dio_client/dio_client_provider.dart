@@ -30,7 +30,7 @@ final dioProvider = Provider<Dio>((ref) {
         if (session != null) {
           final token = session.accessToken;
           options.headers['Authorization'] = 'Bearer $token';
-          debugPrint("AUTH TOKEN: $token");
+          debugPrint("AUTH TOKEN: ${token.substring(0, 5)}");
         }
 
         handler.next(options);

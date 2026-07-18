@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class AdmissionPrefill {
@@ -5,12 +6,10 @@ class AdmissionPrefill {
     required this.department,
     required this.subject,
     required this.fees,
-   
   });
   final String department;
   final String subject;
   final double fees;
-  
 }
 
 /// Set by CourseDetailPage's "Apply Now" button, read (and cleared) by the
@@ -21,7 +20,10 @@ class AdmissionPrefillNotifier extends Notifier<AdmissionPrefill?> {
   @override
   AdmissionPrefill? build() => null;
 
-  void set(AdmissionPrefill prefill) => state = prefill;
+  void set(AdmissionPrefill prefill) {
+    debugPrint("Prefilling from admission_prefill.dart");
+    state = prefill;
+  }
 
   void clear() => state = null;
 }

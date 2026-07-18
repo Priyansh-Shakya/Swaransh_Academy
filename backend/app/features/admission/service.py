@@ -40,9 +40,10 @@ async def create_admission_form(form: model.AdmissionFormCreate,user, db):
     return dict(row)
     
 
-async def get_form_me(user_id, db):
+async def get_form_me(user, db):
     """Get admission forms for current user"""
-    rows = await db.fetch(queries.get_admission_me, user_id)
+
+    rows = await db.fetch(queries.get_admission_me, user['id'])
     return [dict(row) for row in rows]
 
 

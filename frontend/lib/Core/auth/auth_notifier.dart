@@ -79,7 +79,7 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
 
   Future<void> signUpWithEmail(
     String email,
-    String password, 
+    String password,
     String? displayName,
     String? role,
   ) async {
@@ -133,7 +133,7 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
       debugPrint("Switching to ADMIN MODE via adminRoleProvider");
       return _makeUser(user, UserRole.admin);
     }
-    debugPrint("User in resolve user: ${user.toJson()}");
+
     try {
       final role = await ref.read(usersApiServiceProvider).checkRole();
 
@@ -234,3 +234,4 @@ final currentRoleProvider = Provider<UserRole>((ref) {
 final isSignedInProvider = Provider<bool>((ref) {
   return ref.watch(authProvider).valueOrNull?.isAuthenticated ?? false;
 });
+

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import List
 
+from app.core.auth.auth import get_current_user
 from app.core.db import get_db
 from app.features.courses import service
 from app.features.courses.model import Course, CourseCreate
@@ -17,7 +18,7 @@ router = APIRouter(tags=['Courses'])
 
 
 @router.post('/course', response_model=Course, tags=['Courses'])
-async def post_course(body: CourseCreate, db=Depends(get_db)) -> Course:
+async def post_course(body: CourseCreate,user = Depends(get_current_user), db=Depends(get_db)) -> Course:
     """
     Create Course
     """

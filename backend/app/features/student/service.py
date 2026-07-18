@@ -1,12 +1,12 @@
 """Service for Student operations"""
 
 from datetime import date
-from http.client import HTTPException
 from typing import List, Optional, Union
 
 from app.core import enums
 from app.core.helper import convert_enums_to_values
 from app.features.student import model, repository
+from fastapi import HTTPException
 
 
 async def create_student(student_data: dict, db) -> model.StudentFullRead:

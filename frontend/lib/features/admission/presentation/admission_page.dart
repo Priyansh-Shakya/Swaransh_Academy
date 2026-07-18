@@ -1,32 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
-import 'package:swaransh_academy/features/admission/domain/admission_prefill.dart';
-
+import '../../../Core/auth/auth_notifier.dart';
 import '../../../Core/auth/user_role.dart';
 import '../../../Core/theme/app_colors.dart';
 import '../../../Core/theme/app_spacing.dart';
 import '../../../Core/theme/app_typography.dart';
+import '../../../Core/theme/staff_line_divider.dart';
 import '../data/admission_notifier.dart';
+import '../domain/admission_form_record.dart';
 import 'admin_admission_page.dart';
 
-/// The /admission nav-bar tab.
-/// Admin sees submitted forms list.
-/// Student/Guest sees an entry point that pushes into the funnel.
 class AdmissionPage extends ConsumerWidget {
   const AdmissionPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final role = ref.watch(currentRoleProvider);
+    if (role == UserRole.admin) return const AdminAdmissionPage();
 
-    if (role == UserRole.admin) {
-      return const AdminAdmissionPage();
-    }
-
-    // Student / Guest - entry point into the apply funnel
-    final prefill = ref.watch(admissionPrefillProvider);
+    final isSignedIn = ref.watch(isSignedInProvider);
+    final myFormsAsync =
+        isSignedIn ? ref.watch(myAdmissionFormsProvider) : null;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Admission')),
@@ -35,7 +30,7 @@ class AdmissionPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Hero
+            // ---- Hero / Apply Now ----
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(AppSpacing.xl),
@@ -50,24 +45,19 @@ class AdmissionPage extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    Icons.school_outlined,
-                    color: AppColors.gold,
-                    size: 36,
-                  ),
+                  const Icon(Icons.school_outlined,
+                      color: AppColors.gold, size: 36),
                   const SizedBox(height: AppSpacing.md),
                   Text(
                     'Join Swaransh Academy',
-                    style: AppTypography.headlineLarge.copyWith(
-                      color: Colors.white,
-                    ),
+                    style: AppTypography.headlineLarge
+                        .copyWith(color: Colors.white),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Begin your journey in music, dance, acting, or production.',
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: Colors.white70,
-                    ),
+                    style: AppTypography.bodyMedium
+                        .copyWith(color: Colors.white70),
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   SizedBox(
@@ -77,41 +67,80 @@ class AdmissionPage extends ConsumerWidget {
                         backgroundColor: AppColors.gold,
                         foregroundColor: AppColors.navy,
                       ),
-                      onPressed: () {
-                        if (prefill != null) {
-                          ref
-                              .read(admissionFormProvider.notifier)
-                              .prefill(prefill.department, prefill.subject, prefill.fees );
-                          ref.read(admissionPrefillProvider.notifier).clear();
-                        }
-                        context.push('/admission/form');
-                      },
+                      onPressed: () => context.push('/admission/form'),
                       child: const Text('Apply Now'),
                     ),
                   ),
                 ],
               ),
             ),
+
             const SizedBox(height: AppSpacing.xl),
 
-            // What to expect
+            // ---- How it works ----
             Text('How it works', style: AppTypography.headlineMedium),
             const SizedBox(height: AppSpacing.md),
-            _Step(
-              number: 1,
-              title: 'Fill the Application Form',
-              subtitle: 'Your personal, contact & course details.',
-            ),
-            _Step(
-              number: 2,
-              title: 'Review Terms & Conditions',
-              subtitle: 'Attendance, fees, conduct and refund policy.',
-            ),
-            _Step(
-              number: 3,
-              title: 'Complete Payment',
-              subtitle: 'Submit your application and await approval.',
-            ),
+            _Step(number: 1, title: 'Fill the Application Form',
+                subtitle: 'Your personal, contact & course details.'),
+            _Step(number: 2, title: 'Review Terms & Conditions',
+                subtitle: 'Attendance, fees, conduct and refund policy.'),
+            _Step(number: 3, title: 'Submit Application',
+                subtitle: 'Admin reviews and approves your application.'),
+            _Step(number: 4, title: 'Complete Payment',
+                subtitle: 'Pay fees after your application is approved.'),
+
+            // ---- My Applications (signed-in users only) ----
+            if (isSignedIn && myFormsAsync != null) ...[
+              const SizedBox(height: AppSpacing.xl),
+              const Center(child: StaffLineDivider(width: 56)),
+              const SizedBox(height: AppSpacing.xl),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('My Applications',
+                      style: AppTypography.headlineMedium),
+                  IconButton(
+                    icon: const Icon(Icons.refresh, size: 20),
+                    onPressed: () =>
+                        ref.read(myAdmissionFormsProvider.notifier).refresh(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              myFormsAsync.when(
+                loading: () => const Center(
+                    child: CircularProgressIndicator(color: AppColors.gold)),
+                error: (e, _) => Text('Could not load applications: $e',
+                    style: AppTypography.bodySmall),
+                data: (forms) {
+                  if (forms.isEmpty) {
+                    return Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      decoration: BoxDecoration(
+                        color: AppColors.ivoryDeep,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                      child: Text(
+                        'You haven\'t submitted any applications yet.',
+                        style: AppTypography.bodySmall,
+                        textAlign: TextAlign.center,
+                      ),
+                    );
+                  }
+                  return Column(
+                    children: forms
+                        .map((f) => Padding(
+                              padding: const EdgeInsets.only(
+                                  bottom: AppSpacing.sm),
+                              child: _MyApplicationCard(form: f),
+                            ))
+                        .toList(),
+                  );
+                },
+              ),
+            ],
+
             const SizedBox(height: AppSpacing.xxl),
           ],
         ),
@@ -120,12 +149,105 @@ class AdmissionPage extends ConsumerWidget {
   }
 }
 
+class _MyApplicationCard extends StatelessWidget {
+  const _MyApplicationCard({required this.form});
+  final AdmissionFormRecord form;
+
+  @override
+  Widget build(BuildContext context) {
+    final deptColor = AppColors.departmentColor(form.department);
+    final statusColor = switch (form.status) {
+      'Approved' => AppColors.active,
+      'Declined' => AppColors.error,
+      _ => AppColors.pendingPayment,
+    };
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      form.department.replaceAll('_', ' '),
+                      style: AppTypography.titleLarge,
+                    ),
+                    Text(form.subject, style: AppTypography.bodySmall),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+                child: Text(
+                  form.status,
+                  style: AppTypography.caption.copyWith(
+                      color: statusColor, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+
+          // Proceed to Payment — only show when Approved
+          if (form.status == 'Approved') ...[
+            const SizedBox(height: AppSpacing.md),
+            const Divider(),
+            const SizedBox(height: AppSpacing.sm),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.gold,
+                  foregroundColor: AppColors.navy,
+                ),
+                onPressed: () => context.push(
+                  '/admission/pay',
+                  extra: form,
+                ),
+                icon: const Icon(Icons.payment_outlined, size: 18),
+                label: const Text('Proceed to Payment →'),
+              ),
+            ),
+          ] else if (form.status == 'Pending') ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Under review by the academy. You\'ll be notified once approved.',
+              style: AppTypography.caption,
+            ),
+          ] else if (form.status == 'Declined') ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Your application was not approved. Contact us for more info.',
+              style: AppTypography.caption
+                  .copyWith(color: AppColors.error),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _Step extends StatelessWidget {
-  const _Step({
-    required this.number,
-    required this.title,
-    required this.subtitle,
-  });
+  const _Step(
+      {required this.number,
+      required this.title,
+      required this.subtitle});
   final int number;
   final String title;
   final String subtitle;
@@ -145,13 +267,10 @@ class _Step extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Center(
-              child: Text(
-                '$number',
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.gold,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              child: Text('$number',
+                  style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.gold,
+                      fontWeight: FontWeight.w700)),
             ),
           ),
           const SizedBox(width: AppSpacing.md),
@@ -159,12 +278,9 @@ class _Step extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: AppTypography.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                Text(title,
+                    style: AppTypography.bodyMedium
+                        .copyWith(fontWeight: FontWeight.w700)),
                 Text(subtitle, style: AppTypography.bodySmall),
               ],
             ),

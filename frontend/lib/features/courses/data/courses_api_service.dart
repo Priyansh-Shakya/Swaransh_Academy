@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swaransh_academy/Core/service/api_service.dart';
 import 'package:swaransh_academy/features/courses/domain/course.dart';
@@ -15,7 +14,7 @@ class CoursesApiService {
       endpoint: '/courseList',
       queryParams: queryParams,
     );
-    debugPrint("Courses List: ${courses.toString()}");
+
     return courses;
   }
 

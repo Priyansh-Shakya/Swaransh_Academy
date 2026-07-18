@@ -1,11 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
+import 'package:swaransh_academy/features/admission/domain/admission_form_record.dart';
+import 'package:swaransh_academy/features/admission/presentation/admin_admission_detail_page.dart';
 import 'package:swaransh_academy/features/admission/presentation/admission_form_screen.dart';
 import 'package:swaransh_academy/features/admission/presentation/admission_payment_screen.dart';
 import 'package:swaransh_academy/features/admission/presentation/admission_success_screen.dart';
 import 'package:swaransh_academy/features/admission/presentation/admission_terms_screen.dart';
+import 'package:swaransh_academy/features/admission/presentation/student_payment_screen.dart';
 import 'package:swaransh_academy/features/auth/presentation/auth_screen.dart';
 import 'package:swaransh_academy/features/role_select/presentation/role_select_page.dart';
 
@@ -23,8 +25,6 @@ import '../../students/presentation/student_detail_page.dart';
 import '../../students/presentation/students_page.dart';
 import '../presentation/app_shell.dart';
 import '../presentation/chat_assistant_overlay.dart';
-
-// TODO:  Admission Funnel is breaking on Auth
 
 /// Branch order here MUST match kAllDestinations order in
 /// nav_destinations.dart - both drive index-based navigation off the same
@@ -169,6 +169,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admission/success',
         builder: (_, __) => const AdmissionSuccessScreen(),
+      ),
+      // Add these two routes alongside the existing /admission/form, /admission/terms etc:
+      GoRoute(
+        path: '/admission/pay',
+        builder: (context, state) =>
+            StudentPaymentScreen(form: state.extra as AdmissionFormRecord),
+      ),
+      GoRoute(
+        path: '/admission/review',
+        builder: (context, state) =>
+            AdminAdmissionDetailPage(form: state.extra as AdmissionFormRecord),
       ),
       // Routes to add alongside /splash (top-level, outside StatefulShellRoute):
       GoRoute(path: '/role-select', builder: (_, __) => const RoleSelectPage()),

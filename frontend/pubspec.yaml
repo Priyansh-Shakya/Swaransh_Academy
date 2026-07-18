@@ -46,6 +46,7 @@ dependencies:
   url_launcher: ^6.3.2
   supabase_flutter: ^2.8.4
   google_sign_in: ^6.2.2
+  image_picker: ^1.1.2
 
 
 # Use transparent background png for both image_path and adaptive_icon_foreground to avoid issues with adaptive icons on Android 8.0+ and iOS 13+.

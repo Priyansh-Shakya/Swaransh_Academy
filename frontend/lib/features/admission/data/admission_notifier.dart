@@ -90,3 +90,27 @@ final admissionFormsListProvider =
       AdmissionFormsListNotifier,
       List<AdmissionFormRecord>
     >(AdmissionFormsListNotifier.new);
+
+
+
+
+// ---- Student: own submitted forms ----
+
+class MyAdmissionFormsNotifier
+    extends AsyncNotifier<List<AdmissionFormRecord>> {
+  @override
+  Future<List<AdmissionFormRecord>> build() async {
+    return ref.read(admissionApiServiceProvider).getUserAdmissionForms();
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncValue.loading();
+    state = AsyncValue.data(
+        await ref.read(admissionApiServiceProvider).getUserAdmissionForms());
+  }
+}
+
+final myAdmissionFormsProvider =
+    AsyncNotifierProvider<MyAdmissionFormsNotifier, List<AdmissionFormRecord>>(
+  MyAdmissionFormsNotifier.new,
+);

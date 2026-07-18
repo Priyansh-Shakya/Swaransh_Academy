@@ -38,25 +38,13 @@ class ApiService<T> {
         throw ParsingException("Expected a list response from $endpoint");
       }
 
-      // final data0 = data
-      //     .map((item) => fromJson(item as Map<String, dynamic>))
-      //     .toList();
-      // debugPrint("APIService.getAll: endpoint=$endpoint, data=$data0");
-      final List<T> data0 = [];
+      final data0 = data
+          .map((item) => fromJson(item as Map<String, dynamic>))
+          .toList();
+      debugPrint("APIService.getAll: endpoint=$endpoint, data=$data0");
 
       for (final item in data) {
         debugPrint("RAW ITEM: $item");
-
-        try {
-          final parsed = fromJson(item as Map<String, dynamic>);
-          debugPrint("PARSED: $parsed");
-          data0.add(parsed);
-        } catch (e, st) {
-          debugPrint("FAILED ITEM: $item");
-          debugPrint("ERROR: $e");
-          debugPrint("$st");
-          rethrow;
-        }
       }
 
       debugPrint("Parsed ${data0.length} items");

@@ -125,8 +125,12 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
               loading: () => const Center(
                 child: CircularProgressIndicator(color: AppColors.gold),
               ),
-              error: (e, _) =>
-                  Center(child: Text('Could not load students: $e')),
+              error: (e, _) {
+                if (e.toString().contains('No Student Found')) {
+                  return Center(child: Text('No Student Found'));
+                }
+                return Center(child: Text('Could not load students: $e'));
+              },
               data: (students) {
                 final filtered = _filtered(students);
                 if (filtered.isEmpty) {

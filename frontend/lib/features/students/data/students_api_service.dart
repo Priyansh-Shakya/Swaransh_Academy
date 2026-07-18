@@ -24,24 +24,36 @@ class StudentsApiService {
     String? search,
   }) async {
     debugPrint("getAllStudents() called");
-    final students = await _apiService.getAll(
-      endpoint: '/studentList',
-      queryParams: {
-        if (department != null) 'department': department,
-        if (admissionType != null) 'admission_type': admissionType,
-        if (learningMode != null) 'learning_mode': learningMode,
-        if (feeType != null) 'fee_type': feeType,
-        if (batch != null) 'batch': batch,
-        if (feesMin != null) 'fees_min': feesMin,
-        if (feesMax != null) 'fees_max': feesMax,
-        if (joinedAfter != null) 'joined_after': joinedAfter,
-        if (joinedBefore != null) 'joined_before': joinedBefore,
-        if (search != null) 'search': search,
-      },
-    );
-    debugPrint("After Await ...");
-    debugPrint("Students List: ${students.toString()}");
-    return students;
+
+    try {
+      final students = await _apiService.getAll(
+        endpoint: '/studentList',
+        queryParams: {
+          if (department != null) 'department': department,
+          if (admissionType != null) 'admission_type': admissionType,
+          if (learningMode != null) 'learning_mode': learningMode,
+          if (feeType != null) 'fee_type': feeType,
+          if (batch != null) 'batch': batch,
+          if (feesMin != null) 'fees_min': feesMin,
+          if (feesMax != null) 'fees_max': feesMax,
+          if (joinedAfter != null) 'joined_after': joinedAfter,
+          if (joinedBefore != null) 'joined_before': joinedBefore,
+          if (search != null) 'search': search,
+        },
+      );
+      debugPrint("After Await ...");
+      debugPrint("Students List: ${students.toString()}");
+      return students;
+    } catch (e) {
+      debugPrint("Error from student repo: $e");
+
+      if (e.toString().contains('NotFoundException')) {
+        final error = "No Student Found";
+        throw Exception(error);
+      }
+
+      rethrow;
+    }
   }
 
   /// Get a single student by ID.
