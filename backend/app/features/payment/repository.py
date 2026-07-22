@@ -2,8 +2,8 @@
 
 # Create payment record
 create_payment_query = """
-INSERT INTO payment (student_id, payment_type, amount, mode, txn_ref, paid_on, status)
-VALUES ($1, $2, $3, $4, $5, COALESCE($6, now()), $7)
+INSERT INTO payment (student_id, payment_type, amount, mode, txn_ref, paid_on, status , payment_category , isActive)
+VALUES ($1, $2, $3, $4, $5, COALESCE($6, now()), $7, $8, $9)
 RETURNING *;
 """
 
@@ -24,8 +24,8 @@ UPDATE payment SET status = 'superseded', superseded_by = $1 WHERE id = $2 RETUR
 
 # Insert new payment (as part of supersede pattern)
 create_corrected_payment_query = """
-INSERT INTO payment (student_id, payment_type, amount, mode, txn_ref, paid_on, status)
-VALUES ($1, $2, $3, $4, $5, COALESCE($6, now()), 'active')
+INSERT INTO payment (student_id, payment_type, amount, mode, txn_ref, paid_on, status, payment_category)
+VALUES ($1, $2, $3, $4, $5, COALESCE($6, now()), 'active' , $7)
 RETURNING *;
 """
 

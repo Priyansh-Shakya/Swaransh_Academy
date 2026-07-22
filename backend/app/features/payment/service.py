@@ -18,6 +18,7 @@ async def create_payment(student_id: int, payment_create: PaymentCreate, db) -> 
     
     # Extract values
     payment_type = data.get('payment_type')
+    payment_category = data.get('payment_category')
     amount = data.get('amount')
     mode = data.get('mode')
     txn_ref = data.get('txn_ref')
@@ -28,11 +29,13 @@ async def create_payment(student_id: int, payment_create: PaymentCreate, db) -> 
         repository.create_payment_query,
         student_id,
         payment_type,
-        int(amount * 100) if amount else 0,  # Store as minor units (cents)
+        int(amount) if amount else 0,  # Store as minor units (cents)
         mode,
         txn_ref,
         paid_on,
-        'active'  # status
+        'active',  # status,
+        payment_category, 
+        True #! Client is not sending isActive , backend is asigning default
     )
     
     payment_dict = dict(row)
@@ -65,6 +68,7 @@ async def correct_payment(
     
     # Extract values
     payment_type = data.get('payment_type')
+    payment_category = data.get('payment_category')
     amount = data.get('amount')
     mode = data.get('mode')
     txn_ref = data.get('txn_ref')
@@ -79,6 +83,8 @@ async def correct_payment(
         mode,
         txn_ref,
         paid_on,
+        payment_category
+
     )
     
     new_payment_id = new_row['id']

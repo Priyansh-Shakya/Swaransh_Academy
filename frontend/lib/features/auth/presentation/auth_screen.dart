@@ -114,7 +114,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       _onSuccess(); // ← now guaranteed to be called
     } catch (e) {
       debugPrint("ERROR: $e");
-      debugPrintStack();
+
       if (mounted) _showError(e.toString());
     } finally {
       if (mounted) setState(() => _busy = false);

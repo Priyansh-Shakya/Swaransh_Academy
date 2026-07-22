@@ -25,7 +25,9 @@ SELECT * FROM students WHERE email = $1;
 """
 
 link_user_to_student_query = """
-UPDATE students SET user_id = $1 WHERE id = $2
+UPDATE students
+SET user_id = $1
+WHERE email = $2
 RETURNING *;
 """
 

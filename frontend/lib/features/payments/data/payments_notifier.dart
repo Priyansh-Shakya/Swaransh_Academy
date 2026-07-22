@@ -1,124 +1,66 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:swaransh_academy/features/payments/data/payments_api_service.dart';
+import 'package:swaransh_academy/Core/dio_client/dio_client_provider.dart';
+import 'package:swaransh_academy/Core/service/api_service.dart';
 import 'package:swaransh_academy/features/payments/domain/payment.dart';
 
-/// Notifier for managing payments via real API.
-class PaymentsNotifier extends AsyncNotifier<List<Payment>> {
-  late int _studentId;
+final paymentApiServiceProvider = Provider<ApiService<Payment>>((ref) {
+  final dio = ref.watch(dioProvider);
+  return ApiService<Payment>(dio: dio, fromJson: Payment.fromJson);
+});
 
-  /// Initialize with student ID for payment operations.
-  void init(int studentId) {
-    _studentId = studentId;
+class PaymentNotifier extends StateNotifier<AsyncValue<List<Payment>>> {
+  PaymentNotifier(this._ref, this.studentId)
+    : super(const AsyncValue.loading()) {
+    _fetch();
   }
 
-  @override
-  Future<List<Payment>> build() async {
-    // This will be overridden when init() is called
-    return [];
-  }
+  final Ref _ref;
+  final int studentId;
 
-  /// Load payment history for a specific student.
-  Future<void> loadPayments(int studentId) async {
-    _studentId = studentId;
+  ApiService<Payment> get _api => _ref.read(paymentApiServiceProvider);
+  String get _paymentEndpoint => '/student/$studentId/payment';
+
+  Future<void> _fetch() async {
     state = const AsyncValue.loading();
     try {
-      final payments = await ref
-          .read(paymentsApiServiceProvider)
-          .getPaymentHistory(studentId);
-      state = AsyncValue.data(payments);
+      final list = await _api.getAll(
+        endpoint: '/student/$studentId/paymentList',
+      );
+      debugPrint("Payment Notifier , Fetch function: $list");
+      state = AsyncValue.data(list);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
   }
 
-  /// Record a new payment.
-  Future<void> recordPayment(Payment payment) async {
-    final previous = state;
-    final current = state.valueOrNull ?? [];
+  Future<void> refresh() => _fetch();
 
-    state = AsyncValue.data([...current, payment]);
-
-    try {
-      final created = await ref
-          .read(paymentsApiServiceProvider)
-          .createPayment(_studentId, payment);
-      state = AsyncValue.data([...current, created]);
-    } catch (e) {
-      state = previous;
-      rethrow;
-    }
+  Future<void> add(PaymentCreate body) async {
+    await _api.create(endpoint: _paymentEndpoint, data: body.toJson());
+    await _fetch(); // refetch so ordering/status come straight from the server
   }
 
-  /// Correct a payment (supersede).
-  Future<void> correctPayment(int paymentId, Payment corrected) async {
-    final previous = state;
-    final current = state.valueOrNull ?? [];
-
-    state = AsyncValue.data([
-      for (final p in current)
-        if (p.id == paymentId) corrected else p,
-    ]);
-
-    try {
-      await ref
-          .read(paymentsApiServiceProvider)
-          .correctPayment(_studentId, paymentId, corrected);
-    } catch (e) {
-      state = previous;
-      rethrow;
-    }
+  Future<void> correct(int paymentId, PaymentCreate body) async {
+    // PUT supersedes: old row -> status=superseded, a new row is created.
+    debugPrint("Correct Payment Notifier Function: ${body.toJson()}");
+    await _api.update(
+      endpoint: _paymentEndpoint,
+      id: paymentId.toString(),
+      data: body.toJson(),
+    );
+    await _fetch();
   }
 
-  /// Delete a payment.
-  Future<void> deletePayment(int paymentId) async {
-    final previous = state;
-    final current = state.valueOrNull ?? [];
-
-    state = AsyncValue.data(current.where((p) => p.id != paymentId).toList());
-
-    try {
-      await ref
-          .read(paymentsApiServiceProvider)
-          .deletePayment(_studentId, paymentId);
-    } catch (e) {
-      state = previous;
-      rethrow;
-    }
-  }
-
-  Payment? findById(int id) {
-    final current = state.valueOrNull ?? [];
-    for (final p in current) {
-      if (p.id == id) return p;
-    }
-    return null;
+  Future<void> remove(int paymentId) async {
+    await _api.delete(endpoint: _paymentEndpoint, id: paymentId.toString());
+    await _fetch();
   }
 }
 
-final paymentsProvider = AsyncNotifierProvider<PaymentsNotifier, List<Payment>>(
-  PaymentsNotifier.new,
-);
-
-// Mock data kept for reference/testing
-final List<Payment> _mockPayments = [
-  const Payment(
-    id: 1,
-    studentId: 1,
-    amount: 2500,
-    feeType: 'Monthly',
-    paymentDate: '2026-01-15',
-    status: 'Completed',
-    modeOfPayment: 'UPI',
-    receiptNo: 'REC-001',
-  ),
-  const Payment(
-    id: 2,
-    studentId: 1,
-    amount: 2500,
-    feeType: 'Monthly',
-    paymentDate: '2026-02-15',
-    status: 'Completed',
-    modeOfPayment: 'Bank_Transfer',
-    receiptNo: 'REC-002',
-  ),
-];
+final paymentProvider =
+    StateNotifierProvider.family<
+      PaymentNotifier,
+      AsyncValue<List<Payment>>,
+      int
+    >((ref, studentId) => PaymentNotifier(ref, studentId));

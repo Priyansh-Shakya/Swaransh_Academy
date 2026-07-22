@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:swaransh_academy/features/payments/presentation/payment_hostory.dart';
 import 'package:swaransh_academy/features/students/data/students_notifier.dart';
 import 'package:swaransh_academy/features/students/domain/student.dart';
 import 'package:swaransh_academy/features/students/widgets/student_avatar.dart';
@@ -178,6 +179,8 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
           return const Scaffold(body: Center(child: Text('Student not found')));
         }
 
+        debugPrint("Student ID on details Page: ${student.id}");
+
         // Initialise controllers once when student data first loads.
         if (_loaded?.id != student.id) {
           _loaded = student;
@@ -266,20 +269,9 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 // Payments stub - structural placeholder only
-                Text('Payment History', style: AppTypography.titleLarge),
-                const SizedBox(height: AppSpacing.sm),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  decoration: BoxDecoration(
-                    color: AppColors.ivoryDeep,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  child: Text(
-                    'Payment records will appear here.',
-                    style: AppTypography.bodySmall,
-                    textAlign: TextAlign.center,
-                  ),
+                PaymentHistoryWidget(
+                  studentId: student.id!,
+                  isAdmin: true, // shows correct/delete actions + add button
                 ),
                 const SizedBox(height: AppSpacing.xxl),
               ],

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swaransh_academy/Core/dio_client/dio_client_provider.dart';
 import 'package:swaransh_academy/Core/service/api_service.dart';
 import 'package:swaransh_academy/features/profile/domain/profile.dart';
+import 'package:swaransh_academy/features/students/domain/student.dart';
 
 final userProfileApiServiceProvider = Provider<ApiService<UserProfile>>((ref) {
   final dio = ref.watch(dioProvider);
@@ -9,10 +10,10 @@ final userProfileApiServiceProvider = Provider<ApiService<UserProfile>>((ref) {
 });
 
 final studentProfileApiServiceProvider =
-    Provider<ApiService<StudentProfileFull>>((ref) {
+    Provider<ApiService<Student>>((ref) {
       final dio = ref.watch(dioProvider);
-      return ApiService<StudentProfileFull>(
+      return ApiService<Student>(
         dio: dio,
-        fromJson: StudentProfileFull.fromJson,
+        fromJson: Student.fromJson,
       );
     });

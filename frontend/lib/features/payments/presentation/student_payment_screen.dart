@@ -5,7 +5,7 @@ import '../../../Core/theme/app_colors.dart';
 import '../../../Core/theme/app_spacing.dart';
 import '../../../Core/theme/app_typography.dart';
 import '../../../Core/theme/staff_line_divider.dart';
-import '../domain/admission_form_record.dart';
+import '../../admission/domain/admission_form_record.dart';
 
 const _paymentModes = ['UPI', 'Cash', 'Card', 'Bank_Transfer'];
 

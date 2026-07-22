@@ -1,17 +1,17 @@
 
-from decimal import Decimal
 from typing import Optional
 
-from pydantic import AwareDatetime, BaseModel, Field
-
 from app.core import enums
-from app.core.enums import PaymentMode, PaymentStatus, PaymentType
+from app.core.enums import PaymentCategory, PaymentMode, PaymentStatus, PaymentType
+from pydantic import AwareDatetime, BaseModel, Field
 
 
 class PaymentCreate(BaseModel):
     payment_type: PaymentType
-    amount: Decimal = Field(max_digits=10, decimal_places=2)
+    amount: int
+    payment_category: PaymentCategory
     mode: enums.PaymentMode
+    isActive:bool
     txn_ref: Optional[str] = Field(
         None, description='Gateway transaction reference, if applicable.'
     )
@@ -28,14 +28,16 @@ class Payment(BaseModel):
         description='Single, non-nullable FK. Always points to an existing student.',
     )
     payment_type: Optional[PaymentType] = None
-    amount: Optional[float] = None
+    payment_category: Optional[PaymentCategory] = None
+    amount: Optional[int] = None
+    isActive: Optional[bool] = True
     mode: Optional[PaymentMode] = None
     txn_ref: Optional[str] = None
     paid_on: Optional[AwareDatetime] = Field(
         None,
         description='Either backend-assigned (now) or admin-supplied at creation - not regenerated afterward.',
     )
-    status: Optional[PaymentStatus] = None
+    status: Optional[PaymentStatus] = PaymentStatus.active
     superseded_by: Optional[int] = Field(
         None,
         description='Set only when status = superseded. Points to the Payment.id of\nthe corrected row that replaced this one. Null for active rows.\n',

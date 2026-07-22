@@ -34,6 +34,7 @@ class ApiService<T> {
       );
 
       final data = response.data;
+      debugPrint("Get All: $data");
       if (data is! List) {
         throw ParsingException("Expected a list response from $endpoint");
       }
@@ -91,6 +92,7 @@ class ApiService<T> {
     Map<String, String>? headers,
   }) async {
     debugPrint("Sending CREATE API ...");
+    debugPrint("Data: $data");
     try {
       final response = await _dio.post(
         endpoint,
@@ -98,6 +100,7 @@ class ApiService<T> {
         queryParameters: queryParams,
         options: Options(headers: headers),
       );
+
       final data0 = response.data as Map<String, dynamic>;
       debugPrint(response.data.toString());
       debugPrint(response.data.runtimeType.toString());

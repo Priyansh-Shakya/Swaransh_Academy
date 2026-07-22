@@ -66,6 +66,12 @@ CREATE TYPE payment_type AS ENUM (
     'yearly'
 );
 
+CREATE TYPE payment_cat AS ENUM (
+    'fee',
+    'admission',
+    'other'
+);
+
 CREATE TYPE payment_mode AS ENUM (
     'Cash', 
     'UPI', 
@@ -97,7 +103,7 @@ CREATE TYPE student_gender AS ENUM (
 
 --- Users Table
 CREATE TABLE users (
-    user_id UUID PRIMARY KEY REFERENCES auth.users(id),
+    user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     user_name TEXT  ,
     role user_role Not NULL DEFAULT 'guest',
     email TEXT  NOT NULL,
@@ -123,7 +129,7 @@ CREATE TABLE courses(
 --- Student Table
 CREATE TABLE students(
     id BIGSERIAL PRIMARY KEY,
-    user_id UUID REFERENCES users(user_id),
+    user_id UUID REFERENCES users(user_id) ON DELETE SET NULL,
     name TEXT NOT NULL,
     admission_type admission_type NOT NULL,
     learning_mode learning_mode NOT NULL,
@@ -154,6 +160,13 @@ CREATE TABLE students(
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
+-- UNIQUE Scholar Number Constraint
+ALTER TABLE students
+ADD CONSTRAINT uq_students_scholar_no
+UNIQUE (scholar_no);
+
+
+
 CREATE TABLE payment (
     -- Modern 8-byte auto-incrementing BIGINT primary key
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -162,6 +175,8 @@ CREATE TABLE payment (
     student_id BIGINT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     
     payment_type payment_type NOT NULL,
+    payment_category payment_cat NOT NULL,
+    isActive boolean DEFAULT true,
     amount BIGINT NOT NULL, -- Stored in minor units (e.g., cents)
     mode payment_mode NOT NULL,
     txn_ref TEXT,

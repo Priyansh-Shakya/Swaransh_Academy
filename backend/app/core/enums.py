@@ -64,6 +64,10 @@ class PaymentType(Enum):
     half_yearly = 'half_yearly'
     yearly = 'yearly'
 
+class PaymentCategory(str, Enum):
+    fee = "fee"
+    admission = "admission"
+    other = "other"
 
 class PaymentMode(Enum):
     Cash = 'Cash'

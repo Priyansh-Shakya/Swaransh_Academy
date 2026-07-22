@@ -29,11 +29,7 @@ async def create_user(user_create: UserCreate, user,db) -> User:
     print(f"Role from service function: {role}")
     
     
-    student_check = await db.fetchrow(
-        repository.get_student_by_email_query, email
-    )
-    if student_check:
-        role = UserRole.student.value
+    
 
     # 2. Create the user row (NOW we have user_id)
     user_row = await db.fetchrow(
@@ -44,12 +40,12 @@ async def create_user(user_create: UserCreate, user,db) -> User:
     user_dict = dict(user_row)
 
     # 3. Link student AFTER user is created, using the new user_id
-    if role == UserRole.student.value and student_check:
-        await db.execute(
-            repository.link_user_to_student_query,
-            user_dict['user_id'],   # now available
-            student_check['id']
-        )
+    result = await db.fetch(
+        repository.link_user_to_student_query,
+        user_dict['user_id'],   # now available
+        user_dict['email']
+    )
+    print("Result of Student linking:", len(result))
 
     return User(**user_dict)
 
