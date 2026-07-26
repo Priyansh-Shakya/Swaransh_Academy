@@ -207,12 +207,19 @@ class _AdmissionFormCard extends StatelessWidget {
                   CircleAvatar(
                     radius: 22,
                     backgroundColor: deptColor.withOpacity(0.15),
-                    child: Text(
-                      form.name.isNotEmpty ? form.name[0].toUpperCase() : '?',
-                      style: AppTypography.titleLarge.copyWith(
-                        color: deptColor,
-                      ),
-                    ),
+                    backgroundImage: form.imageUrl.isNotEmpty
+                        ? NetworkImage(form.imageUrl)
+                        : null,
+                    child: form.imageUrl.isEmpty
+                        ? Text(
+                            form.name.isNotEmpty
+                                ? form.name[0].toUpperCase()
+                                : '?',
+                            style: AppTypography.titleLarge.copyWith(
+                              color: deptColor,
+                            ),
+                          )
+                        : null,
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(

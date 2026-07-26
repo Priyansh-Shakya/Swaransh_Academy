@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,52 +9,148 @@ import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
 
-/// Generic reusable image picker + Supabase uploader.
+/// Holds picked-but-not-yet-uploaded image state for a single image field.
 ///
-/// Usage example (in StudentCreatePage or AdmissionFormScreen):
+/// Works on every platform (web, iOS, Android, desktop) because it never
+/// touches `dart:io.File` — only raw bytes via `XFile.readAsBytes()`.
+/// `dart:io.File` is a stub on Flutter Web and throws
+/// `UnsupportedError: Unsupported operation: _Namespace` the moment you try
+/// to actually read it, which is why the old File-based version broke.
+///
+/// Nothing is sent to Supabase when the user picks or removes an image —
+/// that only happens when you call [upload], which you should do from your
+/// form's submit handler, right before building the DTO.
+///
+/// Usage:
 /// ```dart
-/// ImagePickerField(
-///   label: 'Profile Photo',
-///   currentUrl: _imageUrl,
+/// final _photoController = ImagePickerController(initialUrl: student.photoUrl);
+///
+/// // in build():
+/// ImagePickerField(controller: _photoController, label: 'Profile Photo')
+///
+/// // in submit handler:
+/// final url = await _photoController.upload(
+///   ref: ref,
 ///   bucket: StorageBucket.studentPhotos,
-///   storagePath: StoragePath.studentPhoto(userId, 'photo.jpg'),
-///   onUploaded: (url) => setState(() => _imageUrl = url),
-/// )
+///   pathBuilder: () => StoragePath.studentPhoto(userId, 'photo.jpg'),
+/// );
+/// final dto = StudentDto(..., photoUrl: url);
+/// await api.createStudent(dto);
 /// ```
-/// Store the returned URL in your local state/DTO, then send to backend.
-class ImagePickerField extends ConsumerStatefulWidget {
+class ImagePickerController extends ChangeNotifier {
+  ImagePickerController({String? initialUrl}) : existingUrl = initialUrl;
+
+  /// Raw bytes of the picked image, not yet uploaded.
+  Uint8List? pickedBytes;
+
+  /// Original filename, used to preserve the extension when uploading.
+  String? pickedFileName;
+
+  /// URL already on the server (edit mode), or the URL of the last
+  /// successful upload once [upload] has run.
+  String? existingUrl;
+
+  bool uploading = false;
+  String? error;
+
+  bool _removed = false;
+  bool get hasLocalChange => pickedBytes != null;
+
+  /// What the widget should render as a preview right now.
+  ImageProvider? get previewImage {
+    if (pickedBytes != null) return MemoryImage(pickedBytes!);
+    if (!_removed && existingUrl != null) return NetworkImage(existingUrl!);
+    return null;
+  }
+
+  void setBytes(Uint8List bytes, String fileName) {
+    pickedBytes = bytes;
+    pickedFileName = fileName;
+    _removed = false;
+    error = null;
+    notifyListeners();
+  }
+
+  /// Clears the local pick. If there was an existing server URL, it's
+  /// hidden from the preview and [upload] will return null for this field
+  /// (i.e. "remove the photo") instead of re-uploading anything.
+  void remove() {
+    pickedBytes = null;
+    pickedFileName = null;
+    _removed = true;
+    error = null;
+    notifyListeners();
+  }
+
+  /// Call this once, at submit time — not on pick.
+  ///
+  /// - No pick, no removal -> returns [existingUrl] unchanged (nothing to do).
+  /// - Removed, nothing new picked -> returns null.
+  /// - New file picked -> uploads it, updates [existingUrl], returns the new URL.
+  ///
+  /// Throws on upload failure so the caller can decide what to do. [pickedBytes]
+  /// is intentionally left intact on failure so the user doesn't lose their
+  /// selection and can just retry.
+  Future<String?> upload({
+    required WidgetRef ref,
+    required String bucket,
+    required String Function() pathBuilder,
+    required bool isPrivate,
+  }) async {
+    if (pickedBytes == null) {
+      return _removed ? null : existingUrl;
+    }
+
+    uploading = true;
+    error = null;
+    notifyListeners();
+    try {
+      // NOTE: this calls `uploadBytes` on your storage service, not `upload`.
+      // If your current `supabaseStorageServiceProvider` only exposes an
+      // `upload({required File file, ...})` method, you'll need to add a
+      // bytes-based variant — see the note below the class.
+      final url = await ref
+          .read(supabaseStorageServiceProvider)
+          .uploadBytes(
+            bucket: bucket,
+            path: pathBuilder(),
+            bytes: pickedBytes!,
+            isPrivate: isPrivate,
+          );
+      existingUrl = url;
+      pickedBytes = null;
+      pickedFileName = null;
+      return url;
+    } catch (e) {
+      error = e.toString();
+      rethrow;
+    } finally {
+      uploading = false;
+      notifyListeners();
+    }
+  }
+}
+
+/// Pure pick-and-preview widget. Does NOT touch Supabase — see
+/// [ImagePickerController.upload] for that, called at submit time.
+class ImagePickerField extends StatelessWidget {
   const ImagePickerField({
     super.key,
-    required this.bucket,
-    required this.storagePath,
-    required this.onUploaded,
+    required this.controller,
     this.label = 'Photo',
-    this.currentUrl,
     this.size = 96,
     this.shape = BoxShape.circle,
   });
 
-  final String bucket;
-  final String storagePath;
-  final void Function(String url) onUploaded;
+  final ImagePickerController controller;
   final String label;
-  final String? currentUrl;
   final double size;
   final BoxShape shape;
 
-  @override
-  ConsumerState<ImagePickerField> createState() => _ImagePickerFieldState();
-}
-
-class _ImagePickerFieldState extends ConsumerState<ImagePickerField> {
-  final _picker = ImagePicker();
-  bool _uploading = false;
-  String? _localPreviewPath;
-
-  Future<void> _pick(ImageSource source) async {
-    Navigator.pop(context);
-
-    final picked = await _picker.pickImage(
+  Future<void> _pick(BuildContext sheetContext, ImageSource source) async {
+    Navigator.pop(sheetContext);
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
       source: source,
       imageQuality: 80,
       maxWidth: 1024,
@@ -62,40 +158,17 @@ class _ImagePickerFieldState extends ConsumerState<ImagePickerField> {
     );
     if (picked == null) return;
 
-    setState(() {
-      _localPreviewPath = picked.path;
-      _uploading = true;
-    });
-
-    try {
-      final url = await ref
-          .read(supabaseStorageServiceProvider)
-          .upload(
-            bucket: widget.bucket,
-            path: widget.storagePath,
-            file: File(picked.path),
-          );
-      widget.onUploaded(url);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Upload failed: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-        setState(() => _localPreviewPath = null);
-      }
-    } finally {
-      if (mounted) setState(() => _uploading = false);
-    }
+    // Cross-platform: readAsBytes() works on web, mobile, and desktop.
+    // Never wrap picked.path in dart:io.File — that breaks on web.
+    final bytes = await picked.readAsBytes();
+    controller.setBytes(bytes, picked.name);
   }
 
-  void _showPickerSheet() {
+  void _showPickerSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
+      builder: (sheetContext) => Container(
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(
@@ -123,28 +196,28 @@ class _ImagePickerFieldState extends ConsumerState<ImagePickerField> {
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            Text(widget.label, style: AppTypography.headlineMedium),
+            Text(label, style: AppTypography.headlineMedium),
             const SizedBox(height: AppSpacing.lg),
             _SheetOption(
               icon: Icons.camera_alt_outlined,
               label: 'Take a Photo',
-              onTap: () => _pick(ImageSource.camera),
+              onTap: () => _pick(sheetContext, ImageSource.camera),
             ),
             const SizedBox(height: AppSpacing.sm),
             _SheetOption(
               icon: Icons.photo_library_outlined,
               label: 'Choose from Gallery',
-              onTap: () => _pick(ImageSource.gallery),
+              onTap: () => _pick(sheetContext, ImageSource.gallery),
             ),
-            if (_localPreviewPath != null || widget.currentUrl != null) ...[
+            if (controller.previewImage != null) ...[
               const SizedBox(height: AppSpacing.sm),
               _SheetOption(
                 icon: Icons.delete_outline,
                 label: 'Remove Photo',
                 color: AppColors.error,
                 onTap: () {
-                  Navigator.pop(context);
-                  setState(() => _localPreviewPath = null);
+                  Navigator.pop(sheetContext);
+                  controller.remove();
                 },
               ),
             ],
@@ -156,55 +229,59 @@ class _ImagePickerFieldState extends ConsumerState<ImagePickerField> {
 
   @override
   Widget build(BuildContext context) {
-    final imageProvider = _localPreviewPath != null
-        ? FileImage(File(_localPreviewPath!)) as ImageProvider
-        : (widget.currentUrl != null ? NetworkImage(widget.currentUrl!) : null);
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final imageProvider = controller.previewImage;
+        final uploading = controller.uploading;
 
-    return GestureDetector(
-      onTap: _uploading ? null : _showPickerSheet,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: widget.size,
-            height: widget.size,
-            decoration: BoxDecoration(
-              shape: widget.shape,
-              color: AppColors.ivoryDeep,
-              border: Border.all(
-                color: AppColors.gold.withOpacity(0.4),
-                width: 2,
+        return GestureDetector(
+          onTap: uploading ? null : () => _showPickerSheet(context),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: size,
+                height: size,
+                decoration: BoxDecoration(
+                  shape: shape,
+                  color: AppColors.ivoryDeep,
+                  border: Border.all(
+                    color: AppColors.gold.withOpacity(0.4),
+                    width: 2,
+                  ),
+                  image: imageProvider != null && !uploading
+                      ? DecorationImage(image: imageProvider, fit: BoxFit.cover)
+                      : null,
+                ),
+                child: uploading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.gold,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : imageProvider == null
+                    ? Icon(
+                        Icons.add_a_photo_outlined,
+                        color: AppColors.gold,
+                        size: size * 0.35,
+                      )
+                    : null,
               ),
-              image: imageProvider != null && !_uploading
-                  ? DecorationImage(image: imageProvider, fit: BoxFit.cover)
-                  : null,
-            ),
-            child: _uploading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.gold,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : imageProvider == null
-                ? Icon(
-                    Icons.add_a_photo_outlined,
-                    color: AppColors.gold,
-                    size: widget.size * 0.35,
-                  )
-                : null,
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                uploading
+                    ? 'Uploading...'
+                    : imageProvider != null
+                    ? 'Tap to change'
+                    : 'Add $label',
+                style: AppTypography.caption,
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            _uploading
-                ? 'Uploading...'
-                : imageProvider != null
-                ? 'Tap to change'
-                : 'Add ${widget.label}',
-            style: AppTypography.caption,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -261,6 +338,7 @@ class StorageBucket {
   StorageBucket._();
   static const String studentPhotos = 'student-photos';
   static const String admissionPhotos = 'admission-photos';
+  static const String coursePhotos = 'course-images';
 }
 
 class StoragePath {
@@ -268,13 +346,23 @@ class StoragePath {
 
   static String studentPhoto(String userId, String filename) {
     final ts = DateTime.now().millisecondsSinceEpoch;
-    return 'students/$userId/${ts}_photo${_ext(filename)}';
+    final url = 'students/$userId/${ts}_photo${_ext(filename)}';
+    debugPrint("StudentPhoto Url Generator called : $url");
+    return url;
   }
 
-  static String admissionPhoto(String userEmail, String filename) {
+  static String admissionPhoto(String draftId, String filename) {
     final ts = DateTime.now().millisecondsSinceEpoch;
-    final safe = userEmail.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
-    return 'admissions/$safe/${ts}_photo${_ext(filename)}';
+    final url = 'pending/admissions/$draftId/${ts}_photo${_ext(filename)}';
+    debugPrint("AdmissionPhoto Url Generator called :$url");
+    return url;
+  }
+
+  static String coursePhoto(String courseName, String userId) {
+    final ts = DateTime.now().millisecondsSinceEpoch;
+    final url = 'courses/$userId/${ts}_photo${_ext(courseName)}';
+    debugPrint("CoursePhoto Url Generator called :$url");
+    return url;
   }
 
   static String _ext(String filename) {

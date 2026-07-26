@@ -1,4 +1,6 @@
 import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:swaransh_academy/Core/dio_client/dio_client_provider.dart';
@@ -13,13 +15,29 @@ class SupabaseStorageService {
     required String path,
     required File file,
   }) async {
-    await client.storage
-        .from(bucket)
-        .upload(path, file);
+    await client.storage.from(bucket).upload(path, file);
 
-    return client.storage
-        .from(bucket)
-        .getPublicUrl(path);
+    return client.storage.from(bucket).getPublicUrl(path);
+  }
+
+  //* used to upload bytes directly as web doesnt support file upload.
+  Future<String> uploadBytes({
+    required String bucket,
+    required String path,
+    required Uint8List bytes,
+    required bool isPrivate,
+  }) async {
+    await client.storage.from(bucket).uploadBinary(path, bytes);
+
+    if (isPrivate) {
+      //* Generate Signed URL
+      debugPrint("Generating Private URL");
+      return await client.storage.from(bucket).createSignedUrl(path, 60 * 60);
+    } else {
+      //* Generate Public URL
+      debugPrint("Generating Public URL");
+      return client.storage.from(bucket).getPublicUrl(path);
+    }
   }
 
   Future<String> createSignedUrl({
@@ -27,23 +45,15 @@ class SupabaseStorageService {
     required String path,
     int expiresIn = 300,
   }) async {
-    return client.storage
-        .from(bucket)
-        .createSignedUrl(path, expiresIn);
+    return client.storage.from(bucket).createSignedUrl(path, expiresIn);
   }
 
-  Future<void> delete({
-    required String bucket,
-    required String path,
-  }) async {
-    await client.storage
-        .from(bucket)
-        .remove([path]);
+  Future<void> delete({required String bucket, required String path}) async {
+    await client.storage.from(bucket).remove([path]);
   }
 }
 
-final supabaseStorageServiceProvider =
-    Provider<SupabaseStorageService>((ref) {
+final supabaseStorageServiceProvider = Provider<SupabaseStorageService>((ref) {
   final client = ref.watch(supabaseProvider);
   return SupabaseStorageService(client);
 });

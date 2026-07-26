@@ -234,4 +234,3 @@ final currentRoleProvider = Provider<UserRole>((ref) {
 final isSignedInProvider = Provider<bool>((ref) {
   return ref.watch(authProvider).valueOrNull?.isAuthenticated ?? false;
 });
-

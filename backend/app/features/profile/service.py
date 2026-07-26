@@ -35,7 +35,6 @@ async def get_my_profile(user, db) -> dict:
     if student_rows:
         students = [studentModel.StudentFullRead(**dict(row)) for row in student_rows]
         print("Number of profiles:", len(students))
-        print(students[0]['scholar_no'])
         return {"type": "student", "data": students}
 
     user_row = await db.fetchrow(repository.get_user_profile_query, user_id)

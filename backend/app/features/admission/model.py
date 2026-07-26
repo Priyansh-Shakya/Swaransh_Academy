@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Optional
 from uuid import UUID
 
 from pydantic import EmailStr, Field
@@ -22,15 +21,17 @@ class AdmissionFormCreate(StudentBasic):
         description='Required at submission time (unlike StudentFull.email which\nis nullable) - an applicant filling the form digitally is\nexpected to provide it, since this becomes their future\nlogin key once approved.\n',
     )
     address: str
-    religion: Optional[str] = None
-    caste: Optional[str] = None
+    religion: str | None = None
+    caste: str | None = None
     fees: float
     fee_type: enums.FeeType
     name: str
+    image_url: str | None = None
 
 
 class AdmissionForm(AdmissionFormCreate):
-    id: Optional[int] = None
-    user_id: Optional[UUID] = Field(None, description='Null if submitted anonymously.')
-    status: Optional[AdmissionStatus] = None
+    id: int | None = None
+    user_id: UUID | None = Field(None, description='Null if submitted anonymously.')
+    status: AdmissionStatus | None = None
+    
 

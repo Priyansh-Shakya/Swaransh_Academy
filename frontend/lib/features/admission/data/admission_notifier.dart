@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/admission_form_record.dart';
@@ -7,8 +9,13 @@ import 'admission_api_service.dart';
 /// Holds in-progress form state across all three funnel screens.
 class AdmissionFormNotifier extends Notifier<AdmissionFormState> {
   @override
-  AdmissionFormState build() => const AdmissionFormState();
+  AdmissionFormState build() => AdmissionFormState(draftId: _generateId());
 
+  static String _generateId() {
+    final rand = Random.secure();
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    return List.generate(16, (_) => chars[rand.nextInt(chars.length)]).join();
+  }
   void update(AdmissionFormState Function(AdmissionFormState) updater) {
     state = updater(state);
   }

@@ -55,8 +55,7 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
   // Add at top of _AdmissionFormScreenState:
   String? _imageUrl;
 
-  String get _userEmail =>
-      ref.read(authProvider).valueOrNull?.email ?? 'unknown';
+  late final ImagePickerController _photoController;
 
   @override
   void initState() {
@@ -92,6 +91,12 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
       'batch': 'Morning',
       'feeType': 'Monthly',
     };
+
+    _photoController = ImagePickerController(
+      initialUrl: ref.read(admissionFormProvider).imageUrl.isEmpty
+          ? null
+          : ref.read(admissionFormProvider).imageUrl,
+    );
   }
 
   @override
@@ -135,7 +140,38 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
     _dropdowns['feeType'] = s.feeType ?? 'Monthly';
   }
 
-  void _saveToNotifier() {
+  void _saveToNotifier() async {
+    setState(() => _proceeding = true);
+    try {
+      final photoUrl = await _photoController.upload(
+        ref: ref,
+        bucket: StorageBucket.admissionPhotos,
+        pathBuilder: () => StoragePath.admissionPhoto(
+          ref.read(admissionFormProvider).draftId,
+          'photo.jpg',
+        ),
+        isPrivate: false,
+      );
+      _imageUrl = photoUrl;
+
+      debugPrint(
+        "Photo URL Available, Proceeding to saving to notifier.\nURL:$_imageUrl",
+      );
+    } catch (e) {
+      if (mounted) {
+        debugPrint("Error uploading photo: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Photo upload failed: $e'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      if (mounted) setState(() => _proceeding = false);
+      return;
+    }
+    debugPrint("Saving to notifier...");
     ref
         .read(admissionFormProvider.notifier)
         .update(
@@ -210,7 +246,9 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
     return null;
   }
 
-  void _proceed() {
+  bool _proceeding = false;
+
+  Future<void> _proceed() async {
     final error = _validate();
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -223,14 +261,15 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
       return;
     }
 
-    _saveToNotifier();
-
     final isSignedIn = ref.read(isSignedInProvider);
     if (!isSignedIn) {
+      _saveToNotifier(); // save text fields so nothing's lost
       _showAuthWall();
       return;
+    } else {
+      _saveToNotifier(); 
+      context.push('/admission/terms');
     }
-    context.push('/admission/terms');
   }
 
   // In admission_form_screen.dart, replace _showAuthWall():
@@ -301,14 +340,7 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
                   StudentFieldSection.contact,
                   StudentFieldSection.course,
                 },
-                // Image picker config:
-                onImageUploaded: (url) => setState(() => _imageUrl = url),
-                imageBucket: StorageBucket.admissionPhotos,
-                imageStoragePath: StoragePath.admissionPhoto(
-                  _userEmail,
-                  '${DateTime.now().millisecondsSinceEpoch}.jpg',
-                ),
-                currentImageUrl: _imageUrl,
+                imagePickerController: _photoController,
               ),
 
               // Optional fields section

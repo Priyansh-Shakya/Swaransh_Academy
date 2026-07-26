@@ -3,6 +3,7 @@
 /// contract schemas intentionally - this is UI state, not a DB record.
 class AdmissionFormState {
   const AdmissionFormState({
+    this.draftId = '',
     // Basic (StudentBasic fields)
     this.imageUrl = '',
     this.name = '',
@@ -35,7 +36,7 @@ class AdmissionFormState {
     this.isSubmitting = false,
     this.submittedFormId,
   });
-
+  final String draftId;
   final String imageUrl;
   final String name;
   final String department;
@@ -62,6 +63,7 @@ class AdmissionFormState {
   final int? submittedFormId; // set after successful POST /admissionForm
 
   AdmissionFormState copyWith({
+    String? draftId,
     String? imageUrl,
     String? name,
     String? department,
@@ -113,13 +115,14 @@ class AdmissionFormState {
       prefillSubject: prefillSubject ?? this.prefillSubject,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       submittedFormId: submittedFormId ?? this.submittedFormId,
+      draftId: draftId ?? this.draftId,
     );
   }
 
   bool get isEmpty => name.isEmpty && contact.isEmpty && email.isEmpty;
 
   Map<String, dynamic> toJson() => {
-    'imageUrl': imageUrl,
+    'image_url': imageUrl,
     'name': name,
     'father_name': fatherName,
     'dob': dob.isEmpty ? null : dob,

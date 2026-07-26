@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../Core/theme/app_colors.dart';
 import '../../../Core/theme/app_spacing.dart';
 import '../../../Core/theme/app_typography.dart';
@@ -17,6 +18,8 @@ class AdminAdmissionDetailPage extends ConsumerWidget {
     final deptColor = AppColors.departmentColor(form.department);
     final isPending = form.status == 'Pending';
 
+    debugPrint("From admin admission page: ${form.gender}");
+
     return Scaffold(
       backgroundColor: AppColors.ivory,
       appBar: AppBar(
@@ -28,9 +31,10 @@ class AdminAdmissionDetailPage extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ---- Header ----
+            // ---- Header ----
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(AppSpacing.lg),
+              padding: const EdgeInsets.all(AppSpacing.sm),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [AppColors.navy, deptColor.withOpacity(0.7)],
@@ -38,23 +42,91 @@ class AdminAdmissionDetailPage extends ConsumerWidget {
                   end: Alignment.bottomRight,
                 ),
               ),
-              child: Column(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  CircleAvatar(
-                    radius: 36,
-                    backgroundColor: Colors.white.withOpacity(0.2),
-                    child: Text(
-                      form.name.isNotEmpty ? form.name[0].toUpperCase() : '?',
-                      style: AppTypography.headlineLarge
-                          .copyWith(color: Colors.white),
+                  // Photo — big, fills available height, rounded rect not circle
+                  Expanded(
+                    flex: 4,
+                    child: AspectRatio(
+                      aspectRatio: 4 / 4, // portrait, like a resume photo
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: CircleAvatar(
+                          radius: 36,
+                          backgroundColor: deptColor.withOpacity(0.15),
+                          backgroundImage: form.imageUrl.isNotEmpty
+                              ? NetworkImage(form.imageUrl)
+                              : null,
+                          child: form.imageUrl.isEmpty
+                              ? Text(
+                                  form.name.isNotEmpty
+                                      ? form.name[0].toUpperCase()
+                                      : '?',
+                                  style: AppTypography.titleLarge.copyWith(
+                                    color: deptColor,
+                                  ),
+                                )
+                              : null,
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(form.name,
-                      style: AppTypography.headlineMedium
-                          .copyWith(color: Colors.white)),
-                  const SizedBox(height: 4),
-                  _StatusChip(status: form.status),
+                  const SizedBox(width: AppSpacing.lg),
+
+                  // Name + status + quick details on the right
+                  Expanded(
+                    flex: 5,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          form.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.headlineMedium.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        _StatusChip(status: form.status),
+                        const SizedBox(height: AppSpacing.md),
+
+                        // Fills the empty right-side space with compact facts
+                        Wrap(
+                          spacing: AppSpacing.md,
+                          runSpacing: 6,
+                          children: [
+                            if (form.gender != null && form.gender!.isNotEmpty)
+                              _MiniDetail(
+                                icon: Icons.person_outline,
+                                label: form.gender!,
+                              ),
+                            if (form.dob != null)
+                              _MiniDetail(
+                                icon: Icons.cake_outlined,
+                                label: _formatDate(form.dob),
+                              ),
+                            if (form.batch != null && form.batch!.isNotEmpty)
+                              _MiniDetail(
+                                icon: Icons.groups_2_outlined,
+                                label: form.batch!,
+                              ),
+                            if (form.startTime != null && form.endTime != null)
+                              _MiniDetail(
+                                icon: Icons.schedule_outlined,
+                                label: _formatTimeRange(
+                                  form.startTime,
+                                  form.endTime,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -68,11 +140,15 @@ class AdminAdmissionDetailPage extends ConsumerWidget {
                   _Section(
                     title: 'Course & Enrollment',
                     children: [
-                      _InfoRow('Department',
-                          form.department.replaceAll('_', ' ')),
+                      _InfoRow(
+                        'Department',
+                        form.department.replaceAll('_', ' '),
+                      ),
                       _InfoRow('Subject', form.subject),
-                      _InfoRow('Admission Type',
-                          form.admissionType.replaceAll('_', ' ')),
+                      _InfoRow(
+                        'Admission Type',
+                        form.admissionType.replaceAll('_', ' '),
+                      ),
                       _InfoRow('Learning Mode', form.learningMode),
                     ],
                   ),
@@ -93,11 +169,12 @@ class AdminAdmissionDetailPage extends ConsumerWidget {
                     _Section(
                       title: 'Fees',
                       children: [
-                        _InfoRow('Amount',
-                            '\u20B9${form.fees!.toStringAsFixed(0)}'),
+                        _InfoRow(
+                          'Amount',
+                          '\u20B9${form.fees!.toStringAsFixed(0)}',
+                        ),
                         if (form.feeType != null)
-                          _InfoRow('Type',
-                              form.feeType!.replaceAll('_', ' ')),
+                          _InfoRow('Type', form.feeType!.replaceAll('_', ' ')),
                       ],
                     ),
 
@@ -115,7 +192,8 @@ class AdminAdmissionDetailPage extends ConsumerWidget {
                               foregroundColor: AppColors.error,
                               side: const BorderSide(color: AppColors.error),
                               padding: const EdgeInsets.symmetric(
-                                  vertical: AppSpacing.md),
+                                vertical: AppSpacing.md,
+                              ),
                             ),
                             onPressed: () =>
                                 _confirm(context, ref, approve: false),
@@ -129,7 +207,8 @@ class AdminAdmissionDetailPage extends ConsumerWidget {
                             style: FilledButton.styleFrom(
                               backgroundColor: AppColors.active,
                               padding: const EdgeInsets.symmetric(
-                                  vertical: AppSpacing.md),
+                                vertical: AppSpacing.md,
+                              ),
                             ),
                             onPressed: () =>
                                 _confirm(context, ref, approve: true),
@@ -171,23 +250,29 @@ class AdminAdmissionDetailPage extends ConsumerWidget {
     );
   }
 
-  Future<void> _confirm(BuildContext context, WidgetRef ref,
-      {required bool approve}) async {
+  Future<void> _confirm(
+    BuildContext context,
+    WidgetRef ref, {
+    required bool approve,
+  }) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(approve ? 'Approve Application?' : 'Decline Application?'),
-        content: Text(approve
-            ? 'A student record will be created for ${form.name}.'
-            : '${form.name}\'s application will be declined.'),
+        content: Text(
+          approve
+              ? 'A student record will be created for ${form.name}.'
+              : '${form.name}\'s application will be declined.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(
-                backgroundColor:
-                    approve ? AppColors.active : AppColors.error),
+              backgroundColor: approve ? AppColors.active : AppColors.error,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(approve ? 'Approve' : 'Decline'),
           ),
@@ -198,19 +283,17 @@ class AdminAdmissionDetailPage extends ConsumerWidget {
 
     try {
       if (approve) {
-        await ref
-            .read(admissionFormsListProvider.notifier)
-            .approve(form.id);
+        await ref.read(admissionFormsListProvider.notifier).approve(form.id);
       } else {
-        await ref
-            .read(admissionFormsListProvider.notifier)
-            .decline(form.id);
+        await ref.read(admissionFormsListProvider.notifier).decline(form.id);
       }
       if (context.mounted) context.pop();
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to ${approve ? 'approve' : 'decline'}')),
+          SnackBar(
+            content: Text('Failed to ${approve ? 'approve' : 'decline'}'),
+          ),
         );
       }
     }
@@ -227,9 +310,10 @@ class _Section extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title,
-            style:
-                AppTypography.titleLarge.copyWith(color: AppColors.gold)),
+        Text(
+          title,
+          style: AppTypography.titleLarge.copyWith(color: AppColors.gold),
+        ),
         const SizedBox(height: AppSpacing.sm),
         Container(
           width: double.infinity,
@@ -258,15 +342,13 @@ class _InfoRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 130,
-            child: Text(label, style: AppTypography.label),
-          ),
+          SizedBox(width: 130, child: Text(label, style: AppTypography.label)),
           Expanded(
             child: Text(
               value.isEmpty ? '—' : value,
-              style: AppTypography.bodyMedium
-                  .copyWith(fontWeight: FontWeight.w600),
+              style: AppTypography.bodyMedium.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -287,8 +369,7 @@ class _StatusChip extends StatelessWidget {
       _ => AppColors.pendingPayment,
     };
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.2),
         borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -296,9 +377,76 @@ class _StatusChip extends StatelessWidget {
       ),
       child: Text(
         status,
-        style: AppTypography.caption
-            .copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+        style: AppTypography.caption.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
+}
+
+class _MiniDetail extends StatelessWidget {
+  const _MiniDetail({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: Colors.white.withOpacity(0.85)),
+        const SizedBox(width: 4),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 90),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.caption.copyWith(
+              color: Colors.white.withOpacity(0.9),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Converts "HH:mm:ss" or "HH:mm" (24h) -> "h:mm AM/PM"
+String _to12Hour(String time24) {
+  final parts = time24.split(':');
+  if (parts.length < 2) return time24;
+  final hour24 = int.tryParse(parts[0]) ?? 0;
+  final minute = parts[1].padLeft(2, '0');
+  final period = hour24 >= 12 ? 'PM' : 'AM';
+  int hour12 = hour24 % 12;
+  if (hour12 == 0) hour12 = 12;
+  return '$hour12:$minute $period';
+}
+
+String _formatTimeRange(String? start, String? end) {
+  if (start == null || end == null) return '—';
+  return '${_to12Hour(start)} - ${_to12Hour(end)}';
+}
+
+String _formatDate(DateTime? date) {
+  if (date == null) return '—';
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  return '${date.day} ${months[date.month - 1]} ${date.year}';
 }

@@ -24,7 +24,8 @@ FIELDS = (
     "subject",
     "courses",
     "fees",
-    "fee_type"
+    "fee_type",
+    
 )
 
 
@@ -33,8 +34,10 @@ async def create_admission_form(form: model.AdmissionFormCreate,user, db):
     user_id = user['id']
     data = form.model_dump(mode='python')
     data = convert_enums_to_values(data)
+    print("Admission image url:", data['image_url'])
     values = [data[field] for field in FIELDS]
-    values.append(user_id) #! inserting user_id at the end
+    values.append(user_id) 
+    values.append(data["image_url"])
     row = await db.fetchrow(queries.create_addmision, *values)
     print("Admission Created:", row)
     return dict(row)
@@ -44,8 +47,11 @@ async def get_form_me(user, db):
     """Get admission forms for current user"""
 
     rows = await db.fetch(queries.get_admission_me, user['id'])
-    return [dict(row) for row in rows]
+   
+    result =  [dict(row) for row in rows]
 
+    print("My Admission Forms:\n", result)
+    return result
 
 async def approve_form(admission_id: int, db):
     """Approve an admission form and create student record"""

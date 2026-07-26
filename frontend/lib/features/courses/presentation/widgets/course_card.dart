@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../../Core/theme/app_colors.dart';
 import '../../../../Core/theme/app_spacing.dart';
 import '../../../../Core/theme/app_typography.dart';
@@ -32,7 +33,12 @@ class CourseCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _CourseImage(course: course, height: imageHeight, deptColor: deptColor),
+            _CourseImage(
+              course: course,
+              height: imageHeight,
+              deptColor: deptColor,
+            ),
+
             Padding(
               padding: const EdgeInsets.all(AppSpacing.md),
               child: Column(
@@ -49,7 +55,10 @@ class CourseCard extends StatelessWidget {
                     spacing: AppSpacing.xs,
                     runSpacing: AppSpacing.xs,
                     children: [
-                      _Tag(label: course.mapsToDepartment.replaceAll('_', ' '), color: deptColor),
+                      _Tag(
+                        label: course.mapsToDepartment.replaceAll('_', ' '),
+                        color: deptColor,
+                      ),
                       _Tag(label: course.tag, color: AppColors.gold),
                       _Tag(label: course.mode, color: AppColors.navy),
                     ],
@@ -60,14 +69,20 @@ class CourseCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.schedule, size: 16, color: AppColors.textSecondary),
+                          const Icon(
+                            Icons.schedule,
+                            size: 16,
+                            color: AppColors.textSecondary,
+                          ),
                           const SizedBox(width: 4),
                           Text(course.duration, style: AppTypography.bodySmall),
                         ],
                       ),
                       Text(
                         '\u20B9${course.fees.toStringAsFixed(0)}',
-                        style: AppTypography.titleLarge.copyWith(color: AppColors.navy),
+                        style: AppTypography.titleLarge.copyWith(
+                          color: AppColors.navy,
+                        ),
                       ),
                     ],
                   ),
@@ -82,7 +97,11 @@ class CourseCard extends StatelessWidget {
 }
 
 class _CourseImage extends StatelessWidget {
-  const _CourseImage({required this.course, required this.height, required this.deptColor});
+  const _CourseImage({
+    required this.course,
+    required this.height,
+    required this.deptColor,
+  });
 
   final Course course;
   final double height;
@@ -95,7 +114,7 @@ class _CourseImage extends StatelessWidget {
         course.imageUrl!,
         height: height,
         width: double.infinity,
-        fit: BoxFit.cover,
+        fit: BoxFit.fill,
         errorBuilder: (_, __, ___) => _fallback(),
       );
     }
@@ -136,14 +155,20 @@ class _Tag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: 4,
+      ),
       decoration: BoxDecoration(
         color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(AppRadius.pill),
       ),
       child: Text(
         label,
-        style: AppTypography.caption.copyWith(color: color, fontWeight: FontWeight.w700),
+        style: AppTypography.caption.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

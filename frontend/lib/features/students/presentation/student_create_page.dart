@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
+import 'package:swaransh_academy/Core/dio_client/dio_client_provider.dart';
 import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
 import 'package:swaransh_academy/features/students/data/students_notifier.dart';
 import 'package:swaransh_academy/features/students/domain/student.dart';
 
-import '../../../../../Core/theme/app_colors.dart';
 import '../../../../../Core/theme/app_spacing.dart';
 import '../../../../../Core/widgets/student_fields_form.dart';
 
@@ -43,13 +41,6 @@ class _StudentCreatePageState extends ConsumerState<StudentCreatePage> {
   final _formKey = GlobalKey<FormState>();
   bool _saving = false;
 
-  // Add at top of _StudentCreatePageState:
-  String? _imageUrl;
-
-  // Get the current user id for the storage path
-  // (available from authProvider once signed in)
-  String get _userId => ref.read(authProvider).valueOrNull?.id ?? 'unknown';
-
   final _controllers = <String, TextEditingController>{
     'name': TextEditingController(),
     'fatherName': TextEditingController(),
@@ -77,9 +68,19 @@ class _StudentCreatePageState extends ConsumerState<StudentCreatePage> {
     'feeType': 'Monthly',
   };
 
+  //* Image field — created once, here, not in build().
+  late final ImagePickerController _photoController;
+
+  @override
+  void initState() {
+    super.initState();
+    _photoController = ImagePickerController(); // no existing photo on create
+  }
+
   @override
   void dispose() {
     for (final c in _controllers.values) c.dispose();
+    _photoController.dispose();
     super.dispose();
   }
 
@@ -87,8 +88,28 @@ class _StudentCreatePageState extends ConsumerState<StudentCreatePage> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
 
+    final userId = ref.read(supabaseProvider).auth.currentSession?.user.id;
+    String? imageUrl;
+
+    if (userId != null) {
+      try {
+        imageUrl = await _photoController.upload(
+          ref: ref,
+          bucket: StorageBucket.studentPhotos,
+          pathBuilder: () => StoragePath.studentPhoto(userId, 'photo.jpg'),
+          isPrivate: true,
+        );
+        debugPrint("Photo URL available: $imageUrl");
+      } catch (e) {
+        debugPrint("Error on image upload, Student Create: $e");
+        // photo upload failed — proceeding without a photo rather than
+        // blocking the whole student creation. Reconsider if a photo
+        // should be mandatory for your flow.
+      }
+    }
+
     final draft = CreateStudent(
-      imageUrl: _imageUrl,
+      imageUrl: imageUrl,
       name: _controllers['name']!.text.trim(),
       admissionType: _dropdowns['admissionType'] ?? 'Regular',
       learningMode: _dropdowns['learningMode'] ?? 'Offline',
@@ -132,33 +153,21 @@ class _StudentCreatePageState extends ConsumerState<StudentCreatePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Add Student'),
-        actions: [
-          _saving
-              ? const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.gold,
-                    ),
-                  ),
-                )
-              : TextButton(
-                  onPressed: _save,
-                  child: Text('Save', style: TextStyle(color: AppColors.gold)),
-                ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Add Student')),
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
             children: [
+              Center(
+                child: ImagePickerField(
+                  controller: _photoController,
+                  label: 'Profile Photo',
+                  size: 100,
+                  shape: BoxShape.circle,
+                ),
+              ),
               StudentFieldsForm(
                 controllers: _controllers,
                 values: _dropdowns,
@@ -168,14 +177,6 @@ class _StudentCreatePageState extends ConsumerState<StudentCreatePage> {
                 requiredFields: _requiredFields,
                 onDropdownChanged: (key, value) =>
                     setState(() => _dropdowns[key] = value),
-                // Image picker config:
-                onImageUploaded: (url) => setState(() => _imageUrl = url),
-                imageBucket: StorageBucket.studentPhotos,
-                imageStoragePath: StoragePath.studentPhoto(
-                  _userId,
-                  '${DateTime.now().millisecondsSinceEpoch}.jpg',
-                ),
-                currentImageUrl: _imageUrl,
               ),
               const SizedBox(height: AppSpacing.xl),
               SizedBox(

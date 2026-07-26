@@ -110,6 +110,9 @@ CREATE TABLE users (
     fcm_token TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
+--* Grant Select permisison on users table for admision image stuff, RLS still applies.
+GRANT SELECT ON public.users TO authenticated;
+
 
 --- Courses Table
 CREATE TABLE courses(
@@ -195,7 +198,7 @@ CREATE TABLE payment (
 CREATE TABLE admissions (
     -- Auto-incrementing 8-byte ID matching your student ID scale
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    
+    image_url Text,
     -- Bound server-side from JWT; NULL if submitted anonymously
     user_id UUID not null REFERENCES users(user_id) ON DELETE CASCADE,
     

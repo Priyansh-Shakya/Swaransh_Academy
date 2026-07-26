@@ -51,29 +51,61 @@ class _CourseDetailBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final deptColor = AppColors.departmentColor(course.mapsToDepartment);
 
+    final isDesktop = MediaQuery.sizeOf(context).width >= 900;
+
+    final imageHeight = isDesktop ? 500.0 : 220.0;
+
     return CustomScrollView(
       slivers: [
         SliverAppBar(
-          expandedHeight: 220,
+          expandedHeight: imageHeight,
           pinned: true,
           backgroundColor: AppColors.ivory,
           foregroundColor: AppColors.navy,
           actions: isAdmin
               ? [
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined),
-                    onPressed: () =>
-                        context.push('/home/course/${course.id}/edit'),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(
+                        255,
+                        255,
+                        253,
+                        163,
+                      ).withOpacity(0.45),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      onPressed: () =>
+                          context.push('/home/course/${course.id}/edit'),
+                    ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: () => _confirmDelete(context, ref),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(
+                        255,
+                        255,
+                        253,
+                        163,
+                      ).withOpacity(0.45),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: () => _confirmDelete(context, ref),
+                    ),
                   ),
                 ]
               : null,
           flexibleSpace: FlexibleSpaceBar(
+            collapseMode: CollapseMode
+                .pin, // image stays put, doesn't parallax-shift while collapsing
             background: course.imageUrl != null
-                ? Image.network(course.imageUrl!, fit: BoxFit.cover)
+                ? Image.network(
+                    course.imageUrl!,
+                    fit: BoxFit.fill,
+                    alignment: Alignment.topCenter,
+                  )
                 : Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -185,9 +217,9 @@ class _CourseDetailBody extends ConsumerWidget {
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () async {
-              await ref.read(coursesProvider.notifier).deleteCourse(course.id);
               Navigator.pop(dialogContext);
               if (context.mounted) context.pop();
+              await ref.read(coursesProvider.notifier).deleteCourse(course.id);
             },
             child: const Text('Delete'),
           ),

@@ -1,12 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:swaransh_academy/Core/dio_client/dio_client_provider.dart';
+import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
+
 import '../../../Core/theme/app_colors.dart';
 import '../../../Core/theme/app_spacing.dart';
 import '../data/courses_repository.dart';
 import '../domain/course.dart';
 
-const _departments = ['Music', 'Dance', 'Acting', 'Music_Video_Production', 'Other'];
+const _departments = [
+  'Music',
+  'Dance',
+  'Acting',
+  'Music_Video_Production',
+  'Other',
+];
 const _modes = ['Online', 'Offline', 'Hybrid'];
 const _tags = ['Instrumental', 'Vocal'];
 
@@ -25,14 +34,21 @@ class CourseFormPage extends ConsumerStatefulWidget {
 class _CourseFormPageState extends ConsumerState<CourseFormPage> {
   final _formKey = GlobalKey<FormState>();
 
-  late final _nameCtrl = TextEditingController(text: widget.existing?.courseName ?? '');
-  late final _durationCtrl = TextEditingController(text: widget.existing?.duration ?? '');
-  late final _feesCtrl =
-      TextEditingController(text: widget.existing?.fees.toStringAsFixed(0) ?? '');
-  late final _subjectCtrl = TextEditingController(text: widget.existing?.mapsToSubject ?? '');
-  late final _imageUrlCtrl = TextEditingController(text: widget.existing?.imageUrl ?? '');
+  late final _nameCtrl = TextEditingController(
+    text: widget.existing?.courseName ?? '',
+  );
+  late final _durationCtrl = TextEditingController(
+    text: widget.existing?.duration ?? '',
+  );
+  late final _feesCtrl = TextEditingController(
+    text: widget.existing?.fees.toStringAsFixed(0) ?? '',
+  );
+  late final _subjectCtrl = TextEditingController(
+    text: widget.existing?.mapsToSubject ?? '',
+  );
 
-  late String _department = widget.existing?.mapsToDepartment ?? _departments.first;
+  late String _department =
+      widget.existing?.mapsToDepartment ?? _departments.first;
   late String _mode = widget.existing?.mode ?? _modes.first;
   late String _tag = widget.existing?.tag ?? _tags.first;
 
@@ -40,13 +56,26 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
 
   bool get _isEdit => widget.existing != null;
 
+  //* Image field — created once, here, not in build().
+  String? imageUrl;
+  late final ImagePickerController _photoController;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _photoController = ImagePickerController(
+      initialUrl: imageUrl,
+    ); // no existing photo on create
+  }
+
   @override
   void dispose() {
+    _photoController.dispose();
     _nameCtrl.dispose();
     _durationCtrl.dispose();
     _feesCtrl.dispose();
     _subjectCtrl.dispose();
-    _imageUrlCtrl.dispose();
     super.dispose();
   }
 
@@ -59,19 +88,33 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
+            Center(
+              child: ImagePickerField(
+                controller: _photoController,
+                label: 'Course Photo',
+                size: 100,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
             TextFormField(
               controller: _nameCtrl,
               decoration: const InputDecoration(
                 labelText: 'Display title',
-                helperText: 'What students see, e.g. "Beginner Guitar Workshop"',
+                helperText:
+                    'What students see, e.g. "Beginner Guitar Workshop"',
               ),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Required' : null,
             ),
             const SizedBox(height: AppSpacing.md),
             TextFormField(
               controller: _durationCtrl,
-              decoration: const InputDecoration(labelText: 'Duration (e.g. "3 months")'),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+              decoration: const InputDecoration(
+                labelText: 'Duration (e.g. "3 months")',
+              ),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Required' : null,
             ),
             const SizedBox(height: AppSpacing.md),
             TextFormField(
@@ -88,20 +131,27 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
             DropdownButtonFormField<String>(
               initialValue: _mode,
               decoration: const InputDecoration(labelText: 'Learning mode'),
-              items: _modes.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+              items: _modes
+                  .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                  .toList(),
               onChanged: (v) => setState(() => _mode = v!),
             ),
             const SizedBox(height: AppSpacing.md),
             DropdownButtonFormField<String>(
               initialValue: _tag,
               decoration: const InputDecoration(labelText: 'Tag'),
-              items: _tags.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+              items: _tags
+                  .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                  .toList(),
               onChanged: (v) => setState(() => _tag = v!),
             ),
             const SizedBox(height: AppSpacing.lg),
             const Divider(),
             const SizedBox(height: AppSpacing.sm),
-            Text('Admission pre-fill mapping', style: Theme.of(context).textTheme.labelLarge),
+            Text(
+              'Admission pre-fill mapping',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
             Text(
               'Used to pre-fill the Admission Form when a student taps "Apply Now" - '
               'keep these matching the form\'s actual enum/subject values, not the '
@@ -111,9 +161,16 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
             const SizedBox(height: AppSpacing.md),
             DropdownButtonFormField<String>(
               initialValue: _department,
-              decoration: const InputDecoration(labelText: 'Maps to department'),
+              decoration: const InputDecoration(
+                labelText: 'Maps to department',
+              ),
               items: _departments
-                  .map((d) => DropdownMenuItem(value: d, child: Text(d.replaceAll('_', ' '))))
+                  .map(
+                    (d) => DropdownMenuItem(
+                      value: d,
+                      child: Text(d.replaceAll('_', ' ')),
+                    ),
+                  )
                   .toList(),
               onChanged: (v) => setState(() => _department = v!),
             ),
@@ -122,21 +179,15 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
               controller: _subjectCtrl,
               decoration: const InputDecoration(
                 labelText: 'Maps to subject',
-                helperText: 'Exact value the admission form expects, e.g. "Guitar"',
+                helperText:
+                    'Exact value the admission form expects, e.g. "Guitar"',
               ),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Required' : null,
             ),
             const SizedBox(height: AppSpacing.lg),
             const Divider(),
             const SizedBox(height: AppSpacing.sm),
-            TextFormField(
-              controller: _imageUrlCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Image URL (optional)',
-                helperText: 'Paste a Supabase Storage URL. Upload-from-device comes later.',
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
@@ -145,7 +196,10 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
                     ? const SizedBox(
                         height: 18,
                         width: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.navy),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.navy,
+                        ),
                       )
                     : Text(_isEdit ? 'Save Changes' : 'Add Course'),
               ),
@@ -160,8 +214,32 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
 
+    final userId = ref.read(supabaseProvider).auth.currentSession?.user.id;
+
+    if (userId != null) {
+      try {
+        imageUrl = await _photoController.upload(
+          ref: ref,
+          bucket: StorageBucket.coursePhotos,
+          pathBuilder: () =>
+              StoragePath.coursePhoto(userId, _nameCtrl.text.trim()),
+          isPrivate: false,
+        );
+        debugPrint("Photo URL available: $imageUrl");
+      } catch (e) {
+        debugPrint("Error on image upload, Course Create: $e");
+        // photo upload failed — proceeding without a photo rather than
+        // blocking the whole student creation. Reconsider if a photo
+        // should be mandatory for your flow.
+      }
+    }
+
+    context.pop(); //* POP screen
+
     final draft = Course(
-      id: widget.existing?.id ?? 0, // ignored by addCourse, used by updateCourse
+      id:
+          widget.existing?.id ??
+          0, // ignored by addCourse, used by updateCourse
       courseName: _nameCtrl.text.trim(),
       duration: _durationCtrl.text.trim(),
       fees: double.parse(_feesCtrl.text.trim()),
@@ -169,17 +247,13 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
       tag: _tag,
       mapsToDepartment: _department,
       mapsToSubject: _subjectCtrl.text.trim(),
-      imageUrl: _imageUrlCtrl.text.trim().isEmpty ? null : _imageUrlCtrl.text.trim(),
+      imageUrl: imageUrl,
     );
 
     if (_isEdit) {
       await ref.read(coursesProvider.notifier).updateCourse(draft);
     } else {
       await ref.read(coursesProvider.notifier).addCourse(draft);
-    }
-
-    if (mounted) {
-      context.pop();
     }
   }
 }

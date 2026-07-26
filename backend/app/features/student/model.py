@@ -7,7 +7,7 @@ from pydantic import AnyUrl, BaseModel, EmailStr, Field
 
 
 class StudentBasic(BaseModel):
-    name: Optional[str] = None
+    name: str | None = None
     admission_type: Optional[enums.AdmissionType] = None
     learning_mode: Optional[enums.LearningMode] = None
     department: Optional[enums.Department] = None
