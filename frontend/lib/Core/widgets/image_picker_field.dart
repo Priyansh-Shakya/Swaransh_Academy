@@ -339,6 +339,7 @@ class StorageBucket {
   static const String studentPhotos = 'student-photos';
   static const String admissionPhotos = 'admission-photos';
   static const String coursePhotos = 'course-images';
+  static const String adminPhotos = 'admin-photos';
 }
 
 class StoragePath {
@@ -362,6 +363,13 @@ class StoragePath {
     final ts = DateTime.now().millisecondsSinceEpoch;
     final url = 'courses/$userId/${ts}_photo${_ext(courseName)}';
     debugPrint("CoursePhoto Url Generator called :$url");
+    return url;
+  }
+
+  static String adminPhoto(String adminName , String userId){
+    final ts = DateTime.now().millisecondsSinceEpoch;
+    final url = 'admin/$userId/${ts}_photo${_ext(adminName)}';
+    debugPrint("Admin Photo Url Generator called :$url");
     return url;
   }
 

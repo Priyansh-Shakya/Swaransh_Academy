@@ -2,7 +2,9 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES
   ('student-photos', 'student-photos', false),
   ('admission-photos', 'admission-photos', true),
-  ('course-images', 'course-images', true)
+  ('course-images', 'course-images', true),
+  ('admin-photos' , 'admin-photos', true) 
+
 ON CONFLICT (id) DO NOTHING;
 
 
@@ -105,6 +107,27 @@ FOR INSERT
 TO authenticated
 WITH CHECK (
   bucket_id = 'course-images'
+  AND EXISTS (
+    SELECT 1
+    FROM public.users u
+    WHERE u.user_id = auth.uid()
+      AND u.role = 'admin'
+  )
+);
+
+
+-- Admin images are public
+CREATE POLICY "Anyone can read admin images"
+ON storage.objects FOR SELECT
+TO public
+USING (bucket_id = 'admin-photos');
+
+CREATE POLICY "Admins can upload admin images"
+ON storage.objects
+FOR INSERT
+TO authenticated
+WITH CHECK (
+  bucket_id = 'admin-photos'
   AND EXISTS (
     SELECT 1
     FROM public.users u

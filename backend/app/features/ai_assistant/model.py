@@ -1,22 +1,15 @@
 
-from pydantic import BaseModel  , Field
-from typing import List, Optional
-
-from app.core.enums import Role 
+from pydantic import BaseModel
 
 
-class HistoryItem(BaseModel):
-    role: Optional[Role] = None
-    content: Optional[str] = None
+class ChatMessage(BaseModel):
+    role: str      # "user" | "assistant"
+    content: str
 
 
 class AssistanceQuery(BaseModel):
     query: str
-    history: Optional[List[HistoryItem]] = Field(
-        None,
-        description='Last up to 10 messages, kept client-side. Sent each call; backend is stateless.',
-    )
-
+    conversation_history: list[ChatMessage] = []
 
 class AssistanceResponse(BaseModel):
-    response: Optional[str] = None
+    response: str | None = None

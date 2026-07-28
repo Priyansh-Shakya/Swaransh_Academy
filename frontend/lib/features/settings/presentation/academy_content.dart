@@ -14,8 +14,9 @@ Swaransh Academy of Music & Art is a dedicated centre for music, dance, acting, 
 Our programmes span classical and contemporary forms, with experienced faculty guiding students from their first notes to professional-level performance.
 ''';
 
-  /// Set to a Supabase Storage URL once the academy photo is uploaded.
-  static const String? academyImageUrl = null;
+  //* Set to a Supabase Storage URL once the academy photo is uploaded.
+  static const String? academyImageUrl =
+      'http://127.0.0.1:54321/storage/v1/object/public/admin-photos/WhatsApp%20Image%202026-07-27%20at%2010.34.15%20AM.jpeg';
 
   // ---- Contact ----
   static const String contactEmail = 'swaranshacademy@gmail.com';
@@ -30,7 +31,8 @@ Our programmes span classical and contemporary forms, with experienced faculty g
           'A lifelong devotion to music and the belief that every person '
           'carries a melody waiting to be discovered — that vision is the '
           'heart of Swaransh Academy.',
-      photoUrl: null, // replace with Supabase Storage URL when ready
+      photoUrl:
+          'http://127.0.0.1:54321/storage/v1/object/public/admin-photos/IMG_20160815_090735.jpg', // replace with Supabase Storage URL when ready
     ),
     TeamMember(
       name: 'Swaransh Shakya', // replace
@@ -39,7 +41,8 @@ Our programmes span classical and contemporary forms, with experienced faculty g
           'Overseeing day-to-day operations and curriculum development, '
           'bringing both professional rigour and creative energy to the '
           'academy\'s growth.',
-      photoUrl: null,
+      photoUrl:
+          'http://127.0.0.1:54321/storage/v1/object/public/admin-photos/swaransh.jpeg',
     ),
   ];
 

@@ -206,7 +206,7 @@ class _ProfileHero extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.gold, width: 2.5),
             ),
-            child: StudentAvatar(student: student, radius: 44),
+            child: StudentAvatar(student: student, radius: 60),
           ),
 
           const SizedBox(height: AppSpacing.md),

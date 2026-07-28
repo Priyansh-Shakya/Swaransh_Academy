@@ -37,100 +37,20 @@ TO CHECk:
 1. Multiple Students with same email - User created -> Auth Link all sudents with that user_id : CHECKED
 2. User Already exists -> Multiple students created with same email => Auto link all students with that user_id : CHECKED
 
+Todo:
+- Role select Screen:
+  - Logo is small ... have blank space below admin...
+  - use blank space , shift role cards down and make logo bigger.
 
 
--- Creates buckets if they don't exist
-INSERT INTO storage.buckets (id, name, public)
-VALUES 
-  ('student-photos', 'student-photos', false),
-  ('admission-photos', 'admission-photos', false),
-  ('course-images', 'course-images', true)
-ON CONFLICT (id) DO NOTHING;
+1600 x 656 - mobile: best fit , desktop: good
+1400x400 - Perfect on both
+1400x500 - Again perfect
+Note: all mobile verisons are tested on chrome with small mobile like window and not on actua; Phone!
 
-CREATE POLICY "Admins can upload student photos"
-ON storage.objects
-FOR INSERT
-TO authenticated
-WITH CHECK (
-  bucket_id = 'student-photos'
-  AND EXISTS (
-    SELECT 1
-    FROM public.users u
-    WHERE u.user_id = auth.uid()
-      AND u.role = 'admin'
-  )
-);
 
--- RLS policy: authenticated users can read student photos
-CREATE POLICY "Auth users can read student photos"
-ON storage.objects FOR SELECT
-TO authenticated
-USING (bucket_id = 'student-photos');
 
--- Same for admission photos
-CREATE POLICY "Auth users can upload admission photos"
-ON storage.objects FOR INSERT
-TO authenticated
-WITH CHECK (bucket_id = 'admission-photos');
 
-CREATE POLICY "Auth users can read admission photos"
-ON storage.objects FOR SELECT
-TO authenticated
-USING (bucket_id = 'admission-photos');
-
-CREATE POLICY "Admins can update student photos"
-ON storage.objects
-FOR UPDATE
-TO authenticated
-USING (
-  bucket_id = 'student-photos'
-  AND EXISTS (
-    SELECT 1
-    FROM public.users u
-    WHERE u.user_id = auth.uid()
-      AND u.role = 'admin'
-  )
-)
-WITH CHECK (
-  bucket_id = 'student-photos'
-  AND EXISTS (
-    SELECT 1
-    FROM public.users u
-    WHERE u.user_id = auth.uid()
-      AND u.role = 'admin'
-  )
-);
-
-CREATE POLICY "Admins can delete student photos"
-ON storage.objects
-FOR DELETE
-TO authenticated
-USING (
-  bucket_id = 'student-photos'
-  AND EXISTS (
-    SELECT 1
-    FROM public.users u
-    WHERE u.user_id = auth.uid()
-      AND u.role = 'admin'
-  )
-);
-
--- Course images are public
-CREATE POLICY "Anyone can read course images"
-ON storage.objects FOR SELECT
-TO public
-USING (bucket_id = 'course-images');
-
-CREATE POLICY "Admins can upload course images"
-ON storage.objects
-FOR INSERT
-TO authenticated
-WITH CHECK (
-  bucket_id = 'course-images'
-  AND EXISTS (
-    SELECT 1
-    FROM public.users u
-    WHERE u.user_id = auth.uid()
-      AND u.role = 'admin'
-  )
-);
+TODO:
+1 admin imges bucket
+2 Apply for Certificate Feature - Payment Gated , Small Test Maybe.

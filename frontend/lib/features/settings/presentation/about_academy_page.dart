@@ -11,16 +11,22 @@ class AboutAcademyPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.sizeOf(context).width >= 900;
     return Scaffold(
       body: CustomScrollView(
         slivers: [
           // ---- Academy hero ----
           SliverAppBar(
-            expandedHeight: 220,
+            expandedHeight: isDesktop ? 525 : 220,
             pinned: true,
             backgroundColor: AppColors.navy,
             foregroundColor: Colors.white,
-            title: const Text('About Us'),
+            title: Text(
+              'About Us',
+              style: AppTypography.headlineMedium.copyWith(
+                color: AppColors.ivoryDeep,
+              ),
+            ),
             flexibleSpace: FlexibleSpaceBar(
               background: AcademyContent.academyImageUrl != null
                   ? Image.network(
@@ -41,8 +47,8 @@ class AboutAcademyPage extends StatelessWidget {
                           children: [
                             Image.asset(
                               'assets/app_logo.png',
-                              width: 80,
-                              height: 80,
+                              width: 100,
+                              height: 100,
                               errorBuilder: (_, __, ___) => const Icon(
                                 Icons.music_note,
                                 size: 56,
@@ -111,14 +117,13 @@ class _TeamCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
           children: [
-            // Photo or initials
             CircleAvatar(
-              radius: 30,
+              radius: 75, // 2.5x-3x larger than before
               backgroundColor: AppColors.gold.withOpacity(0.15),
               backgroundImage: member.photoUrl != null
                   ? NetworkImage(member.photoUrl!)
@@ -128,29 +133,41 @@ class _TeamCard extends StatelessWidget {
                       member.name.isNotEmpty
                           ? member.name[0].toUpperCase()
                           : '?',
-                      style: AppTypography.headlineMedium.copyWith(
+                      style: AppTypography.displayMedium.copyWith(
                         color: AppColors.gold,
+                        fontWeight: FontWeight.bold,
                       ),
                     )
                   : null,
             ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(member.name, style: AppTypography.titleLarge),
-                  Text(
-                    member.position,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.gold,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(member.bio, style: AppTypography.bodyMedium),
-                ],
+
+            const SizedBox(height: AppSpacing.lg),
+
+            Text(
+              member.name,
+              textAlign: TextAlign.center,
+              style: AppTypography.titleLarge.copyWith(
+                fontWeight: FontWeight.bold,
               ),
+            ),
+
+            const SizedBox(height: 4),
+
+            Text(
+              member.position,
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.gold,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+
+            const SizedBox(height: AppSpacing.md),
+
+            Text(
+              member.bio,
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyMedium,
             ),
           ],
         ),

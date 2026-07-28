@@ -34,8 +34,17 @@ migrate_working_dir/
 /coverage/
 
 # environment
-.env
-.env.*
+# Ignore frontend environment variables
+frontend/.env
+
+# Ignore backend environment variables
+backend/app/.env
+
+# Ignore frontend build outputs
+frontend/build/
+
+**/__pycache__/
+*.pyc
 
 # Symbolication related
 app.*.symbols

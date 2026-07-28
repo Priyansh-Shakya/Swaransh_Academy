@@ -1,46 +1,59 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swaransh_academy/features/ai_assistant/data/ai_assistant_api_service.dart';
 
 /// Notifier for managing AI assistant conversations via real API.
 class AiAssistantNotifier extends AsyncNotifier<List<Map<String, String>>> {
   @override
-  Future<List<Map<String, String>>> build() async {
-    // Start with an empty conversation history
-    return [];
-  }
+  Future<List<Map<String, String>>> build() async => [];
+  bool isStreaming = false;
 
-  /// Send a query to the AI assistant and update conversation history.
   Future<void> askAssistant(String query) async {
+    debugPrint("Chat Assistant called...");
     final current = state.valueOrNull ?? [];
-    state = const AsyncValue.loading();
+
+    // Add user message immediately
+    final withUser = [
+      ...current,
+      {'role': 'user', 'content': query},
+      {'role': 'assistant', 'content': ''}, // empty — will be filled by stream
+    ];
+    state = AsyncValue.data(withUser);
 
     try {
       final assistanceQuery = AssistanceQuery(
         query: query,
-        conversationHistory: current,
+        conversationHistory: current, // send history WITHOUT the new messages
       );
+      isStreaming = true;
+      await for (final chunk
+          in ref
+              .read(aiAssistantApiServiceProvider)
+              .askAssistantStream(assistanceQuery)) {
+        debugPrint(
+          "[${DateTime.now().millisecondsSinceEpoch}] notifier updating with: $chunk",
+        );
 
-      final response = await ref
-          .read(aiAssistantApiServiceProvider)
-          .askAssistant(assistanceQuery);
+        final currentList = state.valueOrNull ?? [];
+        if (currentList.isEmpty) break;
 
-      // Update conversation history with user query and assistant response
-      final updatedHistory = [
-        ...current,
-        {'role': 'user', 'content': query},
-        {'role': 'assistant', 'content': response},
-      ];
-
-      state = AsyncValue.data(updatedHistory);
+        // Replace the last assistant message by appending the chunk
+        final updated = [
+          ...currentList.sublist(0, currentList.length - 1),
+          {
+            'role': 'assistant',
+            'content': (currentList.last['content'] ?? '') + chunk,
+          },
+        ];
+        state = AsyncValue.data(updated);
+        //isStreaming = false;
+      }
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
   }
 
-  /// Clear conversation history.
-  void clearHistory() {
-    state = const AsyncValue.data([]);
-  }
+  void clearHistory() => state = const AsyncValue.data([]);
 }
 
 final aiAssistantProvider =

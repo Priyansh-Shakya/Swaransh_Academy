@@ -4,20 +4,35 @@
 
 from __future__ import annotations
 
-from app.features.ai_assistant import service
+import json
+
+# from auth import get_current_user  # wire in your actual dependency
+import httpx
+from app.features.ai_assistant.ai_service import stream_ai_response
 from app.features.ai_assistant.model import AssistanceQuery
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 
-router = APIRouter(tags=['AI Assistance'])
+router = APIRouter()
 
 
-@router.post('/assistance', response_model=str, tags=['AI Assistance'])
-async def post_assistance(body: AssistanceQuery) -> str:
-    """
-    Ask AI Assistant (streaming)
-    
-    The client maintains conversation history and sends it with each request.
-    The backend is stateless - all history tracking happens client-side.
-    """
-    return await service.get_assistance(body)
+@router.post("/assistance")
+async def ask_assistant(body: AssistanceQuery):
+    print("Assistant router called")
+    async def event_stream():
+        try:
+            async for chunk in stream_ai_response(body.query, body.conversation_history):
+                yield f"data: {json.dumps(chunk)}\n\n"
+        except httpx.HTTPStatusError:
+            yield f"data: {json.dumps(chunk)}\n\n"
+        finally:
+            yield "data: [DONE]\n\n"
 
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )

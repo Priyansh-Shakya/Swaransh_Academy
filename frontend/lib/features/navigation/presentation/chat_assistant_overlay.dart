@@ -5,10 +5,12 @@
 /// placeholder onTap below.
 library;
 
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:swaransh_academy/features/ai_assistant/data/ai_assistant_notifier.dart';
 
 import '../../../Core/theme/app_colors.dart';
 import '../../../Core/theme/app_typography.dart';
@@ -73,11 +75,12 @@ class _ChatAssistantOverlayState extends ConsumerState<ChatAssistantOverlay>
   }
 
   void _send() {
+    debugPrint("Send button called");
     final text = _inputCtrl.text.trim();
     if (text.isEmpty) return;
     _inputCtrl.clear();
-    _inputFocus.unfocus(); // dismiss keyboard
-    // TODO: call aiAssistantProvider.notifier.askAssistant(text)
+    _inputFocus.unfocus();
+    ref.read(aiAssistantProvider.notifier).askAssistant(text);
     _scrollToBottom();
   }
 
@@ -139,7 +142,7 @@ class _ChatAssistantOverlayState extends ConsumerState<ChatAssistantOverlay>
     final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
     final panelH =
         constraints.maxHeight - widget.bottomNavHeight - keyboardInset;
-
+    debugPrint("Is open: $_isOpen");
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 120),
       curve: Curves.easeOut,
@@ -208,6 +211,8 @@ class _ChatAssistantOverlayState extends ConsumerState<ChatAssistantOverlay>
 
   // ── FAB ───────────────────────────────────────────────────────────────────
   Widget _fab(bool isMobile) {
+    //? This function toggles chat pannel on mobile  (on/off)
+    debugPrint("FAB called ...");
     return Positioned(
       right: 16,
       bottom: isMobile ? widget.bottomNavHeight + 10 : 16,
@@ -234,11 +239,11 @@ class _ChatAssistantOverlayState extends ConsumerState<ChatAssistantOverlay>
             child: Image.asset(
               'assets/chat_assistant_icon.png',
               fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const Icon(
-                Icons.headset_mic_rounded,
-                size: 15,
-                color: AppColors.navy,
-              ),
+              // errorBuilder: (_, __, ___) => const Icon(
+              //   Icons.headset_mic_rounded,
+              //   size: 15,
+              //   color: AppColors.navy,
+              // ),
             ),
           ),
         ),
@@ -270,6 +275,7 @@ class _PanelSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint("Inside Pannel Surface");
     return Align(
       alignment: Alignment.centerRight,
       child: FractionallySizedBox(
@@ -342,6 +348,7 @@ class _PanelSurface extends StatelessWidget {
 
 // ── Header ───────────────────────────────────────────────────────────────────
 class _Header extends StatelessWidget {
+  //* App Bar Title
   const _Header({this.onClose});
   final VoidCallback? onClose;
 
@@ -385,7 +392,7 @@ class _Header extends StatelessWidget {
 }
 
 // ── Message list ─────────────────────────────────────────────────────────────
-class _MessageList extends StatelessWidget {
+class _MessageList extends ConsumerWidget {
   const _MessageList({required this.scrollCtrl});
   final ScrollController scrollCtrl;
 
@@ -393,9 +400,23 @@ class _MessageList extends StatelessWidget {
       'Hello, I am Sargam.\nHow can I assist you today? 🤗';
 
   @override
-  Widget build(BuildContext context) {
-    // TODO: replace with ref.watch(aiAssistantProvider) once wired
-    const List<Map<String, String>> history = [];
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen(aiAssistantProvider, (_, __) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (scrollCtrl.hasClients) {
+          scrollCtrl.animateTo(
+            scrollCtrl.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    });
+    final history = ref.watch(aiAssistantProvider).valueOrNull ?? [];
+    final isStreaming =
+        history.isNotEmpty &&
+        history.last['role'] == 'assistant' &&
+        (history.last['content'] ?? '').isEmpty;
 
     return ListView(
       controller: scrollCtrl,
@@ -403,8 +424,10 @@ class _MessageList extends StatelessWidget {
       children: [
         const _Bubble(text: _greeting, isUser: false),
         for (final msg in history)
-          _Bubble(text: msg['content'] ?? '', isUser: msg['role'] == 'user'),
-        // const _TypingBubble(), // show while streaming
+          // Skip drawing empty assistant bubble while streaming
+          if (!(msg == history.last && isStreaming))
+            _Bubble(text: msg['content'] ?? '', isUser: msg['role'] == 'user'),
+        if (isStreaming) const _TypingBubble(),
       ],
     );
   }
@@ -467,20 +490,44 @@ class _Bubble extends StatelessWidget {
 }
 
 // ── Typing indicator (used while streaming) ───────────────────────────────────
-class _TypingBubble extends StatelessWidget {
+class _TypingBubble extends StatefulWidget {
   const _TypingBubble();
+
+  @override
+  State<_TypingBubble> createState() => _TypingBubbleState();
+}
+
+class _TypingBubbleState extends State<_TypingBubble>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         CircleAvatar(
-          radius: 13,
-          backgroundColor: AppColors.textOnNavy,
-          child: const Icon(
-            Icons.headset_mic_rounded,
-            size: 15,
-            color: AppColors.navy,
+          radius: 20,
+          backgroundColor: Colors.transparent,
+          child: Image.asset(
+            'assets/chat_assistant_icon.png',
+            fit: BoxFit.contain,
           ),
         ),
         const SizedBox(width: 6),
@@ -489,20 +536,42 @@ class _TypingBubble extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             color: AppColors.navyDark.withOpacity(0.65),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(16),
+              topRight: Radius.circular(16),
+              bottomLeft: Radius.circular(4),
+              bottomRight: Radius.circular(16),
+            ),
           ),
           child: SizedBox(
-            width: 22,
-            height: 12,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(
-                3,
-                (_) => CircleAvatar(
-                  radius: 3,
-                  backgroundColor: AppColors.ivory.withOpacity(0.7),
-                ),
-              ),
+            width: 28,
+            height: 16, // Height allocation for vertical bounce
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: List.generate(3, (index) {
+                    // Stagger the phase for each dot (0.18 spacing creates a smooth wave)
+                    final delay = index * 0.18;
+                    final progress = ((_controller.value - delay) % 1.0).clamp(
+                      0.0,
+                      1.0,
+                    );
+
+                    // Map 0.0 -> 1.0 to a smooth Sine wave cycle [0 -> -4px -> 0]
+                    final dy = -4.0 * math.sin(progress * math.pi);
+
+                    return Transform.translate(
+                      offset: Offset(0, dy),
+                      child: CircleAvatar(
+                        radius: 3.5,
+                        backgroundColor: AppColors.ivory,
+                      ),
+                    );
+                  }),
+                );
+              },
             ),
           ),
         ),
@@ -530,6 +599,7 @@ class _InputBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint("Inside Input Bar");
     return Padding(
       padding: EdgeInsets.fromLTRB(12, 8, rightPadding, 20),
       child: Row(
