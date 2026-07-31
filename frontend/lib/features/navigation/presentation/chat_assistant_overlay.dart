@@ -11,6 +11,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swaransh_academy/features/ai_assistant/data/ai_assistant_notifier.dart';
+import 'package:swaransh_academy/features/ai_assistant/widgets/markdown_renderer.dart';
 
 import '../../../Core/theme/app_colors.dart';
 import '../../../Core/theme/app_typography.dart';
@@ -458,13 +459,7 @@ class _Bubble extends StatelessWidget {
           bottomRight: Radius.circular(isUser ? 4 : 16),
         ),
       ),
-      child: Text(
-        text,
-        style: AppTypography.bodyMedium.copyWith(
-          color: isUser ? AppColors.navy : AppColors.textOnNavy,
-          height: 1.35,
-        ),
-      ),
+      child: ChatMarkdown(text: text, isUser: isUser),
     );
 
     if (isUser) {
@@ -581,7 +576,7 @@ class _TypingBubbleState extends State<_TypingBubble>
 }
 
 // ── Input bar ─────────────────────────────────────────────────────────────────
-class _InputBar extends StatelessWidget {
+class _InputBar extends ConsumerWidget {
   const _InputBar({
     required this.controller,
     required this.focusNode,
@@ -598,7 +593,8 @@ class _InputBar extends StatelessWidget {
   final double rightPadding;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isStreaming = ref.watch(isStreamingProvider);
     debugPrint("Inside Input Bar");
     return Padding(
       padding: EdgeInsets.fromLTRB(12, 8, rightPadding, 20),
@@ -642,15 +638,18 @@ class _InputBar extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           GestureDetector(
-            onTap: onSend,
+            onTap: () {
+              if (!isStreaming) {
+                debugPrint("Called send");
+                onSend();
+              }
+            },
             child: CircleAvatar(
               radius: 22,
               backgroundColor: AppColors.textOnNavy,
-              child: const Icon(
-                Icons.send_rounded,
-                size: 20,
-                color: AppColors.navy,
-              ),
+              child: isStreaming
+                  ? Icon(Icons.stop_rounded, size: 20, color: AppColors.navy)
+                  : Icon(Icons.send_rounded, size: 20, color: AppColors.navy),
             ),
           ),
         ],

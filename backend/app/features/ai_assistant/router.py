@@ -7,24 +7,33 @@ from __future__ import annotations
 import json
 
 # from auth import get_current_user  # wire in your actual dependency
-import httpx
+from app.core.auth.auth import get_current_user_optional
+from app.core.db import get_db
 from app.features.ai_assistant.ai_service import stream_ai_response
 from app.features.ai_assistant.model import AssistanceQuery
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
 router = APIRouter()
 
 
 @router.post("/assistance")
-async def ask_assistant(body: AssistanceQuery):
+async def ask_assistant(body: AssistanceQuery, user = Depends(get_current_user_optional), db = Depends(get_db)):
     print("Assistant router called")
+    print("Is user id available:", user)
     async def event_stream():
         try:
-            async for chunk in stream_ai_response(body.query, body.conversation_history):
+            async for chunk in stream_ai_response(body.query , body.conversation_history , user , db):
                 yield f"data: {json.dumps(chunk)}\n\n"
-        except httpx.HTTPStatusError:
-            yield f"data: {json.dumps(chunk)}\n\n"
+
+        except Exception as e:
+            print(e)
+
+            yield f"data: {json.dumps({
+                'type': 'error',
+                'message': str(e)
+            })}\n\n"
+
         finally:
             yield "data: [DONE]\n\n"
 

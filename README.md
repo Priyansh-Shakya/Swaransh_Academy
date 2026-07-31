@@ -54,3 +54,11 @@ Note: all mobile verisons are tested on chrome with small mobile like window and
 TODO:
 1 admin imges bucket
 2 Apply for Certificate Feature - Payment Gated , Small Test Maybe.
+
+
+
+TODO:
+1 Send button should show streaming when waiting for message ,(dissable send button)
+2 Markdown rendering
+3 Initial chat of sargam shoudl include user's name if available!
+4 Instead of using multiple DB calls in backend for determining role and then fetching some kind of info ... use joins if posisible

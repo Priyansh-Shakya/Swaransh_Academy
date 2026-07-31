@@ -2,11 +2,12 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swaransh_academy/features/ai_assistant/data/ai_assistant_api_service.dart';
 
+final isStreamingProvider = StateProvider<bool>((ref) => false);
+
 /// Notifier for managing AI assistant conversations via real API.
 class AiAssistantNotifier extends AsyncNotifier<List<Map<String, String>>> {
   @override
   Future<List<Map<String, String>>> build() async => [];
-  bool isStreaming = false;
 
   Future<void> askAssistant(String query) async {
     debugPrint("Chat Assistant called...");
@@ -25,7 +26,7 @@ class AiAssistantNotifier extends AsyncNotifier<List<Map<String, String>>> {
         query: query,
         conversationHistory: current, // send history WITHOUT the new messages
       );
-      isStreaming = true;
+      ref.read(isStreamingProvider.notifier).state = true;
       await for (final chunk
           in ref
               .read(aiAssistantApiServiceProvider)
@@ -46,7 +47,7 @@ class AiAssistantNotifier extends AsyncNotifier<List<Map<String, String>>> {
           },
         ];
         state = AsyncValue.data(updated);
-        //isStreaming = false;
+        ref.read(isStreamingProvider.notifier).state = false;
       }
     } catch (e, st) {
       state = AsyncValue.error(e, st);

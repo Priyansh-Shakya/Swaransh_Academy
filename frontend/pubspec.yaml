@@ -48,6 +48,7 @@ dependencies:
   google_sign_in: ^6.2.2
   image_picker: ^1.1.2
   shared_preferences: ^2.5.5
+  flutter_markdown_plus: ^1.0.12
 
 
 # Use transparent background png for both image_path and adaptive_icon_foreground to avoid issues with adaptive icons on Android 8.0+ and iOS 13+.

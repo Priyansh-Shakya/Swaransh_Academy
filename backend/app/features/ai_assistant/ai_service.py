@@ -4,29 +4,75 @@ from collections.abc import AsyncGenerator
 import httpx
 from app.features.ai_assistant.config import HF_MODEL, HF_ROUTER_URL, HF_TOKEN
 from app.features.ai_assistant.model import ChatMessage
+from app.features.ai_assistant.sys_prompt import (
+    ACADEMY_INFO,
+    ADMIN_PROMPT,
+    SYSTEM_PROMPT,
+)
 
 
-def _build_messages(query: str, history: list[ChatMessage]) -> list[dict]:
-    # TODO: Add System Prompt here as well According to Role 'and' Append to messages at top.
-    messages = [{"role": m.role, "content": m.content} for m in history]
-    messages.append({"role": "user", "content": query})
+async def check_role(user, db):
+    if user is None:
+        print("Returning guest role ...")
+        return 'guest'
+    role = await db.fetchrow('select role from users where user_id = $1', user['id'])
+    print("Role fetched from DB: ", role)
+    return role
+def _build_messages(
+    query: str,
+    history: list[ChatMessage],
+    role: str,
+) -> list[dict]:
+    prompt = SYSTEM_PROMPT
+
+    if role in ("guest", "student"):
+        prompt += "\n\n" + ACADEMY_INFO
+
+    elif role == "admin":
+        prompt += "\n\n" + ADMIN_PROMPT
+
+    messages = [
+        {
+            "role": "system",
+            "content": prompt,
+        }
+    ]
+
+    messages.extend(
+        {"role": m.role, "content": m.content}
+        for m in history
+    )
+
+    messages.append(
+        {
+            "role": "user",
+            "content": query,
+        }
+    )
+
     return messages
-
 
 async def stream_ai_response(
     query: str,
     history: list[ChatMessage],
+    user,
+    db
 ) -> AsyncGenerator[str, None]:
     """
     Yields plain text chunks as they arrive from the HF router.
     Raises httpx.HTTPStatusError if the upstream call fails.
     """
     print("Stream function called... AI service")
+    role = await check_role(user, db)
+    print("Fetched role:" , role)
+    message = _build_messages(query, history, role)
+    print("PROMPT:\n", message)
     payload = {
         "model": HF_MODEL,
-        "messages": _build_messages(query, history),
+        "messages": message,
         "stream": True,
     }
+    print(payload)
     headers = {
         "Authorization": f"Bearer {HF_TOKEN}",
         "Content-Type": "application/json",

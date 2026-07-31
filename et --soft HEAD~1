@@ -1,0 +1,89 @@
+[33mcommit dfaa4fce031d5fa88ab6aae0238b33676965c00e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: Priyansh <priyanshartshakya@.com>
+Date:   Tue Jul 28 10:52:57 2026 +0530
+
+    Add project files safely without secrets
+
+[33mcommit b6d67ba68fbf55f7659bad7c25efcf036f235d2f[m[33m ([m[1;31morigin/main[m[33m)[m
+Author: Priyansh <priyanshartshakya@.com>
+Date:   Sun Jul 26 15:24:05 2026 +0530
+
+    fixed UI and photos
+
+[33mcommit 2b7799511e8a46acbc21005ca7333c0e703dd6ee[m
+Author: Priyansh <priyanshartshakya@.com>
+Date:   Wed Jul 22 15:32:57 2026 +0530
+
+    Fixed siblings scholar number usage
+
+[33mcommit b3166bff4af2d5b3be6e50463228bc816ae87c43[m
+Author: Priyansh <priyanshartshakya@.com>
+Date:   Sat Jul 18 21:53:43 2026 +0530
+
+    Image picker , auth No internet check
+
+[33mcommit 1527421fc403d2a0381295e28c25d34d6bd5e359[m
+Author: Priyansh <priyanshartshakya@.com>
+Date:   Sat Jul 18 11:48:14 2026 +0530
+
+    Chat Panel UI , cut portion everything ...
+
+[33mcommit acbff3c4081bb097c33eacdab05000f9050ed678[m
+Author: Priyansh <priyanshartshakya@.com>
+Date:   Thu Jul 16 13:19:04 2026 +0530
+
+    Fixed auth for everything ...
+
+[33mcommit ba23ed89abe4ab13177b2d62a5a4c926bb99eb59[m
+Author: Priyansh <priyanshartshakya@.com>
+Date:   Wed Jul 15 20:15:44 2026 +0530
+
+    Auth working for all 3 roles
+
+[33mcommit 37620b9ff5b3e0fa1fb3af794672210d190512a5[m
+Author: Priyansh <priyanshartshakya@.com>
+Date:   Fri Jul 10 16:56:39 2026 +0530
+
+    Backend services working
+
+[33mcommit f9b1effe4dc49734cdb9688578839bb2a24aa910[m
+Author: Priyansh <priyanshartshakya@.com>
+Date:   Fri Jul 3 22:26:49 2026 +0530
+
+    Fixed backend structure
+
+[33mcommit daa82e62634b9fbc9fedf3af61b91b3eb9da9561[m
+Author: Priyansh <priyanshartshakya@.com>
+Date:   Fri Jul 3 15:06:31 2026 +0530
+
+    Added auth screen CRUD
+
+[33mcommit 2c8a16104674a468a04b7f99683589c15faa86ed[m
+Author: Priyansh <priyanshartshakya@.com>
+Date:   Thu Jul 2 11:31:25 2026 +0530
+
+    Added Admission pipeline
+
+[33mcommit 078694e4e05da0bef23c43fccd778f9dbc88bf55[m
+Author: Priyansh <priyanshartshakya@.com>
+Date:   Wed Jul 1 16:51:46 2026 +0530
+
+    Added students , profile , settings page
+
+[33mcommit 405f0073cdc54afaf518069f979a63a27eeedb31[m
+Author: Priyansh <priyanshartshakya@.com>
+Date:   Tue Jun 30 19:25:22 2026 +0530
+
+    Adding backend too
+
+[33mcommit aa0370e93522488804b3eeb30def60026fbc38e0[m
+Author: Priyansh <priyanshartshakya@.com>
+Date:   Sun Jun 28 16:32:25 2026 +0530
+
+    Fix tracking and add all frontend source files
+
+[33mcommit 99ccadbb70da6adb07fec0f7c973d7b65b0bfb51[m
+Author: Priyansh <priyanshartshakya@.com>
+Date:   Sun Jun 28 16:29:15 2026 +0530
+
+    Major implementation, upto courses

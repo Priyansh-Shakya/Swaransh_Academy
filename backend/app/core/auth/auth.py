@@ -137,4 +137,49 @@ async def get_current_user(creds=Depends(security)) -> dict:
 
 
 
+# Doesn't automatically raise 403 if Authorization header is missing
+optional_security = HTTPBearer(auto_error=False)
+
+
+async def get_current_user_optional(
+    creds=Depends(optional_security),
+) -> dict | None:
+    """
+    Optional authentication dependency.
+
+    Returns:
+        - user dict if a valid JWT is supplied
+        - None if no Authorization header is present
+        - None if the JWT is invalid/expired
+    """
+
+    # Guest user
+    if creds is None:
+        return None
+
+    token = creds.credentials
+
+    try:
+        key = await get_public_key(token)
+
+        payload = jwt.decode(
+            token,
+            key,
+            algorithms=["ES256"],
+            options={"verify_aud": False},
+        )
+
+        return {
+            "id": payload["sub"],
+            "email": payload.get("email"),
+            "role": payload.get("role"),
+            "token": token,
+        }
+
+    except Exception as e:
+        # Optional: log for debugging
+        print(f"[auth] Optional auth failed: {e}")
+
+        # Treat invalid token as guest
+        return None
 
