@@ -10,7 +10,23 @@ class Bootstrap {
   static Future<void> initialize() async {
     WidgetsFlutterBinding.ensureInitialized();
 
-    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    // 2. Hide ONLY the bottom navigation bar
+    await SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.edgeToEdge,
+      overlays: [SystemUiOverlay.top],
+    );
+
+    // 3. Force status bar background transparent & disable enforceNavigationBarContrast
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark, // Required for iOS support
+        // Crucial for modern Android (Android 10+)
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarContrastEnforced: false,
+      ),
+    );
 
     await dotenv.load(fileName: '.env');
 

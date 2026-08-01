@@ -4,7 +4,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+import time
 
 # from auth import get_current_user  # wire in your actual dependency
 from app.core.auth.auth import get_current_user_optional
@@ -21,10 +23,14 @@ router = APIRouter()
 async def ask_assistant(body: AssistanceQuery, user = Depends(get_current_user_optional), db = Depends(get_db)):
     print("Assistant router called")
     print("Is user id available:", user)
+    print("Name from router: ", body.name)
     async def event_stream():
         try:
-            async for chunk in stream_ai_response(body.query , body.conversation_history , user , db):
-                yield f"data: {json.dumps(chunk)}\n\n"
+            async for chunk in stream_ai_response(body.query , body.conversation_history , user , db , body.name):
+                data = f"data: {json.dumps(chunk)}\n\n"
+                print("SSE SEND", time.time()*1000, chunk)
+                yield data.encode("utf-8")
+                await asyncio.sleep(0)
 
         except Exception as e:
             print(e)
@@ -41,7 +47,8 @@ async def ask_assistant(body: AssistanceQuery, user = Depends(get_current_user_o
         event_stream(),
         media_type="text/event-stream",
         headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-        },
+    "Cache-Control": "no-cache, no-transform",
+    "Connection": "keep-alive",
+    "X-Accel-Buffering": "no",
+}
     )

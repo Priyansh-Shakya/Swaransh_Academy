@@ -1,4 +1,5 @@
 import json
+import time
 from collections.abc import AsyncGenerator
 
 import httpx
@@ -16,20 +17,27 @@ async def check_role(user, db):
         print("Returning guest role ...")
         return 'guest'
     role = await db.fetchrow('select role from users where user_id = $1', user['id'])
+    role = role['role'] if role else 'guest'
     print("Role fetched from DB: ", role)
     return role
-def _build_messages(
+async def _build_messages(
     query: str,
     history: list[ChatMessage],
     role: str,
+    name: str
 ) -> list[dict]:
-    prompt = SYSTEM_PROMPT
-
+    print("Name from build message function: ", name)
+    prompt = SYSTEM_PROMPT 
+    
+    
+    
     if role in ("guest", "student"):
         prompt += "\n\n" + ACADEMY_INFO
-
     elif role == "admin":
         prompt += "\n\n" + ADMIN_PROMPT
+
+    if name:
+        prompt += f"\n\nCurrent User:\nName: {name}\nRole: {role}"
 
     messages = [
         {
@@ -56,7 +64,8 @@ async def stream_ai_response(
     query: str,
     history: list[ChatMessage],
     user,
-    db
+    db,
+    name
 ) -> AsyncGenerator[str, None]:
     """
     Yields plain text chunks as they arrive from the HF router.
@@ -65,18 +74,33 @@ async def stream_ai_response(
     print("Stream function called... AI service")
     role = await check_role(user, db)
     print("Fetched role:" , role)
-    message = _build_messages(query, history, role)
+    message = await _build_messages(query, history, role, name)
     print("PROMPT:\n", message)
+
+    #* Response Lenght Parameter
+    ROLE_CONFIG = {
+    "guest": {
+        "max_tokens": 250,
+    },
+    "student": {
+        "max_tokens": 250,
+    },
+    "admin": {
+        "max_tokens": 800,
+    },
+}
     payload = {
         "model": HF_MODEL,
         "messages": message,
         "stream": True,
+        "max_tokens": ROLE_CONFIG[role]["max_tokens"],
     }
-    print(payload)
+    print("PAYLOAD:\n", payload)
     headers = {
         "Authorization": f"Bearer {HF_TOKEN}",
         "Content-Type": "application/json",
     }
+
 
     async with httpx.AsyncClient(timeout=60.0) as client, client.stream(
         "POST", HF_ROUTER_URL, headers=headers, json=payload
@@ -100,7 +124,13 @@ async def stream_ai_response(
             chunk = _extract_delta_content(raw)
             if chunk:
                 chunk_count += 1
+                
                 yield chunk
+                print(
+        f"[BACKEND AFTER YIELD] "
+        f"{time.time()*1000:.0f}ms "
+        f"chunk={chunk_count}"
+    )
 
             print(f"[HF] stream ended without [DONE]. lines={line_count}, chunks={chunk_count}")
 

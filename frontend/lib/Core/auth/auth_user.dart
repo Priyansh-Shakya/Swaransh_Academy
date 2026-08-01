@@ -19,6 +19,10 @@ class AppUser {
   String get email => supabaseUser.email ?? '';
   bool get isAuthenticated => id.isNotEmpty;
 
+  // Helper for greeting fallbacks
+  String get name =>
+      (displayName != null && displayName!.isNotEmpty) ? displayName! : 'there';
+
   /// Unauthenticated sentinel — returned when there is no Supabase session.
   static const AppUser guest = _GuestAuthUser();
 

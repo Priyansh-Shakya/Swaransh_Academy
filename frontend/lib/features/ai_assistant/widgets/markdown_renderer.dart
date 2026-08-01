@@ -1,8 +1,10 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:swaransh_academy/Core/theme/app_colors.dart';
 import 'package:swaransh_academy/Core/theme/app_typography.dart';
+import 'package:swaransh_academy/Core/widgets/toast_snacker.dart';
 
 /// Custom markdown renderer tuned to the Swaransh chat panel.
 /// Supports: paragraphs, **bold**, *italic*, `inline code`,
@@ -169,25 +171,52 @@ class ChatMarkdown extends StatelessWidget {
       case _BlockType.code:
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.25),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Text(
-                block.text,
-                style: const TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 12,
-                  color: Color(0xFF90CAF9),
-                  height: 1.5,
+          child: Stack(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.25),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Text(
+                    block.text,
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                      color: Color(0xFF90CAF9),
+                      height: 1.5,
+                    ),
+                  ),
                 ),
               ),
-            ),
+
+              Positioned(
+                top: 6,
+                right: 6,
+                child: InkWell(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: block.text));
+                    showToast(context, "Code copied to clipboard");
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.35),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: const Icon(
+                      Icons.copy_rounded,
+                      size: 15,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         );
 

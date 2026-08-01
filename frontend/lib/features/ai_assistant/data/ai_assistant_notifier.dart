@@ -9,7 +9,7 @@ class AiAssistantNotifier extends AsyncNotifier<List<Map<String, String>>> {
   @override
   Future<List<Map<String, String>>> build() async => [];
 
-  Future<void> askAssistant(String query) async {
+  Future<void> askAssistant(String query, String? name) async {
     debugPrint("Chat Assistant called...");
     final current = state.valueOrNull ?? [];
 
@@ -22,7 +22,9 @@ class AiAssistantNotifier extends AsyncNotifier<List<Map<String, String>>> {
     state = AsyncValue.data(withUser);
 
     try {
+      debugPrint("Name from ask Assistant notifier : $name");
       final assistanceQuery = AssistanceQuery(
+        name: name,
         query: query,
         conversationHistory: current, // send history WITHOUT the new messages
       );
@@ -31,10 +33,6 @@ class AiAssistantNotifier extends AsyncNotifier<List<Map<String, String>>> {
           in ref
               .read(aiAssistantApiServiceProvider)
               .askAssistantStream(assistanceQuery)) {
-        debugPrint(
-          "[${DateTime.now().millisecondsSinceEpoch}] notifier updating with: $chunk",
-        );
-
         final currentList = state.valueOrNull ?? [];
         if (currentList.isEmpty) break;
 
@@ -47,11 +45,18 @@ class AiAssistantNotifier extends AsyncNotifier<List<Map<String, String>>> {
           },
         ];
         state = AsyncValue.data(updated);
-        ref.read(isStreamingProvider.notifier).state = false;
       }
     } catch (e, st) {
       state = AsyncValue.error(e, st);
+    } finally {
+      ref.read(isStreamingProvider.notifier).state = false;
     }
+  }
+
+  void stopStreaming() {
+    ref.read(aiAssistantApiServiceProvider).cancelStream();
+
+    ref.read(isStreamingProvider.notifier).state = false;
   }
 
   void clearHistory() => state = const AsyncValue.data([]);

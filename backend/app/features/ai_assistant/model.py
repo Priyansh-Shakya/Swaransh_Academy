@@ -8,6 +8,7 @@ class ChatMessage(BaseModel):
 
 
 class AssistanceQuery(BaseModel):
+    name: str | None = None
     query: str
     conversation_history: list[ChatMessage] = []
 

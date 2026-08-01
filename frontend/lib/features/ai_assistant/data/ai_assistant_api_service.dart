@@ -7,14 +7,16 @@ import 'package:swaransh_academy/Core/dio_client/dio_client_provider.dart';
 
 class AssistanceQuery {
   const AssistanceQuery({
+    this.name,
     required this.query,
     required this.conversationHistory,
   });
-
+  final name;
   final String query;
   final List<Map<String, String>> conversationHistory;
 
   Map<String, dynamic> toJson() => {
+    'name': name,
     'query': query,
     'conversation_history': conversationHistory,
   };
@@ -26,42 +28,64 @@ class AiAssistantApiService {
 
   final Dio _dio;
 
-  // /// Ask the AI assistant (streaming not handled here; returns full response).
-  // Future<String> askAssistant(AssistanceQuery query) async {
-  //   final response = await _dio.post('/assistance', data: query.toJson());
-  //   return response.data as String;
-  // }
-  /// Returns a stream of text chunks as they arrive from the server.
+  CancelToken? _cancelToken;
+
   Stream<String> askAssistantStream(AssistanceQuery query) async* {
-    debugPrint("Chat Stream API Called: ${query.query}");
-    final response = await _dio.post<ResponseBody>(
-      '/assistance',
-      data: query.toJson(),
-      options: Options(responseType: ResponseType.stream),
-    );
+    _cancelToken = CancelToken();
 
-    final stream = response.data!.stream;
-    var buffer = '';
+    try {
+      final response = await _dio.post<ResponseBody>(
+        '/assistance',
+        data: query.toJson(),
+        cancelToken: _cancelToken,
+        options: Options(responseType: ResponseType.stream),
+      );
 
-    await for (final bytes in stream) {
-      buffer += utf8.decode(bytes, allowMalformed: true);
-      final lines = buffer.split('\n');
-      buffer = lines.removeLast(); // keep incomplete tail for next read
+      final stream = response.data!.stream;
+      var buffer = '';
 
-      for (final line in lines) {
-        if (line.startsWith('data: ')) {
-          final raw = line.substring(6).trim();
-          if (raw == '[DONE]') return;
-          if (raw.isEmpty) continue;
+      await for (final bytes in stream) {
+        debugPrint(
+          "RAW BYTE PACKET ${DateTime.now().millisecondsSinceEpoch} size=${bytes.length}",
+        );
+        buffer += utf8.decode(bytes, allowMalformed: true);
 
-          final chunk = jsonDecode(raw) as String;
-          yield chunk;
+        final lines = buffer.split('\n');
+        buffer = lines.removeLast();
 
-          // Add micro-delay so ultra-fast streams still look like typing
-          await Future.delayed(const Duration(milliseconds: 25));
+        for (final line in lines) {
+          if (line.startsWith('data: ')) {
+            final raw = line.substring(6).trim();
+
+            if (raw == '[DONE]') return;
+            if (raw.isEmpty) continue;
+
+            final chunk = jsonDecode(raw) as String;
+
+            debugPrint(
+              "[FRONTEND RECEIVE] "
+              "${DateTime.now().millisecondsSinceEpoch}ms "
+              "chunk=$chunk",
+            );
+
+            yield chunk;
+            Future.delayed(Duration(milliseconds: 80));
+          }
         }
       }
+    } on DioException catch (e) {
+      if (CancelToken.isCancel(e)) {
+        debugPrint("Stream cancelled");
+        return;
+      }
+
+      rethrow;
     }
+  }
+
+  void cancelStream() {
+    _cancelToken?.cancel("User stopped generation");
+    _cancelToken = null;
   }
 }
 

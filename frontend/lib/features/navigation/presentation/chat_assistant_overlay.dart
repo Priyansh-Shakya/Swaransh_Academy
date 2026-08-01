@@ -10,6 +10,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
 import 'package:swaransh_academy/features/ai_assistant/data/ai_assistant_notifier.dart';
 import 'package:swaransh_academy/features/ai_assistant/widgets/markdown_renderer.dart';
 
@@ -21,6 +22,19 @@ const double _kIconSize = 50;
 const double _kNotchRadius = _kIconSize / 2 + 10; // 40 — matches clipper
 const double _kDesktopWidth = 400;
 const double kMobileBreakpoint = 700;
+
+//?
+final nameProvider = Provider<String?>((ref) {
+  // 1. Extract the name safely
+  final authState = ref.watch(authProvider);
+
+  // Safely extract the display name regardless of loading/data/error states
+  final userName = authState.maybeWhen(
+    data: (user) => user.displayName,
+    orElse: () => 'there',
+  );
+  return userName;
+});
 
 /// Wraps every screen in the shell. Manages the FAB + sliding chat panel.
 /// Already inside MaterialApp via StatefulShellRoute — full Material tree access.
@@ -78,10 +92,11 @@ class _ChatAssistantOverlayState extends ConsumerState<ChatAssistantOverlay>
   void _send() {
     debugPrint("Send button called");
     final text = _inputCtrl.text.trim();
+    final name = ref.watch(nameProvider);
     if (text.isEmpty) return;
     _inputCtrl.clear();
     _inputFocus.unfocus();
-    ref.read(aiAssistantProvider.notifier).askAssistant(text);
+    ref.read(aiAssistantProvider.notifier).askAssistant(text, name);
     _scrollToBottom();
   }
 
@@ -214,9 +229,15 @@ class _ChatAssistantOverlayState extends ConsumerState<ChatAssistantOverlay>
   Widget _fab(bool isMobile) {
     //? This function toggles chat pannel on mobile  (on/off)
     debugPrint("FAB called ...");
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    debugPrint(" ================== Keyboard height: $keyboardHeight");
+
     return Positioned(
       right: 16,
-      bottom: isMobile ? widget.bottomNavHeight + 10 : 16,
+      bottom:
+          (isMobile ? widget.bottomNavHeight + 30 : 0) +
+          (keyboardHeight == 0 ? keyboardHeight : keyboardHeight - 20),
+
       child: GestureDetector(
         onTap: _toggle,
         child: AnimatedContainer(
@@ -226,25 +247,12 @@ class _ChatAssistantOverlayState extends ConsumerState<ChatAssistantOverlay>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.transparent,
-
-            // boxShadow: [
-            //   BoxShadow(
-            //     color: AppColors.navy.withOpacity(0.3),
-            //     blurRadius: 14,
-            //     offset: const Offset(0, 4),
-            //   ),
-            // ],
           ),
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
             child: Image.asset(
               'assets/chat_assistant_icon.png',
               fit: BoxFit.contain,
-              // errorBuilder: (_, __, ___) => const Icon(
-              //   Icons.headset_mic_rounded,
-              //   size: 15,
-              //   color: AppColors.navy,
-              // ),
             ),
           ),
         ),
@@ -277,64 +285,66 @@ class _PanelSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     debugPrint("Inside Pannel Surface");
-    return Align(
-      alignment: Alignment.centerRight,
-      child: FractionallySizedBox(
-        widthFactor: 0.95, // 84% of screen width
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
-          child: Material(
-            type: MaterialType.transparency, // <-- only for Material context
-            child: ClipPath(
-              clipper: _NotchedClipper(
-                notchRadius: (isDesktop) ? 0 : 35,
-                cornerRadius: 40,
-              ),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
+    return SafeArea(
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: FractionallySizedBox(
+          widthFactor: 0.95, // 84% of screen width
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
+            child: Material(
+              type: MaterialType.transparency, // <-- only for Material context
+              child: ClipPath(
+                clipper: _NotchedClipper(
+                  notchRadius: (isDesktop) ? 0 : 35,
+                  cornerRadius: 40,
+                ),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
 
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.white.withOpacity(.38),
-                        Colors.white.withOpacity(.18),
-                      ],
-                    ),
-
-                    border: Border.all(
-                      color: Colors.white.withOpacity(.80),
-                      width: 1.6,
-                    ),
-
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(.12),
-                        blurRadius: 30,
-                        offset: const Offset(0, 12),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white.withOpacity(.38),
+                          Colors.white.withOpacity(.18),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: SafeArea(
-                    bottom: false,
-                    child: Column(
-                      children: [
-                        _Header(onClose: onClose),
-                        Divider(
-                          height: 1,
-                          color: Colors.white.withOpacity(.18),
-                        ),
-                        Expanded(child: _MessageList(scrollCtrl: scrollCtrl)),
-                        _InputBar(
-                          controller: inputCtrl,
-                          focusNode: inputFocus,
-                          onSend: onSend,
-                          rightPadding: inputRightPadding,
+
+                      border: Border.all(
+                        color: Colors.white.withOpacity(.80),
+                        width: 1.6,
+                      ),
+
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(.12),
+                          blurRadius: 30,
+                          offset: const Offset(0, 12),
                         ),
                       ],
+                    ),
+                    child: SafeArea(
+                      bottom: false,
+                      child: Column(
+                        children: [
+                          _Header(onClose: onClose),
+                          Divider(
+                            height: 1,
+                            color: Colors.white.withOpacity(.18),
+                          ),
+                          Expanded(child: _MessageList(scrollCtrl: scrollCtrl)),
+                          _InputBar(
+                            controller: inputCtrl,
+                            focusNode: inputFocus,
+                            onSend: onSend,
+                            rightPadding: inputRightPadding,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -397,11 +407,15 @@ class _MessageList extends ConsumerWidget {
   const _MessageList({required this.scrollCtrl});
   final ScrollController scrollCtrl;
 
-  static const _greeting =
-      'Hello, I am Sargam.\nHow can I assist you today? 🤗';
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final userName = ref.watch(nameProvider);
+    debugPrint("Name from Message List class: $userName");
+    final name = userName ?? 'there';
+    final greeting =
+        'Hello $name, I am Sargam.\n\nHow can I assist you today? 🤗';
+
+    // 3. Keep your scroll listener setup
     ref.listen(aiAssistantProvider, (_, __) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (scrollCtrl.hasClients) {
@@ -413,17 +427,20 @@ class _MessageList extends ConsumerWidget {
         }
       });
     });
+
     final history = ref.watch(aiAssistantProvider).valueOrNull ?? [];
     final isStreaming =
         history.isNotEmpty &&
         history.last['role'] == 'assistant' &&
         (history.last['content'] ?? '').isEmpty;
 
+    // 4. Return the Widget tree
     return ListView(
       controller: scrollCtrl,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       children: [
-        const _Bubble(text: _greeting, isUser: false),
+        _Bubble(text: greeting, isUser: false),
+
         for (final msg in history)
           // Skip drawing empty assistant bubble while streaming
           if (!(msg == history.last && isStreaming))
@@ -639,8 +656,10 @@ class _InputBar extends ConsumerWidget {
           const SizedBox(width: 8),
           GestureDetector(
             onTap: () {
-              if (!isStreaming) {
-                debugPrint("Called send");
+              if (isStreaming) {
+                ref.read(aiAssistantProvider.notifier).stopStreaming();
+                debugPrint("Stopped Stream...");
+              } else {
                 onSend();
               }
             },
@@ -648,7 +667,7 @@ class _InputBar extends ConsumerWidget {
               radius: 22,
               backgroundColor: AppColors.textOnNavy,
               child: isStreaming
-                  ? Icon(Icons.stop_rounded, size: 20, color: AppColors.navy)
+                  ? Icon(Icons.stop_rounded, size: 30, color: AppColors.navy)
                   : Icon(Icons.send_rounded, size: 20, color: AppColors.navy),
             ),
           ),

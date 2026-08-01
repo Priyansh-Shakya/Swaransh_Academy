@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'app_colors.dart';
 import 'app_spacing.dart';
 import 'app_typography.dart';
@@ -123,8 +124,12 @@ class AppTheme {
           horizontal: AppSpacing.md,
           vertical: AppSpacing.md,
         ),
-        labelStyle: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
-        hintStyle: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+        labelStyle: AppTypography.bodyMedium.copyWith(
+          color: AppColors.textSecondary,
+        ),
+        hintStyle: AppTypography.bodyMedium.copyWith(
+          color: AppColors.textSecondary,
+        ),
         errorStyle: AppTypography.bodySmall.copyWith(color: AppColors.error),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -154,7 +159,10 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.pill),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
+        ),
       ),
 
       navigationBarTheme: NavigationBarThemeData(
@@ -176,7 +184,9 @@ class AppTheme {
 
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.navy,
-        contentTextStyle: AppTypography.bodyMedium.copyWith(color: AppColors.textOnNavy),
+        contentTextStyle: AppTypography.bodyMedium.copyWith(
+          color: AppColors.textOnNavy,
+        ),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.sm),
