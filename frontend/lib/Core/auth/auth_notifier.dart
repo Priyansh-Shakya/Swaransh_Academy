@@ -135,12 +135,9 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
     }
 
     try {
-      final role = await ref.read(usersApiServiceProvider).checkRole();
-
-      if (role == null) {
-        debugPrint('[Auth] ${user.email} → no users row found → guest');
-        return _makeUser(user, UserRole.guest);
-      }
+      final user0 = await ref.read(usersApiServiceProvider).getCurrentUser();
+      ref.read(currentUserProvider.notifier).state = user0;
+      final role = await ref.read(usersApiServiceProvider).checkRole(user0);
 
       debugPrint("Role fetched from DB: ${role.name}"); // admin
 

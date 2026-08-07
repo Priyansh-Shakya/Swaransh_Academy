@@ -11,7 +11,9 @@ import time
 # from auth import get_current_user  # wire in your actual dependency
 from app.core.auth.auth import get_current_user_optional
 from app.core.db import get_db
-from app.features.ai_assistant.ai_service import stream_ai_response
+from app.features.ai_assistant.agent.intent_detector import Intent, intent_router
+from app.features.ai_assistant.agent.sql_generator import extract_query, generate_sql
+from app.features.ai_assistant.ai_service import check_role, stream_ai_response
 from app.features.ai_assistant.model import AssistanceQuery
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
@@ -20,16 +22,57 @@ router = APIRouter()
 
 
 @router.post("/assistance")
-async def ask_assistant(body: AssistanceQuery, user = Depends(get_current_user_optional), db = Depends(get_db)):
+async def ask_assistant(
+    body: AssistanceQuery,
+    user=Depends(get_current_user_optional),
+    db=Depends(get_db)
+):
+
     print("Assistant router called")
-    print("Is user id available:", user)
-    print("Name from router: ", body.name)
+    if  user is None:
+        role = 'guest'
+    role = await check_role(user, db)  # single DB call, source of truth
+    agent_call = False
+    
+
+    if role == "admin":  # not body.isAdmin
+        intent = intent_router(body.query)
+        print("Intent detected:", intent)
+        if intent == Intent.query:
+            agent_call = True
+            
+
+
     async def event_stream():
         try:
-            async for chunk in stream_ai_response(body.query , body.conversation_history , user , db , body.name):
+            agent_data = None #? Keep it here so that you dont get error later.
+             # tell client the mode FIRST, before anything else
+            if agent_call:
+                yield "data: [STATUS]Querying database...\n\n"
+                #* Generate SQL here and then Fetch From DB inside Resdponse Stream
+                response = await generate_sql(user_query=body.query)
+                agent_data = await extract_query(response, db)
+
+            async for chunk in stream_ai_response(
+                body.query,
+                body.conversation_history,
+                user,
+                db,
+                body.name,
+                agent_call,
+                agent_data,
+                role
+            ):
                 data = f"data: {json.dumps(chunk)}\n\n"
-                print("SSE SEND", time.time()*1000, chunk)
+
+                print(
+                    "SSE SEND",
+                    time.time()*1000,
+                    chunk
+                )
+
                 yield data.encode("utf-8")
+
                 await asyncio.sleep(0)
 
         except Exception as e:
@@ -43,12 +86,13 @@ async def ask_assistant(body: AssistanceQuery, user = Depends(get_current_user_o
         finally:
             yield "data: [DONE]\n\n"
 
+
     return StreamingResponse(
         event_stream(),
         media_type="text/event-stream",
         headers={
-    "Cache-Control": "no-cache, no-transform",
-    "Connection": "keep-alive",
-    "X-Accel-Buffering": "no",
-}
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
     )

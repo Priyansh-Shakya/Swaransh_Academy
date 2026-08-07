@@ -5,3 +5,6 @@ pydantic[email]
 asyncpg
 httpx
 python-jose
+firebase-admin
+sqlparse
+

@@ -39,6 +39,7 @@ frontend/.env
 
 # Ignore backend environment variables
 backend/app/.env
+backend/app/swaransh-academy-firebase-adminsdk-fbsvc-b9f828e561.json
 
 # Ignore frontend build outputs
 frontend/build/

@@ -22,6 +22,21 @@ class AssistanceQuery {
   };
 }
 
+//? Status of AI responses
+sealed class AssistantStreamEvent {}
+
+class AssistantText extends AssistantStreamEvent {
+  final String text;
+
+  AssistantText(this.text);
+}
+
+class AssistantStatus extends AssistantStreamEvent {
+  final String status;
+
+  AssistantStatus(this.status);
+}
+
 /// Feature-specific API service for AI assistance.
 class AiAssistantApiService {
   AiAssistantApiService(this._dio);
@@ -30,7 +45,9 @@ class AiAssistantApiService {
 
   CancelToken? _cancelToken;
 
-  Stream<String> askAssistantStream(AssistanceQuery query) async* {
+  Stream<AssistantStreamEvent> askAssistantStream(
+    AssistanceQuery query,
+  ) async* {
     _cancelToken = CancelToken();
 
     try {
@@ -45,40 +62,32 @@ class AiAssistantApiService {
       var buffer = '';
 
       await for (final bytes in stream) {
-        debugPrint(
-          "RAW BYTE PACKET ${DateTime.now().millisecondsSinceEpoch} size=${bytes.length}",
-        );
         buffer += utf8.decode(bytes, allowMalformed: true);
 
         final lines = buffer.split('\n');
         buffer = lines.removeLast();
 
         for (final line in lines) {
-          if (line.startsWith('data: ')) {
-            final raw = line.substring(6).trim();
+          if (!line.startsWith('data: ')) continue;
 
-            if (raw == '[DONE]') return;
-            if (raw.isEmpty) continue;
+          final raw = line.substring(6).trim();
 
-            final chunk = jsonDecode(raw) as String;
+          if (raw == '[DONE]') return;
+          if (raw.isEmpty) continue;
 
-            debugPrint(
-              "[FRONTEND RECEIVE] "
-              "${DateTime.now().millisecondsSinceEpoch}ms "
-              "chunk=$chunk",
-            );
-
-            yield chunk;
-            Future.delayed(Duration(milliseconds: 80));
+          if (raw.startsWith('[STATUS]')) {
+            final status = raw.replaceFirst('[STATUS]', '');
+            debugPrint("Setting Agent Status API:$status");
+            yield AssistantStatus(status);
+            continue;
           }
+
+          final chunk = jsonDecode(raw) as String;
+
+          yield AssistantText(chunk);
         }
       }
-    } on DioException catch (e) {
-      if (CancelToken.isCancel(e)) {
-        debugPrint("Stream cancelled");
-        return;
-      }
-
+    } catch (e) {
       rethrow;
     }
   }

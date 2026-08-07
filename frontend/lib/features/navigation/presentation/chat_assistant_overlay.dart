@@ -36,6 +36,24 @@ final nameProvider = Provider<String?>((ref) {
   return userName;
 });
 
+double _floatingBottom(
+  BuildContext context,
+  bool isMobile,
+  double bottomNavHeight,
+) {
+  final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+  final systemBottom = MediaQuery.paddingOf(context).bottom;
+
+  // When keyboard is visible, push above keyboard with a small 12px margin
+  if (keyboard > 0) {
+    return keyboard + 12;
+  }
+
+  // Base elevation off the bottom bar height + safe area bottom inset + margin
+  final navSpace = isMobile ? bottomNavHeight : 0.0;
+  return systemBottom + navSpace + 12.0;
+}
+
 /// Wraps every screen in the shell. Manages the FAB + sliding chat panel.
 /// Already inside MaterialApp via StatefulShellRoute — full Material tree access.
 class ChatAssistantOverlay extends ConsumerStatefulWidget {
@@ -157,7 +175,9 @@ class _ChatAssistantOverlayState extends ConsumerState<ChatAssistantOverlay>
   Widget _mobilePanel(BoxConstraints constraints) {
     final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
     final panelH =
-        constraints.maxHeight - widget.bottomNavHeight - keyboardInset;
+        constraints.maxHeight -
+        widget.bottomNavHeight -
+        (keyboardInset == 0 ? 0 : keyboardInset - 60);
     debugPrint("Is open: $_isOpen");
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 120),
@@ -182,6 +202,7 @@ class _ChatAssistantOverlayState extends ConsumerState<ChatAssistantOverlay>
                 isDesktop: false,
                 onSend: _send,
                 onClose: null,
+                bottomNavHeight: widget.bottomNavHeight,
                 inputRightPadding: _kIconSize + 8,
               ),
             ),
@@ -217,6 +238,7 @@ class _ChatAssistantOverlayState extends ConsumerState<ChatAssistantOverlay>
               onSend: _send,
               onClose: _close, // X button closes on desktop
               inputRightPadding: 12,
+              bottomNavHeight: widget.bottomNavHeight,
               isDesktop: true, // no notch on desktop
             ),
           ),
@@ -232,11 +254,14 @@ class _ChatAssistantOverlayState extends ConsumerState<ChatAssistantOverlay>
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     debugPrint(" ================== Keyboard height: $keyboardHeight");
 
+    //* Phone's bottom bar ...
+    //final bottomInset = MediaQuery.paddingOf(context).bottom;
     return Positioned(
       right: 16,
-      bottom:
-          (isMobile ? widget.bottomNavHeight + 30 : 0) +
-          (keyboardHeight == 0 ? keyboardHeight : keyboardHeight - 20),
+      //(bottomInset/2) +
+      //  (isMobile ? widget.bottomNavHeight + 30 : 0) +
+      //(keyboardHeight == 0 ? keyboardHeight : keyboardHeight - 80)
+      bottom: _floatingBottom(context, isMobile, widget.bottomNavHeight),
 
       child: GestureDetector(
         onTap: _toggle,
@@ -271,6 +296,8 @@ class _PanelSurface extends StatelessWidget {
     required this.onSend,
     required this.inputRightPadding,
     required this.isDesktop,
+    required this.bottomNavHeight,
+
     this.onClose,
   });
 
@@ -281,70 +308,77 @@ class _PanelSurface extends StatelessWidget {
   final VoidCallback onSend;
   final VoidCallback? onClose;
   final double inputRightPadding;
+  final double bottomNavHeight;
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = !isDesktop;
     debugPrint("Inside Pannel Surface");
     return SafeArea(
-      child: Align(
-        alignment: Alignment.centerRight,
-        child: FractionallySizedBox(
-          widthFactor: 0.95, // 84% of screen width
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
-            child: Material(
-              type: MaterialType.transparency, // <-- only for Material context
-              child: ClipPath(
-                clipper: _NotchedClipper(
-                  notchRadius: (isDesktop) ? 0 : 35,
-                  cornerRadius: 40,
-                ),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(30),
+      child: Positioned(
+        right: 0,
+        top: 0,
+        left: 0,
 
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withOpacity(.38),
-                          Colors.white.withOpacity(.18),
-                        ],
-                      ),
+        bottom:
+            _floatingBottom(context, isMobile, bottomNavHeight) +
+            _kIconSize +
+            12,
 
-                      border: Border.all(
-                        color: Colors.white.withOpacity(.80),
-                        width: 1.6,
-                      ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
+          child: Material(
+            type: MaterialType.transparency, // <-- only for Material context
+            child: ClipPath(
+              clipper: _NotchedClipper(
+                notchRadius: (isDesktop) ? 0 : 35,
+                cornerRadius: 40,
+              ),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(30),
 
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(.12),
-                          blurRadius: 30,
-                          offset: const Offset(0, 12),
-                        ),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.white.withOpacity(.38),
+                        Colors.white.withOpacity(.18),
                       ],
                     ),
-                    child: SafeArea(
-                      bottom: false,
-                      child: Column(
-                        children: [
-                          _Header(onClose: onClose),
-                          Divider(
-                            height: 1,
-                            color: Colors.white.withOpacity(.18),
-                          ),
-                          Expanded(child: _MessageList(scrollCtrl: scrollCtrl)),
-                          _InputBar(
-                            controller: inputCtrl,
-                            focusNode: inputFocus,
-                            onSend: onSend,
-                            rightPadding: inputRightPadding,
-                          ),
-                        ],
+
+                    border: Border.all(
+                      color: Colors.white.withOpacity(.80),
+                      width: 1.6,
+                    ),
+
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(.12),
+                        blurRadius: 30,
+                        offset: const Offset(0, 12),
                       ),
+                    ],
+                  ),
+                  child: SafeArea(
+                    bottom: false,
+                    child: Column(
+                      children: [
+                        _Header(onClose: onClose),
+                        Divider(
+                          height: 1,
+                          color: Colors.white.withOpacity(.18),
+                        ),
+                        Expanded(child: _MessageList(scrollCtrl: scrollCtrl)),
+                        _InputBar(
+                          controller: inputCtrl,
+                          focusNode: inputFocus,
+                          onSend: onSend,
+                          rightPadding: inputRightPadding,
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -413,7 +447,7 @@ class _MessageList extends ConsumerWidget {
     debugPrint("Name from Message List class: $userName");
     final name = userName ?? 'there';
     final greeting =
-        'Hello $name, I am Sargam.\n\nHow can I assist you today? 🤗';
+        'Hello ${name.split(' ').first}, I am Sargam.\n\nHow can I assist you today? 🤗';
 
     // 3. Keep your scroll listener setup
     ref.listen(aiAssistantProvider, (_, __) {
@@ -433,7 +467,8 @@ class _MessageList extends ConsumerWidget {
         history.isNotEmpty &&
         history.last['role'] == 'assistant' &&
         (history.last['content'] ?? '').isEmpty;
-
+    final agentStatus = ref.watch(agentStatusProvider);
+    debugPrint("Inside Message List, Agent Status:$agentStatus");
     // 4. Return the Widget tree
     return ListView(
       controller: scrollCtrl,
@@ -445,7 +480,8 @@ class _MessageList extends ConsumerWidget {
           // Skip drawing empty assistant bubble while streaming
           if (!(msg == history.last && isStreaming))
             _Bubble(text: msg['content'] ?? '', isUser: msg['role'] == 'user'),
-        if (isStreaming) const _TypingBubble(),
+
+        if (isStreaming) TypingBubble(status: agentStatus),
       ],
     );
   }
@@ -502,23 +538,32 @@ class _Bubble extends StatelessWidget {
 }
 
 // ── Typing indicator (used while streaming) ───────────────────────────────────
-class _TypingBubble extends StatefulWidget {
-  const _TypingBubble();
+
+// Dummy Color class for demonstration (re-use your existing AppColors)
+
+class TypingBubble extends StatefulWidget {
+  final String? status;
+  final bool isExpandedDefault;
+
+  const TypingBubble({super.key, this.status, this.isExpandedDefault = false});
 
   @override
-  State<_TypingBubble> createState() => _TypingBubbleState();
+  State<TypingBubble> createState() => _TypingBubbleState();
 }
 
-class _TypingBubbleState extends State<_TypingBubble>
+class _TypingBubbleState extends State<TypingBubble>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  bool _isExpanded = false;
 
   @override
   void initState() {
     super.initState();
+    _isExpanded = widget.isExpandedDefault;
+
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 1400),
     )..repeat();
   }
 
@@ -535,56 +580,240 @@ class _TypingBubbleState extends State<_TypingBubble>
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         CircleAvatar(
-          radius: 20,
+          radius: 18,
           backgroundColor: Colors.transparent,
           child: Image.asset(
             'assets/chat_assistant_icon.png',
             fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const Icon(
+              Icons.smart_toy_outlined,
+              size: 20,
+              color: AppColors.gold,
+            ),
           ),
         ),
-        const SizedBox(width: 6),
-        Container(
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.navyDark.withOpacity(0.65),
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(16),
-              topRight: Radius.circular(16),
-              bottomLeft: Radius.circular(4),
-              bottomRight: Radius.circular(16),
+        const SizedBox(width: 8),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          switchInCurve: Curves.easeOut,
+          switchOutCurve: Curves.easeIn,
+          child: widget.status == null
+              ? _buildTypingBubble()
+              : _buildAgentBubble(widget.status!),
+        ),
+      ],
+    );
+  }
+
+  // --- UNTOUCHED: Standard 3-Dot Typing Animation ---
+  Widget _buildTypingBubble() {
+    return Container(
+      key: const ValueKey('typing'),
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.navyDark.withOpacity(0.65),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+          bottomLeft: Radius.circular(4),
+          bottomRight: Radius.circular(16),
+        ),
+      ),
+      child: SizedBox(
+        width: 28,
+        height: 16,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(3, (index) {
+                final delay = index * 0.18;
+                final progress = ((_controller.value - delay) % 1.0).clamp(
+                  0.0,
+                  1.0,
+                );
+                final dy = -4.0 * math.sin(progress * math.pi);
+
+                return Transform.translate(
+                  offset: Offset(0, dy),
+                  child: const CircleAvatar(
+                    radius: 3.5,
+                    backgroundColor: AppColors.ivory,
+                  ),
+                );
+              }),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  // --- UPGRADED: Technical Agent Process Visualizer ---
+  Widget _buildAgentBubble(String status) {
+    return Container(
+      key: ValueKey('agent-$status'),
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      width: 280,
+      decoration: BoxDecoration(
+        color: AppColors.navyDark.withOpacity(0.85),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(14),
+          topRight: Radius.circular(14),
+          bottomLeft: Radius.circular(4),
+          bottomRight: Radius.circular(14),
+        ),
+        border: Border.all(color: AppColors.gold.withOpacity(0.25), width: 0.8),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Bar / Collapsible Toggle
+          InkWell(
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  _buildPulseGlowIcon(),
+                  const SizedBox(width: 10),
+                  Expanded(child: _buildStatusText(status)),
+                  AnimatedRotation(
+                    turns: _isExpanded ? 0.25 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: AppColors.ivoryDeep.withOpacity(0.6),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          child: SizedBox(
-            width: 28,
-            height: 16, // Height allocation for vertical bounce
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: List.generate(3, (index) {
-                    // Stagger the phase for each dot (0.18 spacing creates a smooth wave)
-                    final delay = index * 0.18;
-                    final progress = ((_controller.value - delay) % 1.0).clamp(
-                      0.0,
-                      1.0,
-                    );
 
-                    // Map 0.0 -> 1.0 to a smooth Sine wave cycle [0 -> -4px -> 0]
-                    final dy = -4.0 * math.sin(progress * math.pi);
+          // Technical Steps / Process Trace Panel
+          AnimatedCrossFade(
+            firstChild: const SizedBox(width: double.infinity),
+            secondChild: _buildTechnicalTracePanel(),
+            crossFadeState: _isExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 250),
+          ),
+        ],
+      ),
+    );
+  }
 
-                    return Transform.translate(
-                      offset: Offset(0, dy),
-                      child: CircleAvatar(
-                        radius: 3.5,
-                        backgroundColor: AppColors.ivory,
-                      ),
-                    );
-                  }),
-                );
-              },
+  // Tech Icon with radar pulse indicator
+  Widget _buildPulseGlowIcon() {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final opacity = 0.3 + 0.7 * math.sin(_controller.value * math.pi);
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 16,
+              height: 16,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.gold.withOpacity(opacity * 0.25),
+              ),
             ),
+            const Icon(Icons.blur_on_rounded, size: 16, color: AppColors.gold),
+          ],
+        );
+      },
+    );
+  }
+
+  // Shimmering status string
+  Widget _buildStatusText(String status) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return ShaderMask(
+          blendMode: BlendMode.srcIn,
+          shaderCallback: (bounds) {
+            final width = bounds.width;
+            final start = -width + (width * 2 * _controller.value);
+            final end = start + width * 0.7;
+
+            return LinearGradient(
+              colors: const [
+                AppColors.ivoryDeep,
+                AppColors.goldLight,
+                AppColors.ivoryDeep,
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ).createShader(
+              Rect.fromLTWH(start, 0, math.max(0, end - start), bounds.height),
+            );
+          },
+          child: Text(
+            status,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
+              fontFamily: 'Monospace',
+              color: AppColors.ivoryDeep,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Perplexity-style sub-step reasoning logs
+  Widget _buildTechnicalTracePanel() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.only(left: 12, right: 12, bottom: 10, top: 4),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: AppColors.gold.withOpacity(0.12), width: 0.8),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildTraceRow(Icons.search_rounded, "Searching knowledge base..."),
+          const SizedBox(height: 6),
+          _buildTraceRow(
+            Icons.account_tree_outlined,
+            "Analyzing context dependencies",
+          ),
+          const SizedBox(height: 6),
+          _buildTraceRow(Icons.code_rounded, "Synthesizing output stream"),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTraceRow(IconData icon, String label) {
+    return Row(
+      children: [
+        Icon(icon, size: 12, color: AppColors.goldLight.withOpacity(0.7)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontFamily: 'Monospace',
+              color: AppColors.ivoryDeep.withOpacity(0.65),
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],

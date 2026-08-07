@@ -11,6 +11,7 @@ class AssistanceQuery(BaseModel):
     name: str | None = None
     query: str
     conversation_history: list[ChatMessage] = []
+    
 
 class AssistanceResponse(BaseModel):
     response: str | None = None

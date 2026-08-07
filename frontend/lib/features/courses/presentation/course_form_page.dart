@@ -47,9 +47,9 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
     text: widget.existing?.mapsToSubject ?? '',
   );
 
-  late String _department =
+  late final String _department =
       widget.existing?.mapsToDepartment ?? _departments.first;
-  late String _mode = widget.existing?.mode ?? _modes.first;
+  late final String _mode = widget.existing?.mode ?? _modes.first;
   late String _tag = widget.existing?.tag ?? _tags.first;
 
   bool _saving = false;
@@ -57,7 +57,7 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
   bool get _isEdit => widget.existing != null;
 
   //* Image field — created once, here, not in build().
-  String? imageUrl;
+  late String? imageUrl = widget.existing?.imageUrl;
   late final ImagePickerController _photoController;
 
   @override
@@ -89,12 +89,21 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
             Center(
-              child: ImagePickerField(
-                controller: _photoController,
-                label: 'Course Photo',
-                size: 100,
-                shape: BoxShape.circle,
-              ),
+              child: (imageUrl != null && imageUrl!.isNotEmpty)
+                  ? ClipOval(
+                      child: Image.network(
+                        imageUrl!,
+                        width: 120,
+                        height: 120,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : ImagePickerField(
+                      controller: _photoController,
+                      label: 'Course Photo',
+                      size: 100,
+                      shape: BoxShape.circle,
+                    ),
             ),
             const SizedBox(height: AppSpacing.lg),
             TextFormField(
@@ -130,20 +139,58 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
             const SizedBox(height: AppSpacing.md),
             DropdownButtonFormField<String>(
               initialValue: _mode,
-              decoration: const InputDecoration(labelText: 'Learning mode'),
+              isExpanded: true,
+
+              style: const TextStyle(
+                color: AppColors.navy,
+              ), // closed-state text
+              decoration: InputDecoration(
+                labelText: 'Learning mode',
+                filled: true,
+                fillColor: AppColors.surface,
+              ),
               items: _modes
-                  .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                  .map(
+                    (o) => DropdownMenuItem<String>(
+                      value: o,
+                      child: Text(
+                        o.replaceAll('_', ' '),
+                        style: const TextStyle(color: AppColors.navy),
+                      ),
+                    ),
+                  )
                   .toList(),
-              onChanged: (v) => setState(() => _mode = v!),
+              onChanged: (v) {
+                (v) => setState(() => _tag = v!);
+              },
             ),
             const SizedBox(height: AppSpacing.md),
             DropdownButtonFormField<String>(
               initialValue: _tag,
-              decoration: const InputDecoration(labelText: 'Tag'),
+              isExpanded: true,
+
+              style: const TextStyle(
+                color: AppColors.navy,
+              ), // closed-state text
+              decoration: InputDecoration(
+                labelText: 'Tag',
+                filled: true,
+                fillColor: AppColors.surface,
+              ),
               items: _tags
-                  .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                  .map(
+                    (o) => DropdownMenuItem<String>(
+                      value: o,
+                      child: Text(
+                        o.replaceAll('_', ' '),
+                        style: const TextStyle(color: AppColors.navy),
+                      ),
+                    ),
+                  )
                   .toList(),
-              onChanged: (v) => setState(() => _tag = v!),
+              onChanged: (v) {
+                (v) => setState(() => _tag = v!);
+              },
             ),
             const SizedBox(height: AppSpacing.lg),
             const Divider(),
@@ -161,18 +208,30 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
             const SizedBox(height: AppSpacing.md),
             DropdownButtonFormField<String>(
               initialValue: _department,
-              decoration: const InputDecoration(
+              isExpanded: true,
+
+              style: const TextStyle(
+                color: AppColors.navy,
+              ), // closed-state text
+              decoration: InputDecoration(
                 labelText: 'Maps to department',
+                filled: true,
+                fillColor: AppColors.surface,
               ),
               items: _departments
                   .map(
-                    (d) => DropdownMenuItem(
-                      value: d,
-                      child: Text(d.replaceAll('_', ' ')),
+                    (o) => DropdownMenuItem<String>(
+                      value: o,
+                      child: Text(
+                        o.replaceAll('_', ' '),
+                        style: const TextStyle(color: AppColors.navy),
+                      ),
                     ),
                   )
                   .toList(),
-              onChanged: (v) => setState(() => _department = v!),
+              onChanged: (v) {
+                (v) => setState(() => _tag = v!);
+              },
             ),
             const SizedBox(height: AppSpacing.md),
             TextFormField(

@@ -17,7 +17,8 @@ async def create_user(user_create: UserCreate, user,db) -> User:
     2. Check if email matches an existing student email
     3. Otherwise set role as guest
     """
-    user_id = user['id']
+    user_id = str(user['id'])
+    print('---------------- From user service python: User id:', user_id)
     data = user_create.model_dump(mode='python')
     data['user_id'] = user_id
     data = convert_enums_to_values(data)
@@ -38,6 +39,10 @@ async def create_user(user_create: UserCreate, user,db) -> User:
     )
 
     user_dict = dict(user_row)
+
+    user_dict["user_id"] = str(user_dict["user_id"])
+
+
 
     # 3. Link student AFTER user is created, using the new user_id
     result = await db.fetch(
@@ -94,7 +99,7 @@ async def check_user_role(user, db):
 
     return User(**dict_row)
 
-#! THIS FUNCTION CHECKS IF USER HAS ENTERED "correct" Password FOR ADMIN Access.
+
 async def verify_admin(password: str) -> bool:
     # TODO: Check from db or Ask claude the best design , maybe .env ...
     #? For now , using test password.

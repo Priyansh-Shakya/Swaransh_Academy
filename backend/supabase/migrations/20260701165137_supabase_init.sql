@@ -66,12 +66,6 @@ CREATE TYPE payment_type AS ENUM (
     'yearly'
 );
 
-CREATE TYPE payment_cat AS ENUM (
-    'fee',
-    'admission',
-    'other'
-);
-
 CREATE TYPE payment_mode AS ENUM (
     'Cash', 
     'UPI', 
@@ -173,20 +167,15 @@ UNIQUE (scholar_no);
 CREATE TABLE payment (
     -- Modern 8-byte auto-incrementing BIGINT primary key
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    
     -- References standard 8-byte student ID (Assumes students.id is also BIGINT)
     student_id BIGINT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-    
     payment_type payment_type NOT NULL,
-    payment_category payment_cat NOT NULL,
-    isActive boolean DEFAULT true,
+    
     amount BIGINT NOT NULL, -- Stored in minor units (e.g., cents)
     mode payment_mode NOT NULL,
     txn_ref TEXT,
-    
     -- Fixed: Uses correct timestamp with time zone tracking
     paid_on TIMESTAMPTZ DEFAULT now(),
-    
     status payment_status DEFAULT 'active',
     
     -- Fixed: Matches the 8-byte 'id' column for self-referencing ledger updates

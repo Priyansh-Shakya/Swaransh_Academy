@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:swaransh_academy/Core/fcm_service/service.dart';
 import 'package:swaransh_academy/Core/local_storage/shared_pref.dart';
 import 'package:swaransh_academy/app/my_app.dart';
 
@@ -39,6 +40,8 @@ class Bootstrap {
       "Supabase initilized ... Project URL: ${dotenv.env['SUPABASE_URL']}",
     );
 
+    //* FCM Init
+    FcmService.init();
     // Initilize Local Shared pref
     await LocalStoragePref.initLocalStoragePref();
     // Firebase init (when needed)

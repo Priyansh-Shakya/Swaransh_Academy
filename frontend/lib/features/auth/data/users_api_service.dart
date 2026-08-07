@@ -6,6 +6,7 @@ import 'package:swaransh_academy/features/auth/data/provider.dart';
 import 'package:swaransh_academy/features/auth/domain/user.dart';
 
 /// Feature-specific API service for users.
+
 class UsersApiService {
   UsersApiService(this._apiService);
 
@@ -24,12 +25,36 @@ class UsersApiService {
     return _apiService.create(endpoint: '/user', data: payload);
   }
 
-  Future<UserRole?> checkRole() async {
-    debugPrint("Sending Check Role API");
-    return _apiService.get(
-      endpoint: '/users/me',
-      parser: (json) => UserRole.values.byName(json['role']),
+  Future<UserRole> checkRole(User user) async {
+    debugPrint("Checking Role ");
+
+    final role = user.role;
+    if (role == null) {
+      return UserRole.guest;
+    }
+    if (role == 'admin') {
+      return UserRole.admin;
+    } else {
+      return UserRole.student;
+    }
+  }
+
+  Future<void> updateUser(User user, String id) async {
+    debugPrint("Sending update user api");
+    await _apiService.patch(
+      endpoint: '/update/user',
+      id: id,
+      data: user.toJson(),
     );
+  }
+
+  Future<User> getCurrentUser() async {
+    final user = await _apiService.get(
+      endpoint: '/users/me',
+      parser: (json) => User.fromJson(json),
+    );
+
+    return user;
   }
 
   Future<bool> verifyAdmin(String password) async {
@@ -40,6 +65,8 @@ class UsersApiService {
     );
   }
 }
+
+final currentUserProvider = StateProvider<User?>((ref) => null);
 
 final usersApiServiceProvider = Provider<UsersApiService>((ref) {
   final apiService = ref.watch(userApiServiceProvider);

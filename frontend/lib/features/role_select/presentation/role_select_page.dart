@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/features/role_select/presentation/selectedRoleprovider.dart';
+
 import '../../../Core/auth/auth_notifier.dart';
 import '../../../Core/auth/user_role.dart';
 import '../../../Core/theme/app_colors.dart';
@@ -21,6 +22,7 @@ class RoleSelectPage extends ConsumerWidget {
         if (context.mounted) context.go('/home');
       });
     }
+    final h = MediaQuery.of(context).size.height;
 
     return Scaffold(
       backgroundColor: AppColors.ivory,
@@ -30,24 +32,29 @@ class RoleSelectPage extends ConsumerWidget {
           child: Column(
             children: [
               const SizedBox(height: AppSpacing.xl),
+
               Image.asset(
                 'assets/app_logo.png',
-                width: 88,
-                height: 88,
-                errorBuilder: (_, __, ___) =>
-                    const Icon(Icons.music_note, size: 64, color: AppColors.gold),
+                width: h * 0.18,
+                height: h * 0.18,
               ),
-              const SizedBox(height: AppSpacing.md),
-              Text('Swaransh Academy',
-                  style: AppTypography.headlineLarge, textAlign: TextAlign.center),
+
+              SizedBox(height: h * 0.02),
+              Text(
+                'Swaransh Academy',
+                style: AppTypography.headlineLarge,
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 4),
               Text(
                 'How would you like to continue?',
-                style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
               const StaffLineDivider(width: 56),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.md),
 
               _RoleCard(
                 icon: Icons.explore_outlined,
@@ -61,9 +68,11 @@ class RoleSelectPage extends ConsumerWidget {
                 icon: Icons.school_outlined,
                 iconColor: AppColors.gold,
                 title: "I'm a Student",
-                subtitle: 'Sign in to view your profile, fees, and fellow students.',
+                subtitle:
+                    'Sign in to view your profile, fees, and fellow students.',
                 onTap: () {
-                  ref.read(selectedRoleProvider.notifier).state = UserRole.student;
+                  ref.read(selectedRoleProvider.notifier).state =
+                      UserRole.student;
                   context.push('/auth');
                 },
               ),
@@ -74,7 +83,8 @@ class RoleSelectPage extends ConsumerWidget {
                 title: 'Admin Access',
                 subtitle: 'Manage students, admissions, and academy settings.',
                 onTap: () {
-                  ref.read(selectedRoleProvider.notifier).state = UserRole.admin;
+                  ref.read(selectedRoleProvider.notifier).state =
+                      UserRole.admin;
                   context.push('/auth');
                 },
               ),
@@ -120,7 +130,8 @@ class _RoleCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 48, height: 48,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   color: iconColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -138,8 +149,11 @@ class _RoleCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right,
-                  color: AppColors.textSecondary, size: 20),
+              const Icon(
+                Icons.chevron_right,
+                color: AppColors.textSecondary,
+                size: 20,
+              ),
             ],
           ),
         ),
@@ -147,6 +161,3 @@ class _RoleCard extends StatelessWidget {
     );
   }
 }
-
-
-

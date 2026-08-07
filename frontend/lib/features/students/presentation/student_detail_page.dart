@@ -175,11 +175,16 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
         final student = students
             .where((s) => s.id == widget.studentId)
             .firstOrNull;
+
         if (student == null) {
           return const Scaffold(body: Center(child: Text('Student not found')));
         }
 
-        debugPrint("Student ID on details Page: ${student.id}");
+        debugPrint(
+          "======================== Student ID on details Page: ${student.id}",
+        );
+        debugPrint("Student Name: ${student.name}");
+        debugPrint("Image URL: ${student.imageUrl}");
 
         // Initialise controllers once when student data first loads.
         if (_loaded?.id != student.id) {

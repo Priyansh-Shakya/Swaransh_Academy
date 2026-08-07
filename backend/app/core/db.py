@@ -10,7 +10,7 @@ pool = None
 
 async def init_db():
     global pool
-    pool = await asyncpg.create_pool(DATABASE_URL)
+    pool = await asyncpg.create_pool(DATABASE_URL, statement_cache_size=0)
 
 async def close_db():
     await pool.close()

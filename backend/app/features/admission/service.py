@@ -1,4 +1,5 @@
 from app.core.enums import StudentStatus
+from app.core.fcm_service import send_multiple_notifications, send_notification
 from app.core.helper import convert_enums_to_values
 from app.features.admission import model, queries
 from app.features.student import service as student_service
@@ -40,6 +41,16 @@ async def create_admission_form(form: model.AdmissionFormCreate,user, db):
     values.append(data["image_url"])
     row = await db.fetchrow(queries.create_addmision, *values)
     print("Admission Created:", row)
+
+
+    #* Send notification to admin
+    admins = await db.fetch(
+    "SELECT fcm_token FROM users WHERE role = 'admin' AND fcm_token IS NOT NULL"
+)
+
+    tokens = [row["fcm_token"] for row in admins]
+    #? call notification function
+    send_multiple_notifications(tokens , "Admission Enquiry" , "A new admission enquiry has occured.")
     return dict(row)
     
 
@@ -92,6 +103,22 @@ async def approve_form(admission_id: int, db):
     }
     
     student = await student_service.create_student(student_data, db)
+
+    #* Send approve notification!
+    row = await db.fetchrow("""
+    SELECT u.fcm_token
+    FROM admissions a
+    JOIN users u ON a.user_id = u.user_id
+    WHERE a.id = $1
+""", admission_id)
+
+    if row and row["fcm_token"]:
+        print("Sending approved notification ...")
+        send_notification(
+            [row["fcm_token"]],
+            "Admission Approved",
+            "Your admission has been approved!"
+        )
     return student
 
 
@@ -100,6 +127,21 @@ async def decline_form(admission_id: int, db):
     row = await db.fetchrow(queries.declined_admission_form, admission_id)
     if not row:
         raise HTTPException(status_code=404, detail=f"Admission {admission_id} not found")
+    if row:
+        row = await db.fetchrow("""
+            SELECT u.fcm_token
+            FROM admissions a
+            JOIN users u ON a.user_id = u.user_id
+            WHERE a.id = $1
+        """, admission_id)
+        
+        if row and row["fcm_token"]:
+            print("Sending declined notification ...")
+            send_notification(
+                [row["fcm_token"]],
+                "Admission Declined",
+                "Your admission has been declined!"
+            )
     return dict(row) if row else None
 
 

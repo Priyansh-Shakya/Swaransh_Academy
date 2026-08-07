@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "760961413610",
+    "project_id": "swaransh-academy",
+    "storage_bucket": "swaransh-academy.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:760961413610:android:45085df68e5924edd4c293",
+        "android_client_info": {
+          "package_name": "com.example.swaransh_academy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC994stPhjVqZ0xBzZJ90U1HTYdFaw7mKA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

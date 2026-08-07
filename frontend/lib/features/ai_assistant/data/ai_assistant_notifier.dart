@@ -23,33 +23,54 @@ class AiAssistantNotifier extends AsyncNotifier<List<Map<String, String>>> {
 
     try {
       debugPrint("Name from ask Assistant notifier : $name");
+
       final assistanceQuery = AssistanceQuery(
         name: name,
         query: query,
         conversationHistory: current, // send history WITHOUT the new messages
       );
+      debugPrint(
+        "ASSISTANCE QUERY FROM NOTIFIER:\n${assistanceQuery.toJson()}",
+      );
       ref.read(isStreamingProvider.notifier).state = true;
-      await for (final chunk
+      debugPrint("Streaming set to True");
+      await for (final event
           in ref
               .read(aiAssistantApiServiceProvider)
               .askAssistantStream(assistanceQuery)) {
-        final currentList = state.valueOrNull ?? [];
-        if (currentList.isEmpty) break;
+        if (event is AssistantStatus) {
+          debugPrint("Agent status (Notifier): ${event.status}");
 
-        // Replace the last assistant message by appending the chunk
-        final updated = [
-          ...currentList.sublist(0, currentList.length - 1),
-          {
-            'role': 'assistant',
-            'content': (currentList.last['content'] ?? '') + chunk,
-          },
-        ];
-        state = AsyncValue.data(updated);
+          //* UPDATE AGENT STATUS
+          ref.read(agentStatusProvider.notifier).state = event.status;
+
+          continue;
+        }
+
+        if (event is AssistantText) {
+          final chunk = event.text;
+
+          final currentList = state.valueOrNull ?? [];
+          if (currentList.isEmpty) break;
+
+          final updated = [
+            ...currentList.sublist(0, currentList.length - 1),
+            {
+              'role': 'assistant',
+              'content': (currentList.last['content'] ?? '') + chunk,
+            },
+          ];
+
+          state = AsyncValue.data(updated);
+        }
       }
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     } finally {
+      ref.read(agentStatusProvider.notifier).state = null;
       ref.read(isStreamingProvider.notifier).state = false;
+
+      debugPrint("Streaming set to FALSE");
     }
   }
 
@@ -66,3 +87,5 @@ final aiAssistantProvider =
     AsyncNotifierProvider<AiAssistantNotifier, List<Map<String, String>>>(
       AiAssistantNotifier.new,
     );
+
+final agentStatusProvider = StateProvider<String?>((ref) => null);

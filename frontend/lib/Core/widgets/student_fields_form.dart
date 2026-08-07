@@ -90,8 +90,8 @@ class StudentFieldsForm extends StatelessWidget {
           _text(context, 'name', 'Full Name'),
           _text(context, 'fatherName', "Father's Name"),
           _pickerField(context, 'dob', 'Date of Birth', isDate: true),
-          _dropdown(context, 'gender', 'Gender', kGenderOptions),
-          _dropdown(
+        dropdown(context, 'gender', 'Gender', kGenderOptions),
+        dropdown(
             context,
             'educationQualification',
             'Education Qualification',
@@ -121,21 +121,21 @@ class StudentFieldsForm extends StatelessWidget {
         ],
         if (visibleSections.contains(StudentFieldSection.course)) ...[
           const _SectionHeader('Course & Enrollment'),
-          _dropdown(context, 'department', 'Department', kDepartmentOptions),
+        dropdown(context, 'department', 'Department', kDepartmentOptions),
           _text(context, 'subject', 'Subject'),
-          _dropdown(
+        dropdown(
             context,
             'admissionType',
             'Admission Type',
             kAdmissionTypeOptions,
           ),
-          _dropdown(
+        dropdown(
             context,
             'learningMode',
             'Learning Mode',
             kLearningModeOptions,
           ),
-          _dropdown(context, 'batch', 'Batch', kBatchOptions),
+        dropdown(context, 'batch', 'Batch', kBatchOptions),
           Row(
             children: [
               Expanded(
@@ -182,7 +182,7 @@ class StudentFieldsForm extends StatelessWidget {
             'Fees (\u20B9)',
             keyboardType: TextInputType.number,
           ),
-          _dropdown(context, 'feeType', 'Fee Type', kFeeTypeOptions),
+        dropdown(context, 'feeType', 'Fee Type', kFeeTypeOptions),
           _text(context, 'religion', 'Religion (optional)'),
           _text(context, 'caste', 'Caste (optional)'),
         ],
@@ -320,7 +320,7 @@ class StudentFieldsForm extends StatelessWidget {
     );
   }
 
-  Widget _dropdown(
+  Widget dropdown(
     BuildContext context,
     String key,
     String label,
@@ -329,7 +329,6 @@ class StudentFieldsForm extends StatelessWidget {
     final rawValue = values[key];
     final value = (rawValue == null || rawValue.isEmpty) ? null : rawValue;
     final locked = _isLocked(key);
-    final displayLabel = _labelWithMarker(key, label);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -340,16 +339,19 @@ class StudentFieldsForm extends StatelessWidget {
             )
           : DropdownButtonFormField<String>(
               initialValue: value,
-              dropdownColor: AppColors.surface,
-              decoration: InputDecoration(labelText: displayLabel),
-              iconEnabledColor: AppColors.textPrimary,
+              isExpanded: true,
+              
+              style: const TextStyle(
+                color: AppColors.navy,
+              ), // closed-state text
+              decoration: InputDecoration(labelText: label),
               items: options
                   .map(
-                    (o) => DropdownMenuItem(
+                    (o) => DropdownMenuItem<String>(
                       value: o,
                       child: Text(
                         o.replaceAll('_', ' '),
-                        style: AppTypography.bodyMedium,
+                        style: const TextStyle(color: AppColors.navy),
                       ),
                     ),
                   )

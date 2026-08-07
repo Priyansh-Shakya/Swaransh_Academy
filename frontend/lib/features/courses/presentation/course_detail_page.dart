@@ -66,12 +66,7 @@ class _CourseDetailBody extends ConsumerWidget {
               ? [
                   Container(
                     decoration: BoxDecoration(
-                      color: const Color.fromARGB(
-                        255,
-                        255,
-                        253,
-                        163,
-                      ).withOpacity(0.45),
+                      color: AppColors.ivory,
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
@@ -82,12 +77,7 @@ class _CourseDetailBody extends ConsumerWidget {
                   ),
                   Container(
                     decoration: BoxDecoration(
-                      color: const Color.fromARGB(
-                        255,
-                        255,
-                        253,
-                        163,
-                      ).withOpacity(0.45),
+                      color: AppColors.ivory,
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(

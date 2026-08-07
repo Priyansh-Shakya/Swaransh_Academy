@@ -216,7 +216,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () {
+              Navigator.pop(ctx, true);
+              FocusScope.of(context).unfocus();
+            },
             child: const Text('Verify'),
           ),
         ],
