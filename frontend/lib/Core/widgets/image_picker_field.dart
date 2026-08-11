@@ -95,32 +95,27 @@ class ImagePickerController extends ChangeNotifier {
     required WidgetRef ref,
     required String bucket,
     required String Function() pathBuilder,
-    required bool isPrivate,
   }) async {
     if (pickedBytes == null) {
-      return _removed ? null : existingUrl;
+      return _removed
+          ? null
+          : existingUrl; // existingUrl is really "existing path" now
     }
-
     uploading = true;
     error = null;
     notifyListeners();
     try {
-      // NOTE: this calls `uploadBytes` on your storage service, not `upload`.
-      // If your current `supabaseStorageServiceProvider` only exposes an
-      // `upload({required File file, ...})` method, you'll need to add a
-      // bytes-based variant — see the note below the class.
-      final url = await ref
+      final path = await ref
           .read(supabaseStorageServiceProvider)
           .uploadBytes(
             bucket: bucket,
             path: pathBuilder(),
             bytes: pickedBytes!,
-            isPrivate: isPrivate,
           );
-      existingUrl = url;
+      existingUrl = path;
       pickedBytes = null;
       pickedFileName = null;
-      return url;
+      return path;
     } catch (e) {
       error = e.toString();
       rethrow;
@@ -366,7 +361,7 @@ class StoragePath {
     return url;
   }
 
-  static String adminPhoto(String adminName , String userId){
+  static String adminPhoto(String adminName, String userId) {
     final ts = DateTime.now().millisecondsSinceEpoch;
     final url = 'admin/$userId/${ts}_photo${_ext(adminName)}';
     debugPrint("Admin Photo Url Generator called :$url");

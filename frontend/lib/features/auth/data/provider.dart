@@ -7,3 +7,5 @@ final userApiServiceProvider = Provider<ApiService<User>>((ref) {
   final dio = ref.watch(dioProvider);
   return ApiService<User>(dio: dio, fromJson: User.fromJson);
 });
+
+final adminVerificationProvider = StateProvider<bool>((ref) => false);

@@ -1,64 +1,64 @@
 from datetime import date, time
-from typing import Any, List, Optional
+from typing import Any
 from uuid import UUID
 
 from app.core import enums
-from pydantic import AnyUrl, BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field
 
 
 class StudentBasic(BaseModel):
     name: str | None = None
-    admission_type: Optional[enums.AdmissionType] = None
-    learning_mode: Optional[enums.LearningMode] = None
-    department: Optional[enums.Department] = None
-    batch: Optional[enums.Batch] = None
-    start_time: Optional[time] = None
-    end_time: Optional[time] = None
-    subject: Optional[str] = None
-    courses: Optional[List[str]] = None
+    admission_type: enums.AdmissionType | None = None
+    learning_mode: enums.LearningMode | None = None
+    department: enums.Department | None = None
+    batch: enums.Batch | None = None
+    start_time: time | None = None
+    end_time: time | None = None
+    subject: str | None = None
+    courses: list[str] | None = None
 
 class StudentBasicRead(StudentBasic):
     id: int
 
 
 class StudentFull(StudentBasic):
-    user_id: Optional[UUID] = Field(
+    user_id: UUID | None = Field(
         None,
         description='Null for paper/cash students who never created an app account.',
     )
-    image_url: Optional[AnyUrl] = Field(
+    image_url: str | None = Field(
         None, description='Profile photo (URL) of student, can be null.'
     )
-    status: Optional[enums.StudentStatus] = None
-    dob: Optional[date] = None
-    father_name: Optional[str] = None
-    gender: Optional[enums.StudentGender] = None
-    education_qualification: Optional[enums.EducationQualification] = None
-    contact: Optional[str] = Field(
+    status: enums.StudentStatus | None = None
+    dob: date | None = None
+    father_name: str | None = None
+    gender: enums.StudentGender | None = None
+    education_qualification: enums.EducationQualification | None = None
+    contact: str | None = Field(
         None, description='Optional - paper-only students may not have one on file yet.'
     )
-    email: Optional[EmailStr] = Field(
+    email: EmailStr | None = Field(
         None,
         description="Acts as the student login key: must match the Google account\nthe student signs in with for the account to be auto-linked.\nNull for paper/cash students who have no app account yet -\nadmin can add it later (via PUT) to enable login. Not\neditable by the student themself, since it's the linking key.\n",
     )
-    address: Optional[str] = None
-    religion: Optional[str] = Field(
+    address: str | None = None
+    religion: str | None = Field(
         None,
         description='Optional. Compliance/records only - never used in list/filter UI.',
     )
-    caste: Optional[str] = Field(
+    caste: str | None = Field(
         None,
         description='Optional. Compliance/records only - never used in list/filter UI.',
     )
-    scholar_no: Optional[str] = Field(
+    scholar_no: str | None = Field(
         None, description='Null until first (admission) payment succeeds.'
     )
-    date_of_joining: Optional[date] = Field(
+    date_of_joining: date | None = Field(
         None, description='Null until first (admission) payment succeeds.'
     )
-    fees: Optional[float] = None
-    fee_type: Optional[enums.FeeType] = None
-    fee_paid_till: Optional[date] = Field(
+    fees: float | None = None
+    fee_type: enums.FeeType | None = None
+    fee_paid_till: date | None = Field(
         None,
         description='Denormalized summary, advanced on each recorded (active) payment.',
     )
@@ -67,8 +67,8 @@ class StudentFullRead(StudentFull):
     id: int
 
 class StudentCreate(StudentFull):
-    status: Optional[Any] = None
-    fee_paid_till: Optional[date] = None
+    status: Any | None = None
+    fee_paid_till: date | None = None
     name: str
     father_name: Any
     dob: date

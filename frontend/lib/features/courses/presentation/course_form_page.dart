@@ -282,7 +282,7 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
           bucket: StorageBucket.coursePhotos,
           pathBuilder: () =>
               StoragePath.coursePhoto(userId, _nameCtrl.text.trim()),
-          isPrivate: false,
+         
         );
         debugPrint("Photo URL available: $imageUrl");
       } catch (e) {

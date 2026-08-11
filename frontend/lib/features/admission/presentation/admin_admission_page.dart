@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:swaransh_academy/Core/service/supabase_object_storage/helper.dart';
+import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
 import 'package:swaransh_academy/features/admission/data/admission_notifier.dart';
 import 'package:swaransh_academy/features/admission/domain/admission_form_record.dart';
 
@@ -174,7 +176,7 @@ class _AdminAdmissionPageState extends ConsumerState<AdminAdmissionPage> {
   };
 }
 
-class _AdmissionFormCard extends StatelessWidget {
+class _AdmissionFormCard extends ConsumerWidget {
   const _AdmissionFormCard({
     required this.form,
     this.onApprove,
@@ -186,7 +188,7 @@ class _AdmissionFormCard extends StatelessWidget {
   final VoidCallback? onDecline;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final deptColor = AppColors.departmentColor(form.department);
 
     return InkWell(
@@ -208,7 +210,13 @@ class _AdmissionFormCard extends StatelessWidget {
                     radius: 22,
                     backgroundColor: deptColor.withOpacity(0.15),
                     backgroundImage: form.imageUrl.isNotEmpty
-                        ? NetworkImage(form.imageUrl)
+                        ? NetworkImage(
+                            resolvePublicImage(
+                              ref,
+                              bucket: StorageBucket.admissionPhotos,
+                              pathOrUrl: form.imageUrl,
+                            ),
+                          )
                         : null,
                     child: form.imageUrl.isEmpty
                         ? Text(

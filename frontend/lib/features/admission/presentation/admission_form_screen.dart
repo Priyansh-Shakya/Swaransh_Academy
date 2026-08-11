@@ -150,7 +150,6 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
           ref.read(admissionFormProvider).draftId,
           'photo.jpg',
         ),
-        isPrivate: false,
       );
       _imageUrl = photoUrl;
 
@@ -267,7 +266,7 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
       _showAuthWall();
       return;
     } else {
-      _saveToNotifier(); 
+      _saveToNotifier();
       context.push('/admission/terms');
     }
   }

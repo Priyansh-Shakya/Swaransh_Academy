@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:swaransh_academy/Core/service/supabase_object_storage/helper.dart';
+import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
 
 import '../../../../Core/theme/app_colors.dart';
 import '../../../../Core/theme/app_spacing.dart';
@@ -96,7 +99,7 @@ class CourseCard extends StatelessWidget {
   }
 }
 
-class _CourseImage extends StatelessWidget {
+class _CourseImage extends ConsumerWidget {
   const _CourseImage({
     required this.course,
     required this.height,
@@ -108,10 +111,15 @@ class _CourseImage extends StatelessWidget {
   final Color deptColor;
 
   @override
-  Widget build(BuildContext context) {
-    if (course.imageUrl != null) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (course.imageUrl != null && course.imageUrl!.isNotEmpty) {
+      final url = resolvePublicImage(
+        ref,
+        bucket: StorageBucket.coursePhotos,
+        pathOrUrl: course.imageUrl!,
+      );
       return Image.network(
-        course.imageUrl!,
+        url,
         height: height,
         width: double.infinity,
         fit: BoxFit.fill,

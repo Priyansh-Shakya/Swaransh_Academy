@@ -97,7 +97,6 @@ class _StudentCreatePageState extends ConsumerState<StudentCreatePage> {
           ref: ref,
           bucket: StorageBucket.studentPhotos,
           pathBuilder: () => StoragePath.studentPhoto(userId, 'photo.jpg'),
-          isPrivate: true,
         );
         debugPrint("Photo URL available: $imageUrl");
       } catch (e) {

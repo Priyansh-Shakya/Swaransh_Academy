@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+import 'package:swaransh_academy/features/auth/data/provider.dart';
 import 'package:swaransh_academy/features/auth/data/users_api_service.dart';
 import 'package:swaransh_academy/features/auth/domain/user.dart' as model;
 
@@ -91,7 +92,12 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
         data: displayName != null ? {'display_name': displayName} : null,
       );
       //* CREATE USER ...
-      final user = model.User(email: email, userName: displayName, role: role);
+      final isAdmin = ref.read(adminVerificationProvider);
+      final user = model.User(
+        email: email,
+        userName: displayName,
+        role: isAdmin ? 'admin' : role,
+      );
       await ref.read(usersApiServiceProvider).createUser(user);
       if (response.user == null) throw Exception('Sign-up failed');
       state = AsyncValue.data(await _resolveUser(response.user!));
@@ -120,6 +126,7 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
 
   Future<void> signOut() async {
     ref.invalidate(isAdminRoleProvider);
+    ref.invalidate(adminVerificationProvider);
     await _supabase.auth.signOut();
     state = const AsyncValue.data(AppUser.guest);
   }

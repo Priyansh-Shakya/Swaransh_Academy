@@ -11,7 +11,11 @@ import time
 # from auth import get_current_user  # wire in your actual dependency
 from app.core.auth.auth import get_current_user_optional
 from app.core.db import get_db
-from app.features.ai_assistant.agent.intent_detector import Intent, intent_router
+from app.features.ai_assistant.agent.intent_detector import (
+    Intent,
+    get_models,
+    intent_router,
+)
 from app.features.ai_assistant.agent.sql_generator import extract_query, generate_sql
 from app.features.ai_assistant.ai_service import check_role, stream_ai_response
 from app.features.ai_assistant.model import AssistanceQuery
@@ -25,7 +29,8 @@ router = APIRouter()
 async def ask_assistant(
     body: AssistanceQuery,
     user=Depends(get_current_user_optional),
-    db=Depends(get_db)
+    db=Depends(get_db),
+    models=Depends(get_models),
 ):
 
     print("Assistant router called")
@@ -36,8 +41,11 @@ async def ask_assistant(
     
 
     if role == "admin":  # not body.isAdmin
-        intent = intent_router(body.query)
-        print("Intent detected:", intent)
+        vec, clf = models
+
+        intent = intent_router(body.query, vec, clf)
+
+        print("INTENT DETECTED:", intent)
         if intent == Intent.query:
             agent_call = True
             

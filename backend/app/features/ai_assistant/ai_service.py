@@ -31,10 +31,7 @@ async def _build_messages(
     prompt = SYSTEM_PROMPT 
     
     if agent_data is not None:
-        
-        
-
-        prompt +=f"Admin Name: {name}" + DB_DATA_USAGE + "\n" + json.dumps(agent_data, indent=2, default=str)
+        prompt +=f"Admin Name: {name}" + DB_DATA_USAGE + "\n[DATA FETCH RESULT]: " + json.dumps(agent_data, indent=2, default=str)
         print("Agent Prompt:\n", prompt)
     else:
         if role in ("guest", "student"):

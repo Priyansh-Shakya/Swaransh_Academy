@@ -25,19 +25,23 @@ class SupabaseStorageService {
     required String bucket,
     required String path,
     required Uint8List bytes,
-    required bool isPrivate,
   }) async {
     await client.storage.from(bucket).uploadBinary(path, bytes);
+    return path; // always the raw path — never a URL
+  }
 
-    if (isPrivate) {
-      //* Generate Signed URL
-      debugPrint("Generating Private URL");
-      return await client.storage.from(bucket).createSignedUrl(path, 60 * 60);
-    } else {
-      //* Generate Public URL
-      debugPrint("Generating Public URL");
-      return client.storage.from(bucket).getPublicUrl(path);
-    }
+  /// Call this fresh, right before displaying an image. Never cache
+  /// the result anywhere persistent (DB, DTO, etc.) — it expires.
+  Future<String> getSignedUrl({
+    required String bucket,
+    required String path,
+    int expiresInSeconds = 120, //60 * 60,
+  }) {
+    return client.storage.from(bucket).createSignedUrl(path, expiresInSeconds);
+  }
+
+  String getPublicUrl({required String bucket, required String path}) {
+    return client.storage.from(bucket).getPublicUrl(path);
   }
 
   Future<String> createSignedUrl({

@@ -444,7 +444,7 @@ class _MessageList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userName = ref.watch(nameProvider);
-    debugPrint("Name from Message List class: $userName");
+
     final name = userName ?? 'there';
     final greeting =
         'Hello ${name.split(' ').first}, I am Sargam.\n\nHow can I assist you today? 🤗';
@@ -468,7 +468,7 @@ class _MessageList extends ConsumerWidget {
         history.last['role'] == 'assistant' &&
         (history.last['content'] ?? '').isEmpty;
     final agentStatus = ref.watch(agentStatusProvider);
-    debugPrint("Inside Message List, Agent Status:$agentStatus");
+
     // 4. Return the Widget tree
     return ListView(
       controller: scrollCtrl,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/service/api_exceptions.dart';
+import 'package:swaransh_academy/features/auth/data/provider.dart';
 import 'package:swaransh_academy/features/auth/data/users_api_service.dart';
 import 'package:swaransh_academy/features/role_select/presentation/selectedRoleprovider.dart';
 
@@ -71,7 +72,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     ref.read(authProvider.notifier).authFlowInProgress = true;
     try {
       if (_isSignUp) {
-        //* First sign Up , then create user , then Resolve user ...
+        //* First sign Up , then create user (inside signUp function), then Resolve user ...
 
         ref.read(authProvider.notifier).handlingSignUp = true;
 
@@ -87,6 +88,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         await ref
             .read(authProvider.notifier)
             .signUpWithEmail(
+              //? Create USER API inside ...
               _emailCtrl.text.trim(),
               _passwordCtrl.text,
               _nameCtrl.text.trim(),
@@ -98,8 +100,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         await ref.read(authProvider.notifier).refreshRole();
         // 3. Now resolve real role from DB
         ref.read(authProvider.notifier).handlingSignUp = false;
-        if (!mounted) return;
-
         if (!mounted) return;
       } else {
         // Sign-in
@@ -235,6 +235,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           .read(usersApiServiceProvider)
           .verifyAdmin(codeCtrl.text.trim());
       debugPrint("Verification: $isVerified");
+
+      ref.read(adminVerificationProvider.notifier).state = isVerified;
       if (!isVerified) {
         if (mounted) setState(() => _busy = false);
         debugPrint("Admin Verification Failed");

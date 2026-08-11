@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
+import 'package:swaransh_academy/Core/service/supabase_object_storage/helper.dart';
+import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
 
 import '../../../Core/auth/user_role.dart';
 import '../../../Core/theme/app_colors.dart';
@@ -55,6 +57,14 @@ class _CourseDetailBody extends ConsumerWidget {
 
     final imageHeight = isDesktop ? 500.0 : 220.0;
 
+    final imageUrl = (course.imageUrl != null && course.imageUrl!.isNotEmpty)
+        ? resolvePublicImage(
+            ref,
+            bucket: StorageBucket.coursePhotos,
+            pathOrUrl: course.imageUrl!,
+          )
+        : null;
+
     return CustomScrollView(
       slivers: [
         SliverAppBar(
@@ -90,9 +100,9 @@ class _CourseDetailBody extends ConsumerWidget {
           flexibleSpace: FlexibleSpaceBar(
             collapseMode: CollapseMode
                 .pin, // image stays put, doesn't parallax-shift while collapsing
-            background: course.imageUrl != null
+            background: (imageUrl != null && imageUrl.isNotEmpty)
                 ? Image.network(
-                    course.imageUrl!,
+                    imageUrl,
                     fit: BoxFit.fill,
                     alignment: Alignment.topCenter,
                   )
