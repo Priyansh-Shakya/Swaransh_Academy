@@ -33,6 +33,6 @@ class User {
     'email': email,
     'user_name': userName,
     'role': role,
-    'fcmToken': fcmToken,
+    'fcm_token': fcmToken,
   };
 }

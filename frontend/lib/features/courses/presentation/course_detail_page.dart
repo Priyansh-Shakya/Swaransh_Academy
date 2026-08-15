@@ -64,6 +64,9 @@ class _CourseDetailBody extends ConsumerWidget {
             pathOrUrl: course.imageUrl!,
           )
         : null;
+    debugPrint(
+      "---------------------- IMAGE URL -------------------- \n$imageUrl",
+    );
 
     return CustomScrollView(
       slivers: [

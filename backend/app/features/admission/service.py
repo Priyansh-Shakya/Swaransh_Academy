@@ -50,7 +50,9 @@ async def create_admission_form(form: model.AdmissionFormCreate,user, db):
 
     tokens = [row["fcm_token"] for row in admins]
     #? call notification function
+    print("FCM TOKEN FROM DB:", repr(tokens))
     send_multiple_notifications(tokens , "Admission Enquiry" , "A new admission enquiry has occured.")
+    print("Sending Admission Application Notification TO admins.")
     return dict(row)
     
 
@@ -111,11 +113,11 @@ async def approve_form(admission_id: int, db):
     JOIN users u ON a.user_id = u.user_id
     WHERE a.id = $1
 """, admission_id)
-
+    print("FCM TOKEN FROM DB:", repr(row["fcm_token"]))
     if row and row["fcm_token"]:
         print("Sending approved notification ...")
         send_notification(
-            [row["fcm_token"]],
+            row["fcm_token"],
             "Admission Approved",
             "Your admission has been approved!"
         )
@@ -134,18 +136,19 @@ async def decline_form(admission_id: int, db):
             JOIN users u ON a.user_id = u.user_id
             WHERE a.id = $1
         """, admission_id)
-        
+
+        print("FCM TOKEN FROM DB:", repr(row["fcm_token"]))
         if row and row["fcm_token"]:
             print("Sending declined notification ...")
             send_notification(
-                [row["fcm_token"]],
+                row["fcm_token"],
                 "Admission Declined",
                 "Your admission has been declined!"
             )
     return dict(row) if row else None
 
 
-async def get_all_admissions(db, status: str = None):
+async def get_all_admissions(db, status: str | None = None):
     """Get list of all admission forms (admin only)"""
     if status:
         query = "SELECT * FROM admissions WHERE status = $1"

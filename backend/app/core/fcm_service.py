@@ -1,6 +1,5 @@
 import json
 import os
-from urllib import response
 
 import firebase_admin
 from firebase_admin import credentials, messaging
@@ -24,30 +23,56 @@ if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
 #* ----- MAIN Send Notification Function ----------
 
-def send_notification(fcm_token:str , task:str, msg:str):
-    msg = messaging.Message(
+def send_notification(
+    fcm_token: str,
+    task: str,
+    msg: str,
+):
+    print("FCM TOKEN RECEIVED:", repr(fcm_token))
+    print("FCM TOKEN TYPE:", type(fcm_token))
+
+    if not isinstance(fcm_token, str) or not fcm_token.strip():
+        raise ValueError(f"Invalid FCM token: {fcm_token!r}")
+
+    message = messaging.Message(
         notification=messaging.Notification(
             title=task,
             body=msg,
-            
         ),
-        token=fcm_token
+        token=fcm_token.strip(),
     )
-    messaging.send(msg)
-    print(response.success_count)
-    print(response.failure_count)
 
+    response = messaging.send(message)
 
+    print(f"✅ Notification sent: {response}")
 
-def send_multiple_notifications(fcm_tokens:list ,task:str, msg:str):
-    message = messaging.MulticastMessage(
-    notification=messaging.Notification(
-        title=task,
-        body=msg,
-    ),
-    tokens=fcm_tokens,   # list[str]
-)
+def send_multiple_notifications(
+    fcm_tokens: list[str],
+    task: str,
+    msg: str,
+):
+    if not fcm_tokens:
+        print("No FCM tokens to send to.")
+        return
+    messages = [
+        messaging.Message(
+            notification=messaging.Notification(
+                title=task,
+                body=msg,
+            ),
+            token=token,
+        )
+        for token in fcm_tokens
+    ]
 
-    messaging.send_each_for_multicast(message)
-    print(response.success_count)
-    print(response.failure_count)
+    if not messages:
+        return
+
+    response = messaging.send_each(messages)
+
+    print(f"Success count: {response.success_count}")
+    print(f"Failure count: {response.failure_count}")
+
+    for result in response.responses:
+        if not result.success:
+            print(f"Failed: {result.exception}")

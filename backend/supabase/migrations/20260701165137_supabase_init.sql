@@ -189,7 +189,7 @@ CREATE TABLE admissions (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     image_url Text,
     -- Bound server-side from JWT; NULL if submitted anonymously
-    user_id UUID not null REFERENCES users(user_id) ON DELETE CASCADE,
+    user_id UUID not null REFERENCES users(user_id) ON DELETE SET NULL,
     
     -- Core Application Lifecycle Status
     status admission_status NOT NULL DEFAULT 'Pending',

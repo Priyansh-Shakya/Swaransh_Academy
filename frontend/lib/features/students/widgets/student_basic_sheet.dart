@@ -52,7 +52,7 @@ class StudentBasicSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          StudentAvatar(student: student, radius: 50),
+          StudentAvatar(student: student, radius: 60),
           const SizedBox(height: AppSpacing.md),
           Text(student.name, style: AppTypography.headlineMedium),
           const SizedBox(height: AppSpacing.xs),

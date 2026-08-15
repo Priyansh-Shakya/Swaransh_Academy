@@ -34,8 +34,11 @@ class UsersApiService {
     }
     if (role == 'admin') {
       return UserRole.admin;
-    } else {
+    }
+    if (role == 'student') {
       return UserRole.student;
+    } else {
+      return UserRole.guest;
     }
   }
 
@@ -53,7 +56,7 @@ class UsersApiService {
       endpoint: '/users/me',
       parser: (json) => User.fromJson(json),
     );
-
+    debugPrint("CURRENT USER FROM API SERVICE LAYER:\n${user.toJson()}");
     return user;
   }
 

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/dio_client/dio_client_provider.dart';
+import 'package:swaransh_academy/Core/service/supabase_object_storage/helper.dart';
+import 'package:swaransh_academy/Core/service/supabase_object_storage/object_storage.dart';
 import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
 
 import '../../../Core/theme/app_colors.dart';
@@ -58,6 +60,7 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
 
   //* Image field — created once, here, not in build().
   late String? imageUrl = widget.existing?.imageUrl;
+
   late final ImagePickerController _photoController;
 
   @override
@@ -81,6 +84,14 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
 
   @override
   Widget build(BuildContext context) {
+    imageUrl = (imageUrl != null && imageUrl!.isNotEmpty)
+        ? resolvePublicImage(
+            ref,
+            bucket: StorageBucket.coursePhotos,
+            pathOrUrl: imageUrl!,
+          )
+        : null;
+    debugPrint("EDIT COURSE IMAGE URL:\n$imageUrl");
     return Scaffold(
       appBar: AppBar(title: Text(_isEdit ? 'Edit Course' : 'Add Course')),
       body: Form(
@@ -89,21 +100,20 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
             Center(
-              child: (imageUrl != null && imageUrl!.isNotEmpty)
-                  ? ClipOval(
-                      child: Image.network(
-                        imageUrl!,
-                        width: 120,
-                        height: 120,
-                        fit: BoxFit.cover,
+              child: ImagePickerField(
+                controller: _photoController,
+                label: 'Course Photo',
+                size: 100,
+                shape: BoxShape.circle,
+                resolveDisplayUrl: (path) => Future.value(
+                  ref
+                      .read(supabaseStorageServiceProvider)
+                      .getPublicUrl(
+                        bucket: StorageBucket.coursePhotos,
+                        path: path,
                       ),
-                    )
-                  : ImagePickerField(
-                      controller: _photoController,
-                      label: 'Course Photo',
-                      size: 100,
-                      shape: BoxShape.circle,
-                    ),
+                ),
+              ),
             ),
             const SizedBox(height: AppSpacing.lg),
             TextFormField(
@@ -282,7 +292,6 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
           bucket: StorageBucket.coursePhotos,
           pathBuilder: () =>
               StoragePath.coursePhoto(userId, _nameCtrl.text.trim()),
-         
         );
         debugPrint("Photo URL available: $imageUrl");
       } catch (e) {

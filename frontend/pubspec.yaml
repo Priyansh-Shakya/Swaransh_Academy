@@ -51,6 +51,7 @@ dependencies:
   flutter_markdown_plus: ^1.0.12
   firebase_core: ^4.12.1
   firebase_messaging: ^16.4.3
+  flutter_local_notifications: ^20.1.0
 
 
 # Use transparent background png for both image_path and adaptive_icon_foreground to avoid issues with adaptive icons on Android 8.0+ and iOS 13+.

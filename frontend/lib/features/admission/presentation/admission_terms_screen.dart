@@ -51,102 +51,108 @@ class _AdmissionTermsScreenState extends ConsumerState<AdmissionTermsScreen> {
           child: _StepIndicator(current: 2, total: 3),
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Consumer(
-              builder: (context, ref, child) {
-                // 💡 Watch the data strictly inside the Consumer builder block using innerRef
-                final isEnglish = ref.watch(termsLanguageProvider);
-                final currentTerms = isEnglish ? _terms : _terms_hindi;
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Consumer(
+                builder: (context, ref, child) {
+                  // 💡 Watch the data strictly inside the Consumer builder block using innerRef
+                  final isEnglish = ref.watch(termsLanguageProvider);
+                  final currentTerms = isEnglish ? _terms : _terms_hindi;
 
-                return Stack(
-                  children: [
-                    SingleChildScrollView(
-                      padding: const EdgeInsets.all(AppSpacing.lg),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Please read carefully',
-                            style: AppTypography.headlineLarge,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'By proceeding to payment you agree to all terms below.',
-                            style: AppTypography.bodySmall,
-                          ),
-                          const SizedBox(height: AppSpacing.xl),
-                          ...currentTerms.map(
-                            (t) => _TermsClause(
-                              number: t.$1,
-                              title: t.$2,
-                              body: t.$3,
+                  return Stack(
+                    children: [
+                      SingleChildScrollView(
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Please read carefully',
+                              style: AppTypography.headlineLarge,
                             ),
-                          ),
-                          const SizedBox(height: AppSpacing.lg),
-                          Row(
-                            children: [
-                              Checkbox(
-                                value: _accepted,
-                                activeColor: AppColors.gold,
-                                onChanged: (v) =>
-                                    setState(() => _accepted = v ?? false),
+                            const SizedBox(height: 4),
+                            Text(
+                              'By proceeding to payment you agree to all terms below.',
+                              style: AppTypography.bodySmall,
+                            ),
+                            const SizedBox(height: AppSpacing.xl),
+                            ...currentTerms.map(
+                              (t) => _TermsClause(
+                                number: t.$1,
+                                title: t.$2,
+                                body: t.$3,
                               ),
-                              Expanded(
-                                child: Text(
-                                  'I have read and agree to the Terms & Conditions of '
-                                  'Swaransh Academy of Music & Art.',
-                                  style: AppTypography.bodySmall,
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
+                            Row(
+                              children: [
+                                Checkbox(
+                                  value: _accepted,
+                                  activeColor: AppColors.gold,
+                                  onChanged: (v) =>
+                                      setState(() => _accepted = v ?? false),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                                Expanded(
+                                  child: Text(
+                                    'I have read and agree to the Terms & Conditions of '
+                                    'Swaransh Academy of Music & Art.',
+                                    style: AppTypography.bodySmall,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      //! Place language chip at bottom so that it is at Top of Stack
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: const LanguageChip(),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            // Fixed bottom bar: checkbox + button
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: AppColors.divider)),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.navy.withOpacity(0.06),
+                    blurRadius: 12,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: AppSpacing.sm),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _accepted
+                          ? () => context.push('/admission/payment')
+                          : null,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                        child: Text('Continue to Payment'),
                       ),
                     ),
-
-                    //! Place language chip at bottom so that it is at Top of Stack
-                    Positioned(top: 10, right: 10, child: const LanguageChip()),
-                  ],
-                );
-              },
-            ),
-          ),
-          // Fixed bottom bar: checkbox + button
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(top: BorderSide(color: AppColors.divider)),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.navy.withOpacity(0.06),
-                  blurRadius: 12,
-                  offset: const Offset(0, -4),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: AppSpacing.sm),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: _accepted
-                        ? () => context.push('/admission/payment')
-                        : null,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                      child: Text('Continue to Payment'),
-                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

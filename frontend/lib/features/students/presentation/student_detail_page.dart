@@ -246,7 +246,7 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
                 Center(
                   child: Column(
                     children: [
-                      StudentAvatar(student: student, radius: 60),
+                      StudentAvatar(student: student, radius: 80),
                       const SizedBox(height: AppSpacing.md),
                       if (student.status != null)
                         _StatusBadge(status: student.status!),

@@ -58,7 +58,7 @@ async def ask_assistant(
             if agent_call:
                 yield "data: [STATUS]Querying database...\n\n"
                 #* Generate SQL here and then Fetch From DB inside Resdponse Stream
-                response = await generate_sql(user_query=body.query)
+                response = await generate_sql(user_query=body.query, history = body.conversation_history)
                 agent_data = await extract_query(response, db)
 
             async for chunk in stream_ai_response(

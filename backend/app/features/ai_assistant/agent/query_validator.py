@@ -5,7 +5,7 @@ from sqlparse.tokens import DML, Keyword
 ALLOWED_TABLES = {"courses", "students", "admissions", "users", "payment"}
 
 FORBIDDEN_STATEMENT_TYPES = {
-    "DROP", "TRUNCATE", "ALTER", "DELETE", "GRANT", "REVOKE",
+    "DROP", "TRUNCATE", "ALTER",  "GRANT", "REVOKE",
     "CREATE", "MERGE", "EXECUTE", "CALL",
 }
 
@@ -112,10 +112,20 @@ def validate_sql(query: str) -> bool:
 
     stmt_type = _get_statement_type(stmt)
 
+    # ---- UPDATE/DELETE must have WHERE ----
+    if stmt_type in ("UPDATE", "DELETE"):
+        has_where = any(
+            isinstance(tok, sqlparse.sql.Where)
+            for tok in stmt.tokens
+        )
+
+        if not has_where:
+            return False
+
     if stmt_type in FORBIDDEN_STATEMENT_TYPES or stmt_type == "":
         return False
 
-    if stmt_type not in ("SELECT", "INSERT", "UPDATE"):
+    if stmt_type not in ("SELECT", "INSERT", "UPDATE", "DELETE"):
         return False
 
     # ---- UPDATE must have WHERE ----

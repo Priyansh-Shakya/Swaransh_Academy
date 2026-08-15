@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+import 'package:swaransh_academy/Core/fcm_service/tokenProvider.dart';
 import 'package:swaransh_academy/features/auth/data/provider.dart';
 import 'package:swaransh_academy/features/auth/data/users_api_service.dart';
 import 'package:swaransh_academy/features/auth/domain/user.dart' as model;
@@ -93,10 +94,15 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
       );
       //* CREATE USER ...
       final isAdmin = ref.read(adminVerificationProvider);
+      final fcmToken = ref.read(fcmTokenProvider);
+      debugPrint(
+        "FCM TOKEN FROM USER NOTIFIER:\n${fcmToken == null ? "NULL" : fcmToken.substring(1, 5)}",
+      );
       final user = model.User(
         email: email,
         userName: displayName,
         role: isAdmin ? 'admin' : role,
+        fcmToken: fcmToken,
       );
       await ref.read(usersApiServiceProvider).createUser(user);
       if (response.user == null) throw Exception('Sign-up failed');

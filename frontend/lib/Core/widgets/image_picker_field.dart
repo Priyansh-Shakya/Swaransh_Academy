@@ -135,12 +135,18 @@ class ImagePickerField extends StatelessWidget {
     this.label = 'Photo',
     this.size = 96,
     this.shape = BoxShape.circle,
+    this.resolveDisplayUrl,
   });
 
   final ImagePickerController controller;
   final String label;
   final double size;
   final BoxShape shape;
+
+  /// Turns a stored path into something actually renderable — a public
+  /// URL, a signed URL, whatever fits the bucket. If null, existing
+  /// server-side photos won't render (only freshly picked ones will).
+  final Future<String> Function(String path)? resolveDisplayUrl;
 
   Future<void> _pick(BuildContext sheetContext, ImageSource source) async {
     Navigator.pop(sheetContext);
@@ -152,9 +158,6 @@ class ImagePickerField extends StatelessWidget {
       maxHeight: 1024,
     );
     if (picked == null) return;
-
-    // Cross-platform: readAsBytes() works on web, mobile, and desktop.
-    // Never wrap picked.path in dart:io.File — that breaks on web.
     final bytes = await picked.readAsBytes();
     controller.setBytes(bytes, picked.name);
   }
@@ -204,7 +207,10 @@ class ImagePickerField extends StatelessWidget {
               label: 'Choose from Gallery',
               onTap: () => _pick(sheetContext, ImageSource.gallery),
             ),
-            if (controller.previewImage != null) ...[
+            if (controller.pickedBytes != null ||
+                (!controller._removed &&
+                    controller.existingUrl != null &&
+                    controller.existingUrl!.isNotEmpty)) ...[
               const SizedBox(height: AppSpacing.sm),
               _SheetOption(
                 icon: Icons.delete_outline,
@@ -222,13 +228,41 @@ class ImagePickerField extends StatelessWidget {
     );
   }
 
+  /// Builds just the image content (no container/border) — null means
+  /// "show the add-photo icon instead."
+  Widget? _imageContent() {
+    if (controller.pickedBytes != null) {
+      return Image.memory(controller.pickedBytes!, fit: BoxFit.cover);
+    }
+    if (!controller._removed &&
+        controller.existingUrl != null &&
+        controller.existingUrl!.isNotEmpty) {
+      if (resolveDisplayUrl == null) return null;
+      return FutureBuilder<String>(
+        future: resolveDisplayUrl!(controller.existingUrl!),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.gold,
+              ),
+            );
+          }
+          return Image.network(snapshot.data!, fit: BoxFit.cover);
+        },
+      );
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
-        final imageProvider = controller.previewImage;
         final uploading = controller.uploading;
+        final content = uploading ? null : _imageContent();
 
         return GestureDetector(
           onTap: uploading ? null : () => _showPickerSheet(context),
@@ -245,10 +279,9 @@ class ImagePickerField extends StatelessWidget {
                     color: AppColors.gold.withOpacity(0.4),
                     width: 2,
                   ),
-                  image: imageProvider != null && !uploading
-                      ? DecorationImage(image: imageProvider, fit: BoxFit.cover)
-                      : null,
                 ),
+                clipBehavior: Clip
+                    .antiAlias, // needed since image is now a child, not DecorationImage
                 child: uploading
                     ? const Center(
                         child: CircularProgressIndicator(
@@ -256,19 +289,18 @@ class ImagePickerField extends StatelessWidget {
                           strokeWidth: 2,
                         ),
                       )
-                    : imageProvider == null
-                    ? Icon(
-                        Icons.add_a_photo_outlined,
-                        color: AppColors.gold,
-                        size: size * 0.35,
-                      )
-                    : null,
+                    : content ??
+                          Icon(
+                            Icons.add_a_photo_outlined,
+                            color: AppColors.gold,
+                            size: size * 0.35,
+                          ),
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
                 uploading
                     ? 'Uploading...'
-                    : imageProvider != null
+                    : content != null
                     ? 'Tap to change'
                     : 'Add $label',
                 style: AppTypography.caption,

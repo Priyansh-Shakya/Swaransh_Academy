@@ -315,71 +315,57 @@ class _PanelSurface extends StatelessWidget {
     final isMobile = !isDesktop;
     debugPrint("Inside Pannel Surface");
     return SafeArea(
-      child: Positioned(
-        right: 0,
-        top: 0,
-        left: 0,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
+        child: Material(
+          type: MaterialType.transparency, // <-- only for Material context
+          child: ClipPath(
+            clipper: _NotchedClipper(
+              notchRadius: (isDesktop) ? 0 : 35,
+              cornerRadius: 40,
+            ),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(30),
 
-        bottom:
-            _floatingBottom(context, isMobile, bottomNavHeight) +
-            _kIconSize +
-            12,
-
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
-          child: Material(
-            type: MaterialType.transparency, // <-- only for Material context
-            child: ClipPath(
-              clipper: _NotchedClipper(
-                notchRadius: (isDesktop) ? 0 : 35,
-                cornerRadius: 40,
-              ),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
-
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.white.withOpacity(.38),
-                        Colors.white.withOpacity(.18),
-                      ],
-                    ),
-
-                    border: Border.all(
-                      color: Colors.white.withOpacity(.80),
-                      width: 1.6,
-                    ),
-
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(.12),
-                        blurRadius: 30,
-                        offset: const Offset(0, 12),
-                      ),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white.withOpacity(.38),
+                      Colors.white.withOpacity(.18),
                     ],
                   ),
-                  child: SafeArea(
-                    bottom: false,
-                    child: Column(
-                      children: [
-                        _Header(onClose: onClose),
-                        Divider(
-                          height: 1,
-                          color: Colors.white.withOpacity(.18),
-                        ),
-                        Expanded(child: _MessageList(scrollCtrl: scrollCtrl)),
-                        _InputBar(
-                          controller: inputCtrl,
-                          focusNode: inputFocus,
-                          onSend: onSend,
-                          rightPadding: inputRightPadding,
-                        ),
-                      ],
+
+                  border: Border.all(
+                    color: Colors.white.withOpacity(.80),
+                    width: 1.6,
+                  ),
+
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(.12),
+                      blurRadius: 30,
+                      offset: const Offset(0, 12),
                     ),
+                  ],
+                ),
+                child: SafeArea(
+                  bottom: false,
+                  child: Column(
+                    children: [
+                      _Header(onClose: onClose),
+                      Divider(height: 1, color: Colors.white.withOpacity(.18)),
+                      Expanded(child: _MessageList(scrollCtrl: scrollCtrl)),
+                      _InputBar(
+                        controller: inputCtrl,
+                        focusNode: inputFocus,
+                        onSend: onSend,
+                        rightPadding: inputRightPadding,
+                      ),
+                    ],
                   ),
                 ),
               ),

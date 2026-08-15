@@ -5,7 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swaransh_academy/Core/fcm_service/service.dart';
 import 'package:swaransh_academy/features/auth/data/users_api_service.dart';
 
-final fcmTokenProvider = StateProvider<String?>((ref) => null);
+final fcmTokenProvider = StateProvider<String?>((ref) {
+  return FcmService.token;
+});
 
 final fcmInitProvider = Provider<void>((ref) async {
   final token = await FcmService.init();

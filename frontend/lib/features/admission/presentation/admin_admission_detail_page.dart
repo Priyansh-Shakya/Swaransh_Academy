@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:swaransh_academy/Core/service/supabase_object_storage/helper.dart';
+import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
 
 import '../../../Core/theme/app_colors.dart';
 import '../../../Core/theme/app_spacing.dart';
@@ -31,7 +33,6 @@ class AdminAdmissionDetailPage extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ---- Header ----
-            // ---- Header ----
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(AppSpacing.sm),
@@ -56,7 +57,13 @@ class AdminAdmissionDetailPage extends ConsumerWidget {
                           radius: 36,
                           backgroundColor: deptColor.withOpacity(0.15),
                           backgroundImage: form.imageUrl.isNotEmpty
-                              ? NetworkImage(form.imageUrl)
+                              ? NetworkImage(
+                                  resolvePublicImage(
+                                    ref,
+                                    bucket: StorageBucket.admissionPhotos,
+                                    pathOrUrl: form.imageUrl,
+                                  ),
+                                )
                               : null,
                           child: form.imageUrl.isEmpty
                               ? Text(
