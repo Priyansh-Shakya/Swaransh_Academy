@@ -71,6 +71,16 @@ class ImagePickerController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Discards any locally picked/removed state without touching the server —
+  /// use when the user cancels an edit rather than saving it.
+  void discardLocalChanges() {
+    pickedBytes = null;
+    pickedFileName = null;
+    _removed = false;
+    error = null;
+    notifyListeners();
+  }
+
   /// Clears the local pick. If there was an existing server URL, it's
   /// hidden from the preview and [upload] will return null for this field
   /// (i.e. "remove the photo") instead of re-uploading anything.
@@ -386,10 +396,9 @@ class StoragePath {
     return url;
   }
 
-  static String coursePhoto(String courseName, String userId) {
+  static String coursePhoto(String courseName) {
     final ts = DateTime.now().millisecondsSinceEpoch;
-    final url = 'courses/$userId/${ts}_photo${_ext(courseName)}';
-    debugPrint("CoursePhoto Url Generator called :$url");
+    final url = 'courses/${ts}_photo${_ext(courseName)}';
     return url;
   }
 

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/dio_client/dio_client_provider.dart';
-import 'package:swaransh_academy/Core/service/supabase_object_storage/helper.dart';
 import 'package:swaransh_academy/Core/service/supabase_object_storage/object_storage.dart';
 import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
 
@@ -66,10 +65,13 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
   @override
   void initState() {
     super.initState();
-
     _photoController = ImagePickerController(
-      initialUrl: imageUrl,
-    ); // no existing photo on create
+      initialUrl:
+          (widget.existing?.imageUrl != null &&
+              widget.existing!.imageUrl!.isNotEmpty)
+          ? widget.existing!.imageUrl
+          : null,
+    );
   }
 
   @override
@@ -84,13 +86,6 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    imageUrl = (imageUrl != null && imageUrl!.isNotEmpty)
-        ? resolvePublicImage(
-            ref,
-            bucket: StorageBucket.coursePhotos,
-            pathOrUrl: imageUrl!,
-          )
-        : null;
     debugPrint("EDIT COURSE IMAGE URL:\n$imageUrl");
     return Scaffold(
       appBar: AppBar(title: Text(_isEdit ? 'Edit Course' : 'Add Course')),
@@ -281,47 +276,89 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+
     setState(() => _saving = true);
 
-    final userId = ref.read(supabaseProvider).auth.currentSession?.user.id;
+    final supabase = ref.read(supabaseProvider);
+    final userId = supabase.auth.currentSession?.user.id;
 
-    if (userId != null) {
-      try {
-        imageUrl = await _photoController.upload(
-          ref: ref,
-          bucket: StorageBucket.coursePhotos,
-          pathBuilder: () =>
-              StoragePath.coursePhoto(userId, _nameCtrl.text.trim()),
-        );
-        debugPrint("Photo URL available: $imageUrl");
-      } catch (e) {
-        debugPrint("Error on image upload, Course Create: $e");
-        // photo upload failed — proceeding without a photo rather than
-        // blocking the whole student creation. Reconsider if a photo
-        // should be mandatory for your flow.
+    // Keep the original raw storage path.
+    // Do NOT use a signed/resolved URL here.
+    final oldPath = widget.existing?.imageUrl;
+
+    try {
+      String? newPath = oldPath;
+
+      // Upload only when we have a logged-in user.
+      if (userId != null) {
+        try {
+          newPath = await _photoController.upload(
+            ref: ref,
+            bucket: StorageBucket.coursePhotos,
+            pathBuilder: () => StoragePath.coursePhoto(_nameCtrl.text.trim()),
+          );
+
+          debugPrint("Photo path available: $newPath");
+        } catch (e) {
+          debugPrint("Error on image upload, Course Save: $e");
+
+          // If editing, keep the existing image.
+          // If creating, leave imageUrl null.
+          newPath = oldPath;
+        }
       }
-    }
 
-    context.pop(); //* POP screen
+      final draft = Course(
+        id: widget.existing?.id ?? 0,
+        courseName: _nameCtrl.text.trim(),
+        duration: _durationCtrl.text.trim(),
+        fees: double.parse(_feesCtrl.text.trim()),
+        mode: _mode,
+        tag: _tag,
+        mapsToDepartment: _department,
+        mapsToSubject: _subjectCtrl.text.trim(),
+        imageUrl: newPath,
+      );
 
-    final draft = Course(
-      id:
-          widget.existing?.id ??
-          0, // ignored by addCourse, used by updateCourse
-      courseName: _nameCtrl.text.trim(),
-      duration: _durationCtrl.text.trim(),
-      fees: double.parse(_feesCtrl.text.trim()),
-      mode: _mode,
-      tag: _tag,
-      mapsToDepartment: _department,
-      mapsToSubject: _subjectCtrl.text.trim(),
-      imageUrl: imageUrl,
-    );
+      // Save/update database first.
+      if (_isEdit) {
+        await ref.read(coursesProvider.notifier).updateCourse(draft);
+      } else {
+        await ref.read(coursesProvider.notifier).addCourse(draft);
+      }
 
-    if (_isEdit) {
-      await ref.read(coursesProvider.notifier).updateCourse(draft);
-    } else {
-      await ref.read(coursesProvider.notifier).addCourse(draft);
+      // If editing and a new image was uploaded, remove the old image.
+      if (_isEdit &&
+          oldPath != null &&
+          oldPath.isNotEmpty &&
+          oldPath != newPath) {
+        try {
+          await ref
+              .read(supabaseStorageServiceProvider)
+              .delete(bucket: StorageBucket.coursePhotos, path: oldPath);
+
+          debugPrint("Old course photo deleted: $oldPath");
+        } catch (e) {
+          // Non-fatal: database update already succeeded.
+          debugPrint("Old course photo cleanup failed (non-fatal): $e");
+        }
+      }
+
+      if (mounted) {
+        context.pop();
+      }
+    } catch (e) {
+      debugPrint("Error saving course: $e");
+
+      if (mounted) {
+        setState(() => _saving = false);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to save course — please try again'),
+          ),
+        );
+      }
     }
   }
 }

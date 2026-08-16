@@ -7,8 +7,8 @@ import 'package:swaransh_academy/features/admission/presentation/admission_form_
 import 'package:swaransh_academy/features/admission/presentation/admission_payment_screen.dart';
 import 'package:swaransh_academy/features/admission/presentation/admission_success_screen.dart';
 import 'package:swaransh_academy/features/admission/presentation/admission_terms_screen.dart';
-import 'package:swaransh_academy/features/payments/presentation/student_payment_screen.dart';
 import 'package:swaransh_academy/features/auth/presentation/auth_screen.dart';
+import 'package:swaransh_academy/features/payments/presentation/student_payment_screen.dart';
 import 'package:swaransh_academy/features/role_select/presentation/role_select_page.dart';
 
 import '../../admission/presentation/admission_page.dart';

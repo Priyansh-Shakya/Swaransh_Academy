@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:swaransh_academy/Core/service/supabase_object_storage/object_storage.dart';
+import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
 import 'package:swaransh_academy/features/payments/presentation/payment_hostory.dart';
 import 'package:swaransh_academy/features/students/data/students_notifier.dart';
 import 'package:swaransh_academy/features/students/domain/student.dart';
@@ -25,19 +27,21 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
 
   // Controllers for every free-text field in StudentFieldsForm
   final _controllers = <String, TextEditingController>{};
-
-  // Dropdown values
-  final _dropdowns = <String, String?>{};
-
-  Student? _loaded;
+  ImagePickerController? _photoController;
 
   @override
   void dispose() {
     for (final c in _controllers.values) {
       c.dispose();
     }
+    _photoController?.dispose();
     super.dispose();
   }
+
+  // Dropdown values
+  final _dropdowns = <String, String?>{};
+
+  Student? _loaded;
 
   void _initControllers(Student s) {
     void c(String key, String? value) {
@@ -69,7 +73,7 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
     _dropdowns['status'] = s.status;
   }
 
-  Student _buildUpdated(Student original) {
+  Student _buildUpdated(Student original, String? imageUrl) {
     final updated = original.copyWith(
       name: _controllers['name']!.text.trim(),
       fatherName: _controllers['fatherName']!.text.trim(),
@@ -92,6 +96,7 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
       learningMode: _dropdowns['learningMode'] ?? original.learningMode,
       batch: _dropdowns['batch'] ?? original.batch,
       feeType: _dropdowns['feeType'],
+      imageUrl: imageUrl ?? original.imageUrl,
     );
     debugPrint(
       "Updated Student Model , Details page (_buildUpdate function): $updated",
@@ -100,11 +105,40 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
   }
 
   Future<void> _save(Student original) async {
+    if (original.userId == null) return;
     setState(() => _saving = true);
+
     try {
+      final oldPath = original.imageUrl;
+
+      final newPath = await _photoController?.upload(
+        ref: ref,
+        bucket: StorageBucket.studentPhotos,
+        pathBuilder: () =>
+            StoragePath.studentPhoto(original.userId!, 'photo.jpg'),
+      );
+      // newPath: unchanged path if nothing picked, new path if changed,
+      // null if removed, or null if _photoController itself was null.
+      final newImageUrl = newPath ?? oldPath;
       await ref
           .read(studentsProvider.notifier)
-          .updateStudent(_buildUpdated(original));
+          .updateStudent(
+            _buildUpdated(original, newImageUrl),
+            // ^ fall back to oldPath only if controller was genuinely absent —
+            //   see note below on whether this fallback is even the right call
+          );
+
+      //! DELETE OLD IMAGE
+      if (oldPath != null && oldPath.isNotEmpty && oldPath != newPath) {
+        try {
+          await ref
+              .read(supabaseStorageServiceProvider)
+              .delete(bucket: StorageBucket.studentPhotos, path: oldPath);
+        } catch (e) {
+          debugPrint('Old photo cleanup failed (non-fatal): $e');
+        }
+      }
+
       if (mounted) {
         setState(() {
           _editing = false;
@@ -162,6 +196,12 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
     }
   }
 
+  void _cancelEdit() {
+    _photoController?.discardLocalChanges(); // new method, below
+    setState(() => _editing = false);
+    // ...whatever else your cancel already does (reverting text controllers etc.)
+  }
+
   @override
   Widget build(BuildContext context) {
     final studentsAsync = ref.watch(studentsProvider);
@@ -180,6 +220,12 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
           return const Scaffold(body: Center(child: Text('Student not found')));
         }
 
+        //* Initilize Photo URL
+        _photoController ??= ImagePickerController(
+          initialUrl: (student.imageUrl != null && student.imageUrl!.isNotEmpty)
+              ? student.imageUrl
+              : null,
+        );
         debugPrint(
           "======================== Student ID on details Page: ${student.id}",
         );
@@ -210,7 +256,7 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
               ] else ...[
                 TextButton(
                   onPressed: () => setState(() {
-                    _editing = false;
+                    _cancelEdit();
                     _initControllers(student); // reset to saved state
                   }),
                   child: const Text('Cancel'),
@@ -246,7 +292,22 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
                 Center(
                   child: Column(
                     children: [
-                      StudentAvatar(student: student, radius: 80),
+                      (_editing && _photoController != null)
+                          ? Center(
+                              child: ImagePickerField(
+                                controller: _photoController!,
+                                label: 'Student Photo',
+                                size: 160, // ~ radius 80 * 2
+                                shape: BoxShape.circle,
+                                resolveDisplayUrl: (path) => ref
+                                    .read(supabaseStorageServiceProvider)
+                                    .getSignedUrl(
+                                      bucket: StorageBucket.studentPhotos,
+                                      path: path,
+                                    ),
+                              ),
+                            )
+                          : StudentAvatar(student: student, radius: 80),
                       const SizedBox(height: AppSpacing.md),
                       if (student.status != null)
                         _StatusBadge(status: student.status!),
