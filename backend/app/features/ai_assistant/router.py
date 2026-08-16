@@ -17,7 +17,8 @@ from app.features.ai_assistant.agent.intent_detector import (
     intent_router,
 )
 from app.features.ai_assistant.agent.sql_generator import extract_query, generate_sql
-from app.features.ai_assistant.ai_service import check_role, stream_ai_response
+from app.features.ai_assistant.ai_service import stream_ai_response
+from app.features.ai_assistant.helper import check_role
 from app.features.ai_assistant.model import AssistanceQuery
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
@@ -58,7 +59,7 @@ async def ask_assistant(
             if agent_call:
                 yield "data: [STATUS]Querying database...\n\n"
                 #* Generate SQL here and then Fetch From DB inside Resdponse Stream
-                response = await generate_sql(user_query=body.query, history = body.conversation_history)
+                response = await generate_sql(user_query=body.query, history = body.conversation_history, db = db)
                 agent_data = await extract_query(response, db)
 
             async for chunk in stream_ai_response(

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/service/api_exceptions.dart';
 import 'package:swaransh_academy/features/auth/data/provider.dart';
 import 'package:swaransh_academy/features/auth/data/users_api_service.dart';
+import 'package:swaransh_academy/features/auth/presentation/widgets/adminCodePannel.dart';
 import 'package:swaransh_academy/features/role_select/presentation/selectedRoleprovider.dart';
 
 import '../../../Core/auth/auth_notifier.dart';
@@ -183,80 +184,57 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   Future<bool> _showAdminCodeDialog() async {
-    debugPrint("Password Screen Function  Called");
-    final codeCtrl = TextEditingController();
+    debugPrint("Password Screen Function Called");
     debugPrint("mounted before dialog = $mounted");
-    final result = await showDialog<bool>(
+
+    final code = await showDialog<String>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Admin Verification'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Enter the admin access code to continue.',
-              style: AppTypography.bodySmall,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            TextField(
-              controller: codeCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Admin Code',
-                prefixIcon: Icon(Icons.key_outlined),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx, true);
-              FocusScope.of(context).unfocus();
-            },
-            child: const Text('Verify'),
-          ),
-        ],
-      ),
+      builder: (ctx) => const AdminCodeDialog(),
     );
+
     debugPrint("dialog returned");
 
-    if (result != true) return false;
-    debugPrint("result: $result");
-    // Sending Verification API
+    if (code == null || code.isEmpty) {
+      return false;
+    }
+
+    debugPrint("Code received");
+
     try {
       final isVerified = await ref
           .read(usersApiServiceProvider)
-          .verifyAdmin(codeCtrl.text.trim());
+          .verifyAdmin(code);
+
       debugPrint("Verification: $isVerified");
 
       ref.read(adminVerificationProvider.notifier).state = isVerified;
-      if (!isVerified) {
-        if (mounted) setState(() => _busy = false);
-        debugPrint("Admin Verification Failed");
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(
-              content: Text("Incorrect Password", textAlign: TextAlign.center),
-              backgroundColor: Color(0xFFC1473B),
-            ),
-          );
-      }
-      return isVerified;
 
-      // use isVerified
+      if (!isVerified) {
+        if (mounted) {
+          setState(() => _busy = false);
+
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              const SnackBar(
+                content: Text(
+                  "Incorrect Password",
+                  textAlign: TextAlign.center,
+                ),
+                backgroundColor: Color(0xFFC1473B),
+              ),
+            );
+        }
+      }
+
+      return isVerified;
     } on ApiException catch (e) {
-      setState(() {
-        _busy = false;
-      });
-      _showError(e.message);
+      if (mounted) {
+        setState(() => _busy = false);
+        _showError(e.message);
+      }
+
       return false;
     }
   }

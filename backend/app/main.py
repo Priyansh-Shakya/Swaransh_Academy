@@ -6,6 +6,7 @@ from app.core.db import close_db, init_db
 from app.features.admission.router import router as admission_router
 from app.features.ai_assistant.router import router as ai_assistant_router
 from app.features.courses.router import router as course_router
+from app.features.extra_config.admin_image import router as admin_image_router
 from app.features.payment.router import router as payment_router
 from app.features.profile.router import router as profile_router
 from app.features.student.router import router as student_router
@@ -82,6 +83,7 @@ app.include_router(ai_assistant_router)
 app.include_router(payment_router)
 app.include_router(admission_router)
 app.include_router(profile_router)
+app.include_router(admin_image_router)
 
 print("FastAPI Initilized ...")
 

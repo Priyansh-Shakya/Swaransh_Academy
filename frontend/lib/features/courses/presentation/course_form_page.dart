@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/dio_client/dio_client_provider.dart';
 import 'package:swaransh_academy/Core/service/supabase_object_storage/object_storage.dart';
+import 'package:swaransh_academy/Core/theme/app_typography.dart';
 import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
 
 import '../../../Core/theme/app_colors.dart';
@@ -95,19 +96,29 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
             Center(
-              child: ImagePickerField(
-                controller: _photoController,
-                label: 'Course Photo',
-                size: 100,
-                shape: BoxShape.circle,
-                resolveDisplayUrl: (path) => Future.value(
-                  ref
-                      .read(supabaseStorageServiceProvider)
-                      .getPublicUrl(
-                        bucket: StorageBucket.coursePhotos,
-                        path: path,
-                      ),
-                ),
+              child: Column(
+                children: [
+                  ImagePickerField(
+                    controller: _photoController,
+                    label: 'Course Photo',
+                    size: 100,
+                    shape: BoxShape.circle,
+                    resolveDisplayUrl: (path) => Future.value(
+                      ref
+                          .read(supabaseStorageServiceProvider)
+                          .getPublicUrl(
+                            bucket: StorageBucket.coursePhotos,
+                            path: path,
+                          ),
+                    ),
+                  ),
+                  Text(
+                    "Recommended Image Size: Landscape images around 2.4:1-2.7:1 ratio.",
+                    style: AppTypography.label.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: AppSpacing.lg),

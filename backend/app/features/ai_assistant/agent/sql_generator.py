@@ -6,19 +6,24 @@ import httpx
 from app.features.ai_assistant.agent.query_validator import validate_sql
 from app.features.ai_assistant.config import HF_MODEL, HF_ROUTER_URL, HF_TOKEN
 from app.features.ai_assistant.model import ChatMessage
-from app.features.ai_assistant.sys_prompt import GENERATOR_PROMPT
+from app.features.extra_config.prompts import get_prompt
 
 
-def build_sql_messages(
+async def build_sql_messages(
     user_query: str,
     history: list[ChatMessage],
+    db,
 ) -> list[dict]:
+
+    generator_prompt = await get_prompt("generator_prompt", db)
+
     messages = [
         {
             "role": "system",
-            "content": GENERATOR_PROMPT,
+            "content": generator_prompt,
         }
     ]
+
 
     for message in history:
         messages.append(
@@ -37,10 +42,11 @@ def build_sql_messages(
 
     return messages
 
-async def generate_sql(user_query: str, history):
+async def generate_sql(user_query: str, history, db):
+    message = await build_sql_messages(user_query, history , db)
     payload = {
         "model": HF_MODEL,
-        "messages": build_sql_messages(user_query, history),
+        "messages": message,
         "response_format": {
         "type": "json_object"
     },
