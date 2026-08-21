@@ -12,6 +12,7 @@ class Intent(Enum):
 
 
 def intent_router(query: str, vec , clf) -> Intent:
+    return Intent.query
     X = vec.transform([query])
     pred = clf.predict(X)[0]
     return Intent.query if pred == "sql" else Intent.chat

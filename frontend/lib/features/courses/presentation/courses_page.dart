@@ -43,7 +43,20 @@ class CoursesPage extends ConsumerWidget {
         error: (err, _) => Center(child: Text('Could not load courses: $err')),
         data: (courses) {
           if (courses.isEmpty) {
-            return const Center(child: Text('No courses yet'));
+            return RefreshIndicator(
+              color: AppColors.gold,
+              backgroundColor: AppColors.ivory,
+              onRefresh: () => ref.read(coursesProvider.notifier).refreshList(),
+              child: ListView(
+                physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
+                ),
+                children: const [
+                  SizedBox(height: 300),
+                  Center(child: Text('No courses yet')),
+                ],
+              ),
+            );
           }
 
           if (isWide) {
@@ -77,18 +90,27 @@ class CoursesPage extends ConsumerWidget {
               MediaQuery.paddingOf(context).top;
           final cardImageHeight = (availableHeight / 2) * 0.55;
 
-          return ListView.separated(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            itemCount: courses.length,
-            separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
-            itemBuilder: (context, index) {
-              final course = courses[index];
-              return CourseCard(
-                course: course,
-                imageHeight: cardImageHeight.clamp(130, 220),
-                onTap: () => _openDetail(context, course.id),
-              );
-            },
+          return RefreshIndicator(
+            color: AppColors.gold,
+            backgroundColor: AppColors.ivory,
+            onRefresh: () => ref.read(coursesProvider.notifier).refreshList(),
+            child: ListView.separated(
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
+              ),
+              padding: const EdgeInsets.all(AppSpacing.md),
+              itemCount: courses.length,
+              separatorBuilder: (_, __) =>
+                  const SizedBox(height: AppSpacing.md),
+              itemBuilder: (context, index) {
+                final course = courses[index];
+                return CourseCard(
+                  course: course,
+                  imageHeight: cardImageHeight.clamp(130, 220),
+                  onTap: () => _openDetail(context, course.id),
+                );
+              },
+            ),
           );
         },
       ),

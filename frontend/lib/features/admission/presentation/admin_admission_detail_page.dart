@@ -18,7 +18,7 @@ class AdminAdmissionDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final deptColor = AppColors.departmentColor(form.department);
-    final isPending = form.status == 'Pending';
+    final isPending = form.status == 'pending';
 
     debugPrint("From admin admission page: ${form.gender}");
 
@@ -46,11 +46,11 @@ class AdminAdmissionDetailPage extends ConsumerWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Photo — big, fills available height, rounded rect not circle
+                  // Photo — big, fills available height, rounded rect
                   Expanded(
                     flex: 4,
                     child: AspectRatio(
-                      aspectRatio: 4 / 4, // portrait, like a resume photo
+                      aspectRatio: 1.0,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(16),
                         child: CircleAvatar(
@@ -101,12 +101,12 @@ class AdminAdmissionDetailPage extends ConsumerWidget {
                         _StatusChip(status: form.status),
                         const SizedBox(height: AppSpacing.md),
 
-                        // Fills the empty right-side space with compact facts
+                        // Quick metadata facts
                         Wrap(
                           spacing: AppSpacing.md,
                           runSpacing: 6,
                           children: [
-                            if (form.gender != null && form.gender!.isNotEmpty)
+                            if (form.gender?.isNotEmpty == true)
                               _MiniDetail(
                                 icon: Icons.person_outline,
                                 label: form.gender!,
@@ -114,19 +114,20 @@ class AdminAdmissionDetailPage extends ConsumerWidget {
                             if (form.dob != null)
                               _MiniDetail(
                                 icon: Icons.cake_outlined,
-                                label: _formatDate(form.dob),
+                                label: _formatDate(form.dob!),
                               ),
-                            if (form.batch != null && form.batch!.isNotEmpty)
+                            if (form.batch?.isNotEmpty == true)
                               _MiniDetail(
                                 icon: Icons.groups_2_outlined,
                                 label: form.batch!,
                               ),
-                            if (form.startTime != null && form.endTime != null)
+                            if (form.startTime?.isNotEmpty == true &&
+                                form.endTime?.isNotEmpty == true)
                               _MiniDetail(
                                 icon: Icons.schedule_outlined,
                                 label: _formatTimeRange(
-                                  form.startTime,
-                                  form.endTime,
+                                  form.startTime!,
+                                  form.endTime!,
                                 ),
                               ),
                           ],
@@ -143,7 +144,28 @@ class AdminAdmissionDetailPage extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ---- Course Details ----
+                  // ---- Personal Details ----
+                  _Section(
+                    title: 'Personal Details',
+                    children: [
+                      if (form.fatherName != null &&
+                          form.fatherName!.isNotEmpty)
+                        _InfoRow("Father's Name", form.fatherName!),
+                      if (form.dob != null)
+                        _InfoRow('Date of Birth', _formatDate(form.dob!)),
+                      if (form.gender != null && form.gender!.isNotEmpty)
+                        _InfoRow('Gender', form.gender!),
+                      if (form.religion != null && form.religion!.isNotEmpty)
+                        _InfoRow('Religion', form.religion!),
+                      if (form.caste != null && form.caste!.isNotEmpty)
+                        _InfoRow('Caste / Category', form.caste!),
+                      if (form.address != null && form.address!.isNotEmpty)
+                        _InfoRow('Address', form.address!),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // ---- Course & Enrollment ----
                   _Section(
                     title: 'Course & Enrollment',
                     children: [
@@ -157,11 +179,33 @@ class AdminAdmissionDetailPage extends ConsumerWidget {
                         form.admissionType.replaceAll('_', ' '),
                       ),
                       _InfoRow('Learning Mode', form.learningMode),
+                      if (form.batch != null && form.batch!.isNotEmpty)
+                        _InfoRow('Batch', form.batch!),
+                      if (form.startTime != null &&
+                          form.endTime != null &&
+                          form.startTime!.isNotEmpty &&
+                          form.endTime!.isNotEmpty)
+                        _InfoRow(
+                          'Timing',
+                          _formatTimeRange(form.startTime, form.endTime),
+                        ),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.lg),
 
-                  // ---- Contact ----
+                  // ---- Academic Background ----
+                  if (form.educationQualification != null &&
+                      form.educationQualification!.isNotEmpty) ...[
+                    _Section(
+                      title: 'Academic Background',
+                      children: [
+                        _InfoRow('Qualification', form.educationQualification!),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
+
+                  // ---- Contact Information ----
                   _Section(
                     title: 'Contact Information',
                     children: [
@@ -230,7 +274,7 @@ class AdminAdmissionDetailPage extends ConsumerWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(AppSpacing.md),
                       decoration: BoxDecoration(
-                        color: form.status == 'Approved'
+                        color: form.status.toLowerCase() == 'approved'
                             ? AppColors.active.withOpacity(0.08)
                             : AppColors.error.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(AppRadius.md),
@@ -238,7 +282,7 @@ class AdminAdmissionDetailPage extends ConsumerWidget {
                       child: Text(
                         'This application has been ${form.status.toLowerCase()}.',
                         style: AppTypography.bodyMedium.copyWith(
-                          color: form.status == 'Approved'
+                          color: form.status.toLowerCase() == 'approved'
                               ? AppColors.active
                               : AppColors.error,
                           fontWeight: FontWeight.w600,

@@ -1,7 +1,6 @@
 """Service for Student operations"""
 
 from datetime import date
-from typing import List, Optional, Union
 
 from app.core import enums
 from app.core.helper import convert_enums_to_values
@@ -17,34 +16,32 @@ async def create_student(student_data: dict, db) -> model.StudentFullRead:
     
     # Prepare values in order of the query parameters
     values = [
-        student_data.get('user_id'),
-        student_data.get('name'),
-        student_data.get('admission_type'),
-        student_data.get('learning_mode'),
-        student_data.get('department'),
-        student_data.get('batch'),
-        student_data.get('education_qualification'),
-        student_data.get('admission_status', 'Approved'),  # Default for created students
-        student_data.get('status', 'active'),
-        student_data.get('start_time'),
-        student_data.get('end_time'),
-        student_data.get('subject'),
-        student_data.get('courses'),
-        student_data.get('dob'),
-        student_data.get('father_name'),
-        student_data.get('gender'),
-        student_data.get('address'),
-        student_data.get('religion'),
-        student_data.get('caste'),
-        student_data.get('date_of_joining', date.today()),  # date_of_joining
-        student_data.get('contact'),
-        student_data.get('email'),
-        student_data.get('fees'),
-        student_data.get('fee_type'),
-        student_data.get('image_url'),
-        
-
-    ]
+    student_data.get('user_id'),
+    student_data.get('name'),
+    student_data.get('admission_type'),
+    student_data.get('learning_mode'),
+    student_data.get('department'),
+    student_data.get('batch'),
+    student_data.get('education_qualification'),
+    student_data.get('admission_status', 'approved'),
+    student_data.get('status', 'active'),
+    student_data.get('start_time'),
+    student_data.get('end_time'),
+    student_data.get('subject'),
+    student_data.get('courses'),
+    student_data.get('dob'),
+    student_data.get('father_name'),
+    student_data.get('gender'),
+    student_data.get('address'),
+    student_data.get('religion'),
+    student_data.get('caste'),
+    student_data.get('date_of_joining', date.today()),
+    student_data.get('contact'),
+    student_data.get('email'),
+    student_data.get('fees'),
+    student_data.get('fee_type'),
+    student_data.get('image_url'),
+]
     print(f"Create Student: {values}")
     row = await db.fetchrow(repository.create_student_query, *values)
     print(f"Row:{row}")
@@ -69,7 +66,7 @@ async def create_student(student_data: dict, db) -> model.StudentFullRead:
     return model.StudentFullRead(**dict(row))
 
 
-async def get_student(student_id: int, db) -> Union[model.StudentFull, model.StudentBasic]:
+async def get_student(student_id: int, db) -> model.StudentFull | model.StudentBasic:
     """Get student by ID"""
     row = await db.fetchrow(repository.get_student_by_id_query, student_id)
     if not row:
@@ -128,17 +125,17 @@ async def delete_student(student_id: int, db) -> None:
 
 async def get_students_list(
     db,
-    department: Optional[enums.Department] = None,
-    admission_type: Optional[enums.AdmissionType] = None,
-    learning_mode: Optional[enums.LearningMode] = None,
-    fee_type: Optional[enums.FeeType] = None,
-    batch: Optional[enums.Batch] = None,
-    fees_min: Optional[float] = None,
-    fees_max: Optional[float] = None,
-    joined_after: Optional[date] = None,
-    joined_before: Optional[date] = None,
-    search: Optional[str] = None,
-) -> List[Union[model.StudentFull, model.StudentBasic]]:
+    department: enums.Department | None = None,
+    admission_type: enums.AdmissionType | None = None,
+    learning_mode: enums.LearningMode | None = None,
+    fee_type: enums.FeeType | None = None,
+    batch: enums.Batch | None = None,
+    fees_min: float | None = None,
+    fees_max: float | None = None,
+    joined_after: date | None = None,
+    joined_before: date | None = None,
+    search: str | None = None,
+) -> list[model.StudentFull | model.StudentBasic]:
     """Get list of students with optional filters"""
     
     # Convert enums to values

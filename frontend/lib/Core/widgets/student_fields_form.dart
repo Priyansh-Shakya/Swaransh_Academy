@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:swaransh_academy/Core/enums/form_fields.dart';
 import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
 
 import '../theme/app_colors.dart';
@@ -90,12 +91,12 @@ class StudentFieldsForm extends StatelessWidget {
           _text(context, 'name', 'Full Name'),
           _text(context, 'fatherName', "Father's Name"),
           _pickerField(context, 'dob', 'Date of Birth', isDate: true),
-        dropdown(context, 'gender', 'Gender', kGenderOptions),
-        dropdown(
+          dropdown(context, 'gender', 'Gender', AppOptions.gender),
+          dropdown(
             context,
             'educationQualification',
             'Education Qualification',
-            kEducationOptions,
+            AppOptions.educationQualification,
           ),
           const SizedBox(height: AppSpacing.md),
         ],
@@ -121,21 +122,21 @@ class StudentFieldsForm extends StatelessWidget {
         ],
         if (visibleSections.contains(StudentFieldSection.course)) ...[
           const _SectionHeader('Course & Enrollment'),
-        dropdown(context, 'department', 'Department', kDepartmentOptions),
+          dropdown(context, 'department', 'Department', AppOptions.department),
           _text(context, 'subject', 'Subject'),
-        dropdown(
+          dropdown(
             context,
             'admissionType',
             'Admission Type',
-            kAdmissionTypeOptions,
+            AppOptions.admissionType,
           ),
-        dropdown(
+          dropdown(
             context,
             'learningMode',
             'Learning Mode',
-            kLearningModeOptions,
+            AppOptions.learningMode,
           ),
-        dropdown(context, 'batch', 'Batch', kBatchOptions),
+          dropdown(context, 'batch', 'Batch', AppOptions.batch),
           Row(
             children: [
               Expanded(
@@ -182,7 +183,7 @@ class StudentFieldsForm extends StatelessWidget {
             'Fees (\u20B9)',
             keyboardType: TextInputType.number,
           ),
-        dropdown(context, 'feeType', 'Fee Type', kFeeTypeOptions),
+          dropdown(context, 'feeType', 'Fee Type', AppOptions.feeType),
           _text(context, 'religion', 'Religion (optional)'),
           _text(context, 'caste', 'Caste (optional)'),
         ],
@@ -242,6 +243,8 @@ class StudentFieldsForm extends StatelessWidget {
         child: _ReadOnlyField(label: label, value: controller.text),
       );
     }
+
+    _dismissKeyboard();
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -324,12 +327,12 @@ class StudentFieldsForm extends StatelessWidget {
     BuildContext context,
     String key,
     String label,
-    List<String> options,
+    List<AppOption> options,
   ) {
     final rawValue = values[key];
     final value = (rawValue == null || rawValue.isEmpty) ? null : rawValue;
     final locked = _isLocked(key);
-
+    _dismissKeyboard();
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: locked
@@ -340,19 +343,16 @@ class StudentFieldsForm extends StatelessWidget {
           : DropdownButtonFormField<String>(
               initialValue: value,
               isExpanded: true,
-              
+
               style: const TextStyle(
                 color: AppColors.navy,
               ), // closed-state text
               decoration: InputDecoration(labelText: label),
               items: options
                   .map(
-                    (o) => DropdownMenuItem<String>(
-                      value: o,
-                      child: Text(
-                        o.replaceAll('_', ' '),
-                        style: const TextStyle(color: AppColors.navy),
-                      ),
+                    (option) => DropdownMenuItem<String>(
+                      value: option.value,
+                      child: Text(option.label),
                     ),
                   )
                   .toList(),
@@ -400,27 +400,32 @@ class _ReadOnlyField extends StatelessWidget {
   }
 }
 
+//? Used to Disable Keyboard from opening again and again
+void _dismissKeyboard() {
+  FocusManager.instance.primaryFocus?.unfocus();
+}
+
 // ---- Shared enum option lists (mirror OpenAPI contract enums) ----
-const kGenderOptions = ['male', 'female', 'non-binary'];
-const kEducationOptions = [
-  'Primary_School',
-  'High_School',
-  'Bachelors',
-  'Masters',
-];
-const kDepartmentOptions = [
-  'Music',
-  'Dance',
-  'Acting',
-  'Music_Video_Production',
-  'Other',
-];
-const kAdmissionTypeOptions = [
-  'Regular',
-  'Band_Training',
-  'Summer_Camp',
-  'Custom',
-];
-const kLearningModeOptions = ['Online', 'Offline', 'Hybrid'];
-const kBatchOptions = ['Morning', 'Evening'];
-const kFeeTypeOptions = ['Monthly', 'Quarterly', 'Half_Yearly', 'Yearly'];
+// const kGenderOptions = ['male', 'female', 'non-binary'];
+// const kEducationOptions = [
+//   'Primary_School',
+//   'High_School',
+//   'Bachelors',
+//   'Masters',
+// ];
+// const kDepartmentOptions = [
+//   'Music',
+//   'Dance',
+//   'Acting',
+//   'Music_Video_Production',
+//   'Other',
+// ];
+// const kAdmissionTypeOptions = [
+//   'Regular',
+//   'Band_Training',
+//   'Summer_Camp',
+//   'Custom',
+// ];
+// const kLearningModeOptions = ['Online', 'Offline', 'Hybrid'];
+// const kBatchOptions = ['Morning', 'Evening'];
+// const kFeeTypeOptions = ['Monthly', 'Quarterly', 'Half_Yearly', 'Yearly'];

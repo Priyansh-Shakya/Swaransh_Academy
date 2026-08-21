@@ -1,100 +1,102 @@
 from enum import Enum
 
 
-class Tag(Enum):
-    Instrumental = 'Instrumental'
-    Vocal = 'Vocal'
-
-class AdmissionType(Enum):
-    Regular = 'Regular'
-    Band_Training = 'Band_Training'
-    Summer_Camp = 'Summer_Camp'
-    Custom = 'Custom'
+class Tag(str, Enum):
+    instrumental = "instrumental"
+    vocal = "vocal"
 
 
-class LearningMode(Enum):
-    Online = 'Online'
-    Offline = 'Offline'
-    Hybrid = 'Hybrid'
+class AdmissionType(str, Enum):
+    regular = "regular"
+    band_training = "band_training"
+    summer_camp = "summer_camp"
+    custom = "custom"
 
 
-class Department(Enum):
-    Music = 'Music'
-    Dance = 'Dance'
-    Acting = 'Acting'
-    Music_Video_Production = 'Music_Video_Production'
-    Other = 'Other'
+class LearningMode(str, Enum):
+    online = "online"
+    offline = "offline"
+    hybrid = "hybrid"
 
 
-class Batch(Enum):
-    Morning = 'Morning'
-    Evening = 'Evening'
+class Department(str, Enum):
+    music = "music"
+    dance = "dance"
+    acting = "acting"
+    music_video_production = "music_video_production"
+    other = "other"
 
 
-class EducationQualification(Enum):
-    Primary_School = 'Primary_School'
-    High_School = 'High_School'
-    Bachelors = 'Bachelors'
-    Masters = 'Masters'
+class Batch(str, Enum):
+    morning = "morning"
+    evening = "evening"
 
 
-class FeeType(Enum):
-    Monthly = 'Monthly'
-    Quarterly = 'Quarterly'
-    Half_Yearly = 'Half_Yearly'
-    Yearly = 'Yearly'
+class EducationQualification(str, Enum):
+    primary_school = "primary_school"
+    high_school = "high_school"
+    bachelors = "bachelors"
+    masters = "masters"
 
 
-class AdmissionStatus(Enum):
-    Pending = 'Pending'
-    Approved = 'Approved'
-    Declined = 'Declined'
+class FeeType(str, Enum):
+    monthly = "monthly"
+    quarterly = "quarterly"
+    half_yearly = "half_yearly"
+    yearly = "yearly"
 
 
-class StudentStatus(Enum):
-    pending_payment = 'pending_payment'
-    active = 'active'
-    inactive = 'inactive'
+class AdmissionStatus(str, Enum):
+    pending = "pending"
+    approved = "approved"
+    declined = "declined"
 
 
-class PaymentType(Enum):
-    admission = 'admission'
-    monthly = 'monthly'
-    quarterly = 'quarterly'
-    half_yearly = 'half_yearly'
-    yearly = 'yearly'
+class StudentStatus(str, Enum):
+    pending_payment = "pending_payment"
+    active = "active"
+    inactive = "inactive"
+
+
+class PaymentType(str, Enum):
+    admission = "admission"
+    monthly = "monthly"
+    quarterly = "quarterly"
+    half_yearly = "half_yearly"
+    yearly = "yearly"
+
 
 class PaymentCategory(str, Enum):
     fee = "fee"
     admission = "admission"
     other = "other"
 
-class PaymentMode(Enum):
-    Cash = 'Cash'
-    UPI = 'UPI'
-    Card = 'Card'
-    Bank_Transfer = 'Bank_Transfer'
-    Other = 'Other'
+
+class PaymentMode(str, Enum):
+    cash = "cash"
+    upi = "upi"
+    card = "card"
+    bank_transfer = "bank_transfer"
+    other = "other"
 
 
-class PaymentStatus(Enum):
-    active = 'active'
-    superseded = 'superseded'
+class PaymentStatus(str, Enum):
+    active = "active"
+    superseded = "superseded"
 
 
-class UserRole(Enum):
-    guest = 'guest'
-    student = 'student'
-    admin = 'admin'
+class UserRole(str, Enum):
+    guest = "guest"
+    student = "student"
+    admin = "admin"
 
 
-class StudentGender(Enum):
-    male = 'male'
-    female = 'female'
-    nonbinary = 'non-binary'
+class StudentGender(str, Enum):
+    male = "male"
+    female = "female"
+    nonbinary = "non_binary"
 
 
-class Role(Enum):
-    user = 'user'
-    assistant = 'assistant'
-
+class Role(str, Enum):
+    user = "user"
+    assistant = "assistant"

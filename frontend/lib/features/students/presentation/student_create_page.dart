@@ -59,14 +59,14 @@ class _StudentCreatePageState extends ConsumerState<StudentCreatePage> {
   };
 
   final _dropdowns = <String, String?>{
-    'gender': null,
-    'educationQualification': null,
-    'department': 'Music',
-    'admissionType': 'Regular',
-    'learningMode': 'Offline',
-    'batch': 'Morning',
-    'feeType': 'Monthly',
-  };
+  'gender': null,
+  'education_qualification': null,
+  'department': 'music',
+  'admission_type': 'regular',
+  'learning_mode': 'offline',
+  'batch': 'morning',
+  'fee_type': 'monthly',
+};
 
   //* Image field — created once, here, not in build().
   late final ImagePickerController _photoController;

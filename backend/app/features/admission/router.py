@@ -4,10 +4,8 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
-
 from app.core.auth.auth import get_current_user
-from app.core.db import get_db
+from app.core.db import get_db, get_supabase
 from app.core.enums import AdmissionStatus
 from app.features.admission import service
 from app.features.admission.model import AdmissionForm, AdmissionFormCreate
@@ -25,8 +23,8 @@ async def post_admission_form(body: AdmissionFormCreate ,user=Depends(get_curren
     return await service.create_admission_form(body,user, db)
 
 
-@router.get('/admissionForm/me', response_model=List[AdmissionForm], tags=['Admission'])
-async def get_admission_form_me(user = Depends(get_current_user), db=Depends(get_db)) -> List[AdmissionForm]:
+@router.get('/admissionForm/me', response_model=list[AdmissionForm], tags=['Admission'])
+async def get_admission_form_me(user = Depends(get_current_user), db=Depends(get_db)) -> list[AdmissionForm]:
     """
     My Admission Forms 
     """
@@ -36,11 +34,11 @@ async def get_admission_form_me(user = Depends(get_current_user), db=Depends(get
 @router.post(
     '/admissionForm/{id}/approved', response_model=StudentFull, tags=['Admission']
 )
-async def post_admission_form_id_approved(id: int, db=Depends(get_db)) -> StudentFull:
+async def post_admission_form_id_approved(id: int, db=Depends(get_db), supabase_client = Depends(get_supabase)) -> StudentFull:  # noqa: B008
     """
     Approve Form
     """
-    return await service.approve_form(id, db)
+    return await service.approve_form(id, db, supabase_client)
 
 
 @router.post('/admissionForm/{id}/declined', response_model=None, tags=['Admission'])
@@ -52,12 +50,12 @@ async def post_admission_form_id_declined(id: int, db=Depends(get_db)) -> None:
 
 
 @router.get(
-    '/admissionFormList', response_model=List[AdmissionForm], tags=['Admission']
+    '/admissionFormList', response_model=list[AdmissionForm], tags=['Admission']
 )
 async def get_admission_form_list(
-    status: Optional[AdmissionStatus] = None,
+    status: AdmissionStatus | None = None,
     db=Depends(get_db)
-) -> List[AdmissionForm]:
+) -> list[AdmissionForm]:
     """
     Get Submitted Forms (Admin)
     """

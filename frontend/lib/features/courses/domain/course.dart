@@ -20,9 +20,12 @@ class Course {
   final double fees;
   final String mode; // Online | Offline | Hybrid
   final String tag; // Instrumental | Vocal
-  final String mapsToDepartment; // Department enum value, used for admission pre-fill
-  final String mapsToSubject; // exact subject value, used for admission pre-fill
-  final String? imageUrl; // Supabase Storage public URL, nullable until admin uploads one
+  final String
+  mapsToDepartment; // Department enum value, used for admission pre-fill
+  final String
+  mapsToSubject; // exact subject value, used for admission pre-fill
+  final String?
+  imageUrl; // Supabase Storage public URL, nullable until admin uploads one
 
   Course copyWith({
     String? courseName,
@@ -48,26 +51,26 @@ class Course {
   }
 
   factory Course.fromJson(Map<String, dynamic> json) => Course(
-        id: json['id'] as int,
-        courseName: json['course_name'] as String,
-        duration: json['duration'] as String,
-        fees: (json['fees'] as num).toDouble(),
-        mode: json['mode'] as String,
-        tag: json['tag'] as String,
-        mapsToDepartment: json['maps_to_department'] as String,
-        mapsToSubject: json['maps_to_subject'] as String,
-        imageUrl: json['image_url'] as String?,
-      );
+    id: json['id'] as int,
+    courseName: json['course_name'] as String,
+    duration: json['duration'] as String,
+    fees: (json['fees'] as num).toDouble(),
+    mode: json['mode'] as String,
+    tag: json['tag'] as String,
+    mapsToDepartment: json['maps_to_department'] as String,
+    mapsToSubject: json['maps_to_subject'] as String,
+    imageUrl: json['image_url'] as String?,
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'course_name': courseName,
-        'duration': duration,
-        'fees': fees,
-        'mode': mode,
-        'tag': tag,
-        'maps_to_department': mapsToDepartment,
-        'maps_to_subject': mapsToSubject,
-        'image_url': imageUrl,
-      };
+    'id': id,
+    'course_name': courseName,
+    'duration': duration,
+    'fees': fees,
+    'mode': mode,
+    'tag': tag,
+    'maps_to_department': mapsToDepartment,
+    'maps_to_subject': mapsToSubject,
+    'image_url': imageUrl,
+  };
 }

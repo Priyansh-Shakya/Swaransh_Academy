@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -12,8 +13,17 @@ from app.features.profile.router import router as profile_router
 from app.features.student.router import router as student_router
 from app.features.users.router import router as user_router
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+
+from supabase import create_client
+
+
+def init_supabase(app: FastAPI):
+    app.state.supabase = create_client(
+        os.getenv("SUPABASE_URL"),
+        os.getenv("SUPABASE_SERVICE_ROLE_KEY"),
+    )
 
 
 def load_initial_configs(app: FastAPI):
@@ -55,6 +65,7 @@ async def lifespan(app: FastAPI):
 
     print(">>> Initializing DB...")
     await init_db()
+    init_supabase(app)
 
     yield
 
@@ -67,6 +78,14 @@ app = FastAPI(
     
 )
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    if request.method in ["POST", "PUT", "PATCH"]:
+        body = await request.body()
+        print(f"\n[INCOMING {request.method}] {request.url.path}: {body.decode('utf-8')}")
+    
+    response = await call_next(request)
+    return response
 #? Allow CORS for dev only
 app.add_middleware(
     CORSMiddleware,

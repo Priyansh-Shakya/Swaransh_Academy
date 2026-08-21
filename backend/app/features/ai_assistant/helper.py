@@ -24,13 +24,19 @@ async def _build_messages(
     history: list[ChatMessage],
     role: str,
     name: str,
-    agent_data:str,
+    agent_data: str | list | dict | None = None,
+    executed_sql:str | None = None
 ) -> list[dict]:
     print("Name from build message function: ", name)
     prompt = SYSTEM_PROMPT 
     
     if agent_data is not None:
-        prompt +=f"Admin Name: {name}" + DB_DATA_USAGE + "\n[DATA FETCH RESULT]: " + json.dumps(agent_data, indent=2, default=str)
+        prompt += f"\nAdmin Name: {name}\n" + DB_DATA_USAGE
+        
+        if executed_sql:
+            prompt += f"\n[EXECUTED SQL QUERY]:\n```sql\n{executed_sql}\n```"
+            
+        prompt += "\n[DATA FETCH RESULT]:\n" + json.dumps(agent_data, indent=2, default=str)
         print("Agent Prompt:\n", prompt)
     else:
         if role in ("guest", "student"):

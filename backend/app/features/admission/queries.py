@@ -38,12 +38,12 @@ SELECT * FROM admissions WHERE user_id = $1;
 
 # Update status to approved
 approved_admission_form = """
-UPDATE admissions SET status = 'Approved' WHERE id = $1 RETURNING *;
+UPDATE admissions SET status = 'approved' WHERE id = $1 RETURNING *;
 """
 
 # update status to declined
 declined_admission_form = """
-UPDATE admissions SET status = 'Declined' WHERE id = $1 RETURNING *;
+UPDATE admissions SET status = 'declined' WHERE id = $1 RETURNING *;
 """
 
 # get list of all admission forms  (ADMIN)

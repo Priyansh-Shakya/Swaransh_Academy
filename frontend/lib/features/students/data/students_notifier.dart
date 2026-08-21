@@ -22,6 +22,12 @@ class StudentsNotifier extends AsyncNotifier<List<Student>> {
     return students;
   }
 
+  Future<void> refreshList() async {
+    state = AsyncValue.loading();
+    final data = await ref.read(studentsApiServiceProvider).getAllStudents();
+    state = AsyncValue.data(data);
+  }
+
   Future<void> addStudent(CreateStudent draft) async {
     final previous = state;
     final current = state.valueOrNull ?? [];

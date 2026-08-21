@@ -3,6 +3,7 @@
 import json
 
 import httpx
+from app.features.ai_assistant.agent.normalize_query import normalize_write_query
 from app.features.ai_assistant.agent.query_validator import validate_sql
 from app.features.ai_assistant.config import HF_MODEL, HF_ROUTER_URL, HF_TOKEN
 from app.features.ai_assistant.model import ChatMessage
@@ -76,21 +77,47 @@ async def generate_sql(user_query: str, history, db):
 
 
 
+async def extract_query(sql_input: str | dict, db) -> tuple[any, str | None]:
+    """
+    Returns a tuple of (data_or_message, executed_sql_query)
+    """
+    sql = json.loads(sql_input) if isinstance(sql_input, str) else sql_input
+    query_type = sql.get("type")
 
-async def extract_query(sql: dict, db):
-    sql = json.loads(sql)
-    if sql["type"] == "sql":
-        query = sql["query"]
-        if not validate_sql(query):
-            return "SQL Query Rejected: query failed safety Moderation check."
+    if query_type == "sql":
+        raw_query = sql.get("query", "")
+        if not validate_sql(raw_query):
+            return "SQL Query Rejected: query failed safety Moderation check.", raw_query
+
+        # normalize: strips any LLM-added RETURNING, re-appends a safe one for writes
+        query, op, table = normalize_write_query(raw_query)
+
         result = await db.fetch(query)
-        return [dict(row) for row in result] if result else "No data found"
+        rows = [dict(row) for row in result] if result else []
 
-    elif sql["type"] == "reject":
-        return "Potentially Harmful Request, Cannot fulfill request."
+        if op:  # INSERT / UPDATE / DELETE
+            data = {
+                "operation": op,
+                "table": table,
+                "affected_rows": len(rows),
+                "records": rows,          # already column-limited by normalize step
+            }
+            if not rows:
+                # explicit zero-match signal so stream AI doesn't assume success
+                data["note"] = "No matching rows were affected by this operation."
+        else:  # SELECT
+            data = rows if rows else "No data found"
 
-    elif sql["type"] == "chat":
-            return "This is a Chat query , No SQL Generated."
+        return data, query   # return the *executed* query, not the raw one, for logging/debugging
 
-    elif sql["type"] == "clarification":
-        return f"Need Clarification on request, Did not execute SQL and not fetched any data.\n{sql['message']}"
+    elif query_type == "reject":
+        return "Potentially Harmful Request, Cannot fulfill request.", None
+
+    elif query_type == "chat":
+        return "This is a Chat query , No SQL Generated.", None
+
+    elif query_type == "clarification":
+        msg = sql.get('message', '')
+        return f"Need Clarification on request, Did not execute SQL and not fetched any data.\n{msg}", None
+
+    return "Unknown response type.", None

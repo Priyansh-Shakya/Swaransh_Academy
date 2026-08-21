@@ -141,14 +141,23 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
                     ),
                   );
                 }
-                return ListView.separated(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  itemCount: filtered.length,
-                  separatorBuilder: (_, __) =>
-                      const SizedBox(height: AppSpacing.sm),
-                  itemBuilder: (context, i) => StudentListTile(
-                    student: filtered[i],
-                    onTap: () => _onTap(context, filtered[i], role),
+                return RefreshIndicator(
+                  color: AppColors.gold,
+                  backgroundColor: AppColors.ivory,
+                  onRefresh: () =>
+                      ref.read(studentsProvider.notifier).refreshList(),
+                  child: ListView.separated(
+                    physics: const BouncingScrollPhysics(
+                      parent: AlwaysScrollableScrollPhysics(),
+                    ),
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: AppSpacing.sm),
+                    itemBuilder: (context, i) => StudentListTile(
+                      student: filtered[i],
+                      onTap: () => _onTap(context, filtered[i], role),
+                    ),
                   ),
                 );
               },

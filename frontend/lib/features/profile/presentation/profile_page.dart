@@ -50,14 +50,24 @@ class ProfilePage extends ConsumerWidget {
 
         if (result.isStudent) {
           debugPrint("Siblings Found: ${result.hasSiblings}");
-          return _ProfileBody(
-            student: result.students!.first,
-            hasSiblings: result.hasSiblings,
+          return RefreshIndicator(
+            color: AppColors.gold,
+            backgroundColor: AppColors.ivory,
+            onRefresh: () => ref.read(profileProvider.notifier).refreshList(),
+            child: _ProfileBody(
+              student: result.students!.first,
+              hasSiblings: result.hasSiblings,
+            ),
           );
         }
 
         debugPrint("Build basic Profile page");
-        return _BasicProfileBody(user: result.userProfile!);
+        return RefreshIndicator(
+          color: AppColors.gold,
+          backgroundColor: AppColors.ivory,
+          onRefresh: () => ref.read(profileProvider.notifier).refreshList(),
+          child: _BasicProfileBody(user: result.userProfile!),
+        );
       },
     );
   }

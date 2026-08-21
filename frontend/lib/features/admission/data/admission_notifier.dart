@@ -16,6 +16,7 @@ class AdmissionFormNotifier extends Notifier<AdmissionFormState> {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     return List.generate(16, (_) => chars[rand.nextInt(chars.length)]).join();
   }
+
   void update(AdmissionFormState Function(AdmissionFormState) updater) {
     state = updater(state);
   }
@@ -67,7 +68,7 @@ class AdmissionFormsListNotifier
     final current = state.valueOrNull ?? [];
     state = AsyncValue.data([
       for (final f in current)
-        if (f.id == formId) f.copyWith(status: 'Approved') else f,
+        if (f.id == formId) f.copyWith(status: 'approved') else f,
     ]);
     try {
       await ref.read(admissionApiServiceProvider).approveForm(formId);
@@ -81,7 +82,7 @@ class AdmissionFormsListNotifier
     final current = state.valueOrNull ?? [];
     state = AsyncValue.data([
       for (final f in current)
-        if (f.id == formId) f.copyWith(status: 'Declined') else f,
+        if (f.id == formId) f.copyWith(status: 'declined') else f,
     ]);
     try {
       await ref.read(admissionApiServiceProvider).declineForm(formId);
@@ -98,9 +99,6 @@ final admissionFormsListProvider =
       List<AdmissionFormRecord>
     >(AdmissionFormsListNotifier.new);
 
-
-
-
 // ---- Student: own submitted forms ----
 
 class MyAdmissionFormsNotifier
@@ -113,11 +111,12 @@ class MyAdmissionFormsNotifier
   Future<void> refresh() async {
     state = const AsyncValue.loading();
     state = AsyncValue.data(
-        await ref.read(admissionApiServiceProvider).getUserAdmissionForms());
+      await ref.read(admissionApiServiceProvider).getUserAdmissionForms(),
+    );
   }
 }
 
 final myAdmissionFormsProvider =
     AsyncNotifierProvider<MyAdmissionFormsNotifier, List<AdmissionFormRecord>>(
-  MyAdmissionFormsNotifier.new,
-);
+      MyAdmissionFormsNotifier.new,
+    );

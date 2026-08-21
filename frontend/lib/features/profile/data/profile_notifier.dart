@@ -46,6 +46,17 @@ class ProfileNotifier extends AsyncNotifier<ProfileResult> {
     return ProfileResult.user(raw as UserProfile);
   }
 
+  Future<void> refreshList() async {
+    state = const AsyncValue.loading();
+
+    try {
+      final data = await _fetchProfile();
+      state = AsyncValue.data(data);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
   Future<void> selectStudent(int studentId, List<Student> candidates) async {
     // TODO: await LocalStorage.setSelectedStudentId(studentId);
     final selected = candidates.firstWhere((s) => s.id == studentId);

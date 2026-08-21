@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import List, Optional
 
 from app.core.db import get_db
 from app.core.enums import AdmissionType, Batch, Department, FeeType, LearningMode
@@ -44,6 +43,7 @@ async def put_student_id(id: int, body: StudentUpdate = ..., db=Depends(get_db))
     """
     Update Student
     """
+    print("STUDENT UPDATE MODEL RECIVED IN ROUTER:\n", body)
     return await service.update_student(id, body, db)
 
 
@@ -57,22 +57,22 @@ async def delete_student_id(id: int, db=Depends(get_db)) -> None:
 
 @router.get(
     '/studentList',
-    response_model=List[StudentFullRead],
+    response_model=list[StudentFullRead],
     tags=['Students'],
 )
 async def get_student_list(
-    department: Optional[Department] = None,
-    admission_type: Optional[AdmissionType] = None,
-    learning_mode: Optional[LearningMode] = None,
-    fee_type: Optional[FeeType] = None,
-    batch: Optional[Batch] = None,
-    fees_min: Optional[float] = None,
-    fees_max: Optional[float] = None,
-    joined_after: Optional[date] = None,
-    joined_before: Optional[date] = None,
-    search: Optional[str] = None,
+    department: Department | None = None,
+    admission_type: AdmissionType | None = None,
+    learning_mode: LearningMode | None = None,
+    fee_type: FeeType | None = None,
+    batch: Batch | None = None,
+    fees_min: float | None = None,
+    fees_max: float | None = None,
+    joined_after: date | None = None,
+    joined_before: date | None = None,
+    search: str | None = None,
     db=Depends(get_db),
-) -> List[StudentFullRead]:
+) -> list[StudentFullRead]:
     """
     Get Students List
     """

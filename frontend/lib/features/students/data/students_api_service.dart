@@ -69,11 +69,13 @@ class StudentsApiService {
 
   /// Update an existing student.
   Future<Student> updateStudent(Student student) {
+    debugPrint("FROM SERVICE UPDATE FUNCTION:\n${student.toJson()}");
     return _apiService.update(
       endpoint: '/student',
       id: student.id.toString(),
       data: student.toJson(),
     );
+    
   }
 
   /// Delete a student.

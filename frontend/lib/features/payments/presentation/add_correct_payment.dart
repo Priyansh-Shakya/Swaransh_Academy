@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:swaransh_academy/Core/enums/form_fields.dart';
 import 'package:swaransh_academy/features/payments/data/payments_notifier.dart';
 
 import '../../../Core/theme/app_colors.dart';
@@ -32,15 +33,16 @@ class AddPaymentSheet extends ConsumerStatefulWidget {
   ConsumerState<AddPaymentSheet> createState() => _AddPaymentSheetState();
 }
 
-const kPaymentTypes = ['monthly', 'quarterly', 'half_yearly', 'yearly'];
-const kPaymentModes = ['UPI', 'Cash', 'Card', 'Bank_Transfer'];
-const kPaymentCategories = ['fee', 'admission', 'other'];
-
 class _AddPaymentSheetState extends ConsumerState<AddPaymentSheet> {
-  late String _type = widget.existing?.paymentType ?? kPaymentTypes.first;
-  late String _mode = widget.existing?.mode ?? kPaymentModes.first;
+  late String _type =
+      widget.existing?.paymentType ?? AppOptions.feeType.first.value;
+
+  late String _mode =
+      widget.existing?.mode ?? AppOptions.paymentMode.first.value;
+
   late String _category =
-      widget.existing?.payment_category ?? kPaymentCategories.first;
+      widget.existing?.payment_category ??
+      AppOptions.paymentCategory.first.value;
 
   final _amountCtrl = TextEditingController();
   final _txnCtrl = TextEditingController();
@@ -167,29 +169,37 @@ class _AddPaymentSheetState extends ConsumerState<AddPaymentSheet> {
             DropdownButtonFormField<String>(
               initialValue: _type,
               decoration: const InputDecoration(labelText: 'Payment Type'),
-              items: kPaymentTypes
+              items: AppOptions.feeType
                   .map(
-                    (t) => DropdownMenuItem(
-                      value: t,
-                      child: Text(t.replaceAll('_', ' ').toUpperCase()),
+                    (option) => DropdownMenuItem<String>(
+                      value: option.value,
+                      child: Text(option.label),
                     ),
                   )
                   .toList(),
-              onChanged: (v) => setState(() => _type = v!),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _type = value);
+                }
+              },
             ),
             const SizedBox(height: AppSpacing.md),
             DropdownButtonFormField<String>(
               initialValue: _category,
               decoration: const InputDecoration(labelText: 'Payment Category'),
-              items: kPaymentCategories
+              items: AppOptions.paymentCategory
                   .map(
-                    (t) => DropdownMenuItem(
-                      value: t,
-                      child: Text(t.replaceAll('_', ' ').toUpperCase()),
+                    (option) => DropdownMenuItem<String>(
+                      value: option.value,
+                      child: Text(option.label),
                     ),
                   )
                   .toList(),
-              onChanged: (v) => setState(() => _category = v!),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _category = value);
+                }
+              },
             ),
             const SizedBox(height: AppSpacing.md),
             // Amount
@@ -207,15 +217,19 @@ class _AddPaymentSheetState extends ConsumerState<AddPaymentSheet> {
             DropdownButtonFormField<String>(
               initialValue: _mode,
               decoration: const InputDecoration(labelText: 'Payment Mode'),
-              items: kPaymentModes
+              items: AppOptions.paymentMode
                   .map(
-                    (m) => DropdownMenuItem(
-                      value: m,
-                      child: Text(m.replaceAll('_', ' ')),
+                    (option) => DropdownMenuItem<String>(
+                      value: option.value,
+                      child: Text(option.label),
                     ),
                   )
                   .toList(),
-              onChanged: (v) => setState(() => _mode = v!),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _mode = value);
+                }
+              },
             ),
             const SizedBox(height: AppSpacing.md),
 

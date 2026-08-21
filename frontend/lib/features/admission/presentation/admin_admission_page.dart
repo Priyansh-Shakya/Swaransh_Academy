@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:swaransh_academy/Core/enums/form_fields.dart';
 import 'package:swaransh_academy/Core/service/supabase_object_storage/helper.dart';
 import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
 import 'package:swaransh_academy/features/admission/data/admission_notifier.dart';
@@ -18,8 +19,8 @@ class AdminAdmissionPage extends ConsumerStatefulWidget {
 }
 
 class _AdminAdmissionPageState extends ConsumerState<AdminAdmissionPage> {
-  String _filter =
-      'Pending'; // default to pending - what admin cares about most
+  // Use lowercase values matching your AppOption values / Backend schema
+  String _filter = 'pending';
 
   @override
   Widget build(BuildContext context) {
@@ -38,13 +39,15 @@ class _AdminAdmissionPageState extends ConsumerState<AdminAdmissionPage> {
               0,
             ),
             child: Row(
-              children: ['Pending', 'Approved', 'Declined'].map((status) {
-                final selected = _filter == status;
-                final color = _statusColor(status);
+              children: AppOptions.admissionStatus.map((option) {
+                // Compare using value ('pending'), display using label ('Pending')
+                final selected = _filter == option.value;
+                final color = _statusColor(option.value);
+
                 return Padding(
                   padding: const EdgeInsets.only(right: AppSpacing.sm),
                   child: FilterChip(
-                    label: Text(status),
+                    label: Text(option.label),
                     selected: selected,
                     selectedColor: color.withOpacity(0.15),
                     labelStyle: AppTypography.bodySmall.copyWith(
@@ -52,7 +55,7 @@ class _AdminAdmissionPageState extends ConsumerState<AdminAdmissionPage> {
                       fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                     ),
                     showCheckmark: false,
-                    onSelected: (_) => setState(() => _filter = status),
+                    onSelected: (_) => setState(() => _filter = option.value),
                   ),
                 );
               }).toList(),
@@ -66,17 +69,29 @@ class _AdminAdmissionPageState extends ConsumerState<AdminAdmissionPage> {
               ),
               error: (e, _) => Center(child: Text('Could not load forms: $e')),
               data: (forms) {
+                // Ensure case-insensitive or string value matching
                 final filtered = forms
-                    .where((f) => f.status == _filter)
+                    .where(
+                      (f) => f.status.toLowerCase() == _filter.toLowerCase(),
+                    )
                     .toList();
+
                 if (filtered.isEmpty) {
+                  final label = AppOptions.admissionStatus
+                      .firstWhere(
+                        (o) => o.value == _filter,
+                        orElse: () => AppOption(value: _filter, label: _filter),
+                      )
+                      .label;
+
                   return Center(
                     child: Text(
-                      'No $_filter applications',
+                      'No $label applications',
                       style: AppTypography.bodyMedium,
                     ),
                   );
                 }
+
                 return ListView.separated(
                   padding: const EdgeInsets.all(AppSpacing.md),
                   itemCount: filtered.length,
@@ -84,10 +99,11 @@ class _AdminAdmissionPageState extends ConsumerState<AdminAdmissionPage> {
                       const SizedBox(height: AppSpacing.sm),
                   itemBuilder: (context, i) => _AdmissionFormCard(
                     form: filtered[i],
-                    onApprove: _filter == 'Pending'
+                    // Check against lowercase value consistently
+                    onApprove: _filter == 'pending'
                         ? () => _approve(filtered[i])
                         : null,
-                    onDecline: _filter == 'Pending'
+                    onDecline: _filter == 'pending'
                         ? () => _decline(filtered[i])
                         : null,
                   ),
@@ -169,9 +185,9 @@ class _AdminAdmissionPageState extends ConsumerState<AdminAdmissionPage> {
         false;
   }
 
-  Color _statusColor(String status) => switch (status) {
-    'Approved' => AppColors.active,
-    'Declined' => AppColors.error,
+  Color _statusColor(String status) => switch (status.toLowerCase()) {
+    'approved' => AppColors.active,
+    'declined' => AppColors.error,
     _ => AppColors.pendingPayment,
   };
 }
@@ -303,8 +319,8 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = switch (status) {
-      'Approved' => AppColors.active,
-      'Declined' => AppColors.error,
+      'approved' => AppColors.active,
+      'declined' => AppColors.error,
       _ => AppColors.pendingPayment,
     };
     return Container(

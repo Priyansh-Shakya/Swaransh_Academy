@@ -13,6 +13,10 @@ import '../../../../../Core/theme/app_spacing.dart';
 import '../../../../../Core/theme/app_typography.dart';
 import '../../../../../Core/widgets/student_fields_form.dart';
 
+// final editingStudentStatusProvider = StateProvider<String>(
+//   (ref) => AppOptions.admissionStatus[0].value,
+// );
+
 class StudentDetailPage extends ConsumerStatefulWidget {
   const StudentDetailPage({super.key, required this.studentId});
   final int studentId;
@@ -24,6 +28,8 @@ class StudentDetailPage extends ConsumerStatefulWidget {
 class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
   bool _editing = false;
   bool _saving = false;
+
+  String? newStatus;
 
   // Controllers for every free-text field in StudentFieldsForm
   final _controllers = <String, TextEditingController>{};
@@ -77,6 +83,7 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
     final updated = original.copyWith(
       name: _controllers['name']!.text.trim(),
       fatherName: _controllers['fatherName']!.text.trim(),
+      status: newStatus ?? original.status,
       dob: _controllers['dob']!.text.trim(),
       contact: _controllers['contact']!.text.trim(),
       email: _controllers['email']!.text.trim(),
@@ -105,9 +112,17 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
   }
 
   Future<void> _save(Student original) async {
-    if (original.userId == null) return;
+    debugPrint("SAVE STUDENT CALLED");
+    debugPrint(
+      "Student userID from Save function of Student detail page:${original.userId}",
+    );
+    debugPrint(
+      "Student ID from Save function of Student detail page:${original.id}",
+    );
+    //! Student which doesnt have userId can be updated as well.
+    // if (original.userId == null) return;
     setState(() => _saving = true);
-
+    debugPrint('Controllers: ${_controllers.keys.toList()}');
     try {
       final oldPath = original.imageUrl;
 
@@ -115,11 +130,13 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
         ref: ref,
         bucket: StorageBucket.studentPhotos,
         pathBuilder: () =>
-            StoragePath.studentPhoto(original.userId!, 'photo.jpg'),
+            StoragePath.studentPhoto(original.id.toString(), 'photo.jpg'),
       );
       // newPath: unchanged path if nothing picked, new path if changed,
       // null if removed, or null if _photoController itself was null.
       final newImageUrl = newPath ?? oldPath;
+
+      debugPrint('INSIDE TRY Controllers: ${_controllers.keys.toList()}');
       await ref
           .read(studentsProvider.notifier)
           .updateStudent(
@@ -310,7 +327,13 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
                           : StudentAvatar(student: student, radius: 80),
                       const SizedBox(height: AppSpacing.md),
                       if (student.status != null)
-                        _StatusBadge(status: student.status!),
+                        _StatusBadge(
+                          status: student.status!,
+                          isEdit: _editing,
+                          onStatusChanged: (status) {
+                            newStatus = status;
+                          },
+                        ),
                       if (student.scholarNo != null) ...[
                         const SizedBox(height: 4),
                         Text(
@@ -349,31 +372,96 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
   }
 }
 
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.status});
+class _StatusBadge extends StatefulWidget {
+  const _StatusBadge({
+    required this.status,
+    required this.isEdit,
+    this.onStatusChanged,
+  });
+
   final String status;
+  final bool isEdit;
+  final ValueChanged<String>? onStatusChanged;
+
+  @override
+  State<_StatusBadge> createState() => _StatusBadgeState();
+}
+
+class _StatusBadgeState extends State<_StatusBadge> {
+  late String _currentStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentStatus = widget.status;
+  }
+
+  @override
+  void didUpdateWidget(covariant _StatusBadge oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.status != widget.status) {
+      _currentStatus = widget.status;
+    }
+  }
+
+  void _toggleStatus() {
+    // Toggles purely between the valid API enum values
+    final nextStatus = _currentStatus == 'active' ? 'inactive' : 'active';
+
+    setState(() {
+      _currentStatus = nextStatus;
+    });
+
+    widget.onStatusChanged?.call(nextStatus);
+  }
+
+  // Maps backend enum keys to human-readable UI labels
+  String _getDisplayLabel(String status) {
+    return switch (status) {
+      'active' => 'ACTIVE',
+      'inactive' => 'INACTIVE',
+      'pending_payment' => 'PENDING PAYMENT',
+      _ => status.replaceAll('_', ' ').toUpperCase(),
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
-    final color = switch (status) {
+    final color = switch (_currentStatus) {
       'active' => AppColors.active,
       'pending_payment' => AppColors.pendingPayment,
       _ => AppColors.inactive,
     };
-    final label = status.replaceAll('_', ' ').toUpperCase();
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(AppRadius.pill),
       ),
-      child: Text(
-        label,
-        style: AppTypography.caption.copyWith(
-          color: color,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.5,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            _getDisplayLabel(_currentStatus),
+            style: AppTypography.caption.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
+          ),
+          if (widget.isEdit)
+            IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: _toggleStatus,
+              icon: Icon(
+                Icons.switch_left_sharp,
+                size: 20,
+                color: AppColors.success,
+              ),
+            ),
+        ],
       ),
     );
   }

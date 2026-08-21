@@ -1,6 +1,7 @@
 import os
 
 import asyncpg
+from fastapi import Request
 
 pool = None
 
@@ -18,4 +19,5 @@ async def get_db():
     async with pool.acquire() as conn:
         yield conn
 
-    
+def get_supabase(request: Request):
+    return request.app.state.supabase

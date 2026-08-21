@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/dio_client/dio_client_provider.dart';
+import 'package:swaransh_academy/Core/enums/form_fields.dart';
 import 'package:swaransh_academy/Core/service/supabase_object_storage/object_storage.dart';
 import 'package:swaransh_academy/Core/theme/app_typography.dart';
 import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
@@ -11,15 +12,9 @@ import '../../../Core/theme/app_spacing.dart';
 import '../data/courses_repository.dart';
 import '../domain/course.dart';
 
-const _departments = [
-  'Music',
-  'Dance',
-  'Acting',
-  'Music_Video_Production',
-  'Other',
-];
-const _modes = ['Online', 'Offline', 'Hybrid'];
-const _tags = ['Instrumental', 'Vocal'];
+final _departments = AppOptions.department;
+final _modes = AppOptions.learningMode;
+final _tags = AppOptions.courseTag;
 
 /// One form for both create and edit - pass `existing` to pre-fill for
 /// editing, leave null for create. Avoids two near-duplicate widgets
@@ -49,10 +44,12 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
     text: widget.existing?.mapsToSubject ?? '',
   );
 
-  late final String _department =
-      widget.existing?.mapsToDepartment ?? _departments.first;
-  late final String _mode = widget.existing?.mode ?? _modes.first;
-  late String _tag = widget.existing?.tag ?? _tags.first;
+  late String _department =
+      widget.existing?.mapsToDepartment ?? _departments.first.value;
+
+  late String _mode = widget.existing?.mode ?? _modes.first.value;
+
+  late String _tag = widget.existing?.tag ?? _tags.first.value;
 
   bool _saving = false;
 
@@ -156,28 +153,28 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
             DropdownButtonFormField<String>(
               initialValue: _mode,
               isExpanded: true,
-
-              style: const TextStyle(
-                color: AppColors.navy,
-              ), // closed-state text
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Learning mode',
                 filled: true,
                 fillColor: AppColors.surface,
               ),
-              items: _modes
+              items: AppOptions.learningMode
                   .map(
-                    (o) => DropdownMenuItem<String>(
-                      value: o,
+                    (option) => DropdownMenuItem<String>(
+                      value: option.value,
                       child: Text(
-                        o.replaceAll('_', ' '),
+                        option.label,
                         style: const TextStyle(color: AppColors.navy),
                       ),
                     ),
                   )
                   .toList(),
-              onChanged: (v) {
-                (v) => setState(() => _tag = v!);
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _mode = value;
+                  });
+                }
               },
             ),
             const SizedBox(height: AppSpacing.md),
@@ -193,19 +190,23 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
                 filled: true,
                 fillColor: AppColors.surface,
               ),
-              items: _tags
+              items: AppOptions.courseTag
                   .map(
-                    (o) => DropdownMenuItem<String>(
-                      value: o,
+                    (option) => DropdownMenuItem<String>(
+                      value: option.value,
                       child: Text(
-                        o.replaceAll('_', ' '),
+                        option.label,
                         style: const TextStyle(color: AppColors.navy),
                       ),
                     ),
                   )
                   .toList(),
-              onChanged: (v) {
-                (v) => setState(() => _tag = v!);
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _tag = value;
+                  });
+                }
               },
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -225,28 +226,28 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
             DropdownButtonFormField<String>(
               initialValue: _department,
               isExpanded: true,
-
-              style: const TextStyle(
-                color: AppColors.navy,
-              ), // closed-state text
-              decoration: InputDecoration(
-                labelText: 'Maps to department',
+              decoration: const InputDecoration(
+                labelText: 'Maps to Department',
                 filled: true,
                 fillColor: AppColors.surface,
               ),
-              items: _departments
+              items: AppOptions.department
                   .map(
-                    (o) => DropdownMenuItem<String>(
-                      value: o,
+                    (option) => DropdownMenuItem<String>(
+                      value: option.value,
                       child: Text(
-                        o.replaceAll('_', ' '),
+                        option.label,
                         style: const TextStyle(color: AppColors.navy),
                       ),
                     ),
                   )
                   .toList(),
-              onChanged: (v) {
-                (v) => setState(() => _tag = v!);
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _department = value;
+                  });
+                }
               },
             ),
             const SizedBox(height: AppSpacing.md),

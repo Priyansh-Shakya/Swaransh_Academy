@@ -15,6 +15,7 @@ async def stream_ai_response(
     name,
     agent_call: bool,
     agent_data: str,
+    executed_sql: str,
     role:str
 ) -> AsyncGenerator[str, None]:
 
@@ -30,6 +31,7 @@ async def stream_ai_response(
             role,
             name,
             agent_data,
+            executed_sql
             
         )
 

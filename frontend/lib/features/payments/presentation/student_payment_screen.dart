@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:swaransh_academy/Core/enums/form_fields.dart';
+
 import '../../../Core/theme/app_colors.dart';
 import '../../../Core/theme/app_spacing.dart';
 import '../../../Core/theme/app_typography.dart';
 import '../../../Core/theme/staff_line_divider.dart';
 import '../../admission/domain/admission_form_record.dart';
-
-const _paymentModes = ['UPI', 'Cash', 'Card', 'Bank_Transfer'];
 
 class StudentPaymentScreen extends ConsumerStatefulWidget {
   const StudentPaymentScreen({super.key, required this.form});
@@ -18,9 +18,8 @@ class StudentPaymentScreen extends ConsumerStatefulWidget {
       _StudentPaymentScreenState();
 }
 
-class _StudentPaymentScreenState
-    extends ConsumerState<StudentPaymentScreen> {
-  String _selectedMode = 'UPI';
+class _StudentPaymentScreenState extends ConsumerState<StudentPaymentScreen> {
+  String _selectedMode = 'upi';
   bool _paying = false;
 
   Future<void> _pay() async {
@@ -40,9 +39,9 @@ class _StudentPaymentScreenState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Payment failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Payment failed: $e')));
       }
     } finally {
       if (mounted) setState(() => _paying = false);
@@ -86,8 +85,9 @@ class _StudentPaymentScreenState
                           form.name.isNotEmpty
                               ? form.name[0].toUpperCase()
                               : '?',
-                          style: AppTypography.titleLarge
-                              .copyWith(color: deptColor),
+                          style: AppTypography.titleLarge.copyWith(
+                            color: deptColor,
+                          ),
                         ),
                       ),
                       const SizedBox(width: AppSpacing.md),
@@ -95,8 +95,7 @@ class _StudentPaymentScreenState
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(form.name,
-                                style: AppTypography.titleLarge),
+                            Text(form.name, style: AppTypography.titleLarge),
                             Text(
                               '${form.department.replaceAll('_', ' ')} · ${form.subject}',
                               style: AppTypography.bodySmall,
@@ -106,16 +105,20 @@ class _StudentPaymentScreenState
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.active.withOpacity(0.12),
-                          borderRadius:
-                              BorderRadius.circular(AppRadius.pill),
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
                         ),
-                        child: Text('Approved',
-                            style: AppTypography.caption.copyWith(
-                                color: AppColors.active,
-                                fontWeight: FontWeight.w700)),
+                        child: Text(
+                          'Approved',
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.active,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -125,15 +128,19 @@ class _StudentPaymentScreenState
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Fee Amount',
-                          style: AppTypography.bodyMedium
-                              .copyWith(fontWeight: FontWeight.w700)),
+                      Text(
+                        'Fee Amount',
+                        style: AppTypography.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                       Text(
                         form.fees != null
                             ? '\u20B9${form.fees!.toStringAsFixed(0)} / ${form.feeType?.replaceAll('_', ' ') ?? ''}'
                             : '—',
-                        style: AppTypography.headlineMedium
-                            .copyWith(color: AppColors.navy),
+                        style: AppTypography.headlineMedium.copyWith(
+                          color: AppColors.navy,
+                        ),
                       ),
                     ],
                   ),
@@ -151,32 +158,29 @@ class _StudentPaymentScreenState
             Wrap(
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
-              children: _paymentModes.map((mode) {
-                final selected = _selectedMode == mode;
+              children: AppOptions.paymentMode.map((option) {
+                final selected = _selectedMode == option.value;
+
                 return GestureDetector(
-                  onTap: () => setState(() => _selectedMode = mode),
+                  onTap: () => setState(() => _selectedMode = option.value),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: AppSpacing.sm),
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.sm,
+                    ),
                     decoration: BoxDecoration(
                       color: selected ? AppColors.navy : Colors.white,
-                      borderRadius:
-                          BorderRadius.circular(AppRadius.md),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                       border: Border.all(
-                        color: selected
-                            ? AppColors.navy
-                            : AppColors.divider,
+                        color: selected ? AppColors.navy : AppColors.divider,
                         width: selected ? 2 : 1,
                       ),
                     ),
                     child: Text(
-                      mode.replaceAll('_', ' '),
+                      option.label,
                       style: AppTypography.bodyMedium.copyWith(
-                        color: selected
-                            ? Colors.white
-                            : AppColors.textPrimary,
+                        color: selected ? Colors.white : AppColors.textPrimary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -185,7 +189,7 @@ class _StudentPaymentScreenState
               }).toList(),
             ),
 
-            if (_selectedMode == 'UPI') ...[
+            if (_selectedMode == 'upi') ...[
               const SizedBox(height: AppSpacing.md),
               Container(
                 padding: const EdgeInsets.all(AppSpacing.md),
@@ -195,8 +199,11 @@ class _StudentPaymentScreenState
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline,
-                        size: 16, color: AppColors.textSecondary),
+                    const Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: AppColors.textSecondary,
+                    ),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
@@ -219,11 +226,12 @@ class _StudentPaymentScreenState
                         height: 18,
                         width: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Padding(
-                        padding:
-                            EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                        padding: EdgeInsets.symmetric(vertical: AppSpacing.xs),
                         child: Text('Confirm Payment'),
                       ),
               ),

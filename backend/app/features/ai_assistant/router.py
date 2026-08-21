@@ -55,12 +55,14 @@ async def ask_assistant(
     async def event_stream():
         try:
             agent_data = None #? Keep it here so that you dont get error later.
+            executed_sql = None #? Keep it here so that you dont get error later.
              # tell client the mode FIRST, before anything else
             if agent_call:
                 yield "data: [STATUS]Querying database...\n\n"
                 #* Generate SQL here and then Fetch From DB inside Resdponse Stream
                 response = await generate_sql(user_query=body.query, history = body.conversation_history, db = db)
-                agent_data = await extract_query(response, db)
+                # Unpack tuple output
+                agent_data, executed_sql = await extract_query(response, db)
 
             async for chunk in stream_ai_response(
                 body.query,
@@ -70,6 +72,7 @@ async def ask_assistant(
                 body.name,
                 agent_call,
                 agent_data,
+                executed_sql, # Pass executed_sql to streaming pipeline
                 role
             ):
                 data = f"data: {json.dumps(chunk)}\n\n"

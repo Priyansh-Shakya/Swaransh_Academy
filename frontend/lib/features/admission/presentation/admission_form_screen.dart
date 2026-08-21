@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
+import 'package:swaransh_academy/Core/enums/form_fields.dart';
 import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
 
 import '../../../Core/theme/app_colors.dart';
@@ -82,14 +83,14 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
       'caste': _casteCtrl,
     };
 
-    _dropdowns = {
+    _dropdowns = <String, String?>{
       'gender': null,
       'educationQualification': null,
-      'department': null,
-      'admissionType': 'Regular',
-      'learningMode': 'Offline',
-      'batch': 'Morning',
-      'feeType': 'Monthly',
+      'department': 'music',
+      'admission_type': 'regular',
+      'learning_mode': 'offline',
+      'batch': 'morning',
+      'fee_type': 'monthly',
     };
 
     _photoController = ImagePickerController(
@@ -125,19 +126,20 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
     _casteCtrl.text = s.caste;
     if (s.fees != null) _feesCtrl.text = s.fees!.toStringAsFixed(0);
 
-    _dropdowns['gender'] = s.gender;
-    _dropdowns['educationQualification'] = s.educationQualification;
+    _dropdowns['admissionType'] = s.admissionType.isEmpty
+        ? 'regular'
+        : s.admissionType;
+
+    _dropdowns['learningMode'] = s.learningMode.isEmpty
+        ? 'offline'
+        : s.learningMode;
+
+    _dropdowns['batch'] = s.batch.isEmpty ? 'morning' : s.batch;
+
+    _dropdowns['feeType'] = s.feeType ?? 'monthly';
     _dropdowns['department'] = (s.prefillDepartment?.isNotEmpty == true)
         ? s.prefillDepartment
         : s.department;
-    _dropdowns['admissionType'] = s.admissionType.isEmpty
-        ? 'Regular'
-        : s.admissionType;
-    _dropdowns['learningMode'] = s.learningMode.isEmpty
-        ? 'Offline'
-        : s.learningMode;
-    _dropdowns['batch'] = s.batch.isEmpty ? 'Morning' : s.batch;
-    _dropdowns['feeType'] = s.feeType ?? 'Monthly';
   }
 
   void _saveToNotifier() async {
@@ -376,19 +378,20 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
                       decoration: const InputDecoration(
                         labelText: 'Fee Type *',
                       ),
-                      items: kFeeTypeOptions
+                      items: AppOptions.feeType
                           .map(
-                            (o) => DropdownMenuItem(
-                              value: o,
+                            (option) => DropdownMenuItem<String>(
+                              value: option.value,
                               child: Text(
-                                o.replaceAll('_', ' '),
+                                option.label,
                                 style: AppTypography.bodyMedium,
                               ),
                             ),
                           )
                           .toList(),
-                      onChanged: (v) =>
-                          setState(() => _dropdowns['feeType'] = v),
+                      onChanged: (value) {
+                        setState(() => _dropdowns['feeType'] = value);
+                      },
                     ),
                   ),
                 ],
