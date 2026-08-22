@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
+import 'package:swaransh_academy/Core/enums/form_fields.dart';
 import 'package:swaransh_academy/features/students/data/students_notifier.dart';
 import 'package:swaransh_academy/features/students/domain/student.dart';
 
@@ -169,27 +170,25 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
   }
 
   List<Widget> _deptFilters() {
-    const depts = [
-      'Music',
-      'Dance',
-      'Acting',
-      'Music_Video_Production',
-      'Other',
-    ];
-    return depts.map((d) {
-      final selected = _filterDept == d;
-      final color = AppColors.departmentColor(d);
+    return AppOptions.department.map((option) {
+      final selected = _filterDept == option.value;
+      final color = AppColors.departmentColor(option.value);
+
       return Padding(
         padding: const EdgeInsets.only(right: AppSpacing.xs),
         child: FilterChip(
-          label: Text(d.replaceAll('_', ' ')),
+          label: Text(option.label),
           selected: selected,
           selectedColor: color.withOpacity(0.18),
           labelStyle: AppTypography.caption.copyWith(
             color: selected ? color : AppColors.textSecondary,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
           ),
-          onSelected: (_) => setState(() => _filterDept = selected ? null : d),
+          onSelected: (_) {
+            setState(() {
+              _filterDept = selected ? null : option.value;
+            });
+          },
           showCheckmark: false,
         ),
       );
@@ -197,19 +196,24 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
   }
 
   List<Widget> _batchFilters() {
-    return ['Morning', 'Evening'].map((b) {
-      final selected = _filterBatch == b;
+    return AppOptions.batch.map((option) {
+      final selected = _filterBatch == option.value;
+
       return Padding(
         padding: const EdgeInsets.only(right: AppSpacing.xs),
         child: FilterChip(
-          label: Text(b),
+          label: Text(option.label),
           selected: selected,
           selectedColor: AppColors.navy.withOpacity(0.12),
           labelStyle: AppTypography.caption.copyWith(
             color: selected ? AppColors.navy : AppColors.textSecondary,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
           ),
-          onSelected: (_) => setState(() => _filterBatch = selected ? null : b),
+          onSelected: (_) {
+            setState(() {
+              _filterBatch = selected ? null : option.value;
+            });
+          },
           showCheckmark: false,
         ),
       );

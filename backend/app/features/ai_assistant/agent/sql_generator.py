@@ -2,12 +2,14 @@
 
 import json
 
-import httpx
 from app.features.ai_assistant.agent.normalize_query import normalize_write_query
 from app.features.ai_assistant.agent.query_validator import validate_sql
-from app.features.ai_assistant.config import HF_MODEL, HF_ROUTER_URL, HF_TOKEN
 from app.features.ai_assistant.model import ChatMessage
+from app.features.ai_assistant.service.sql_service import AIService
 from app.features.extra_config.prompts import get_prompt
+
+#* Instanciate Class.
+ai_service = AIService()
 
 
 async def build_sql_messages(
@@ -44,36 +46,10 @@ async def build_sql_messages(
     return messages
 
 async def generate_sql(user_query: str, history, db):
-    message = await build_sql_messages(user_query, history , db)
-    payload = {
-        "model": HF_MODEL,
-        "messages": message,
-        "response_format": {
-        "type": "json_object"
-    },
-        "stream": False
-    }
-
-    headers = {
-        "Authorization": f"Bearer {HF_TOKEN}",
-        "Content-Type": "application/json"
-    }
-
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        response = await client.post(
-            HF_ROUTER_URL,
-            headers=headers,
-
-            json=payload
-        )
-
-        response.raise_for_status()
-
-        data = response.json()
-
-        response  =  data["choices"][0]["message"]["content"]
-        print("SQL GENERATOR FUNCTION:\n", response)
-        return response
+    _messages = await build_sql_messages(user_query, history , db)
+    return await ai_service.generate_sql(
+        messages= _messages
+    )
 
 
 
@@ -91,8 +67,15 @@ async def extract_query(sql_input: str | dict, db) -> tuple[any, str | None]:
 
         # normalize: strips any LLM-added RETURNING, re-appends a safe one for writes
         query, op, table = normalize_write_query(raw_query)
-
-        result = await db.fetch(query)
+        
+        try:
+            result = await db.fetch(query)
+        except Exception as e:  # noqa: BLE001
+            # Don't let DB errors break the overall flow
+            return (
+                f"SQL Query Execution Failed: {e!s}",
+                query,
+            )
         rows = [dict(row) for row in result] if result else []
 
         if op:  # INSERT / UPDATE / DELETE

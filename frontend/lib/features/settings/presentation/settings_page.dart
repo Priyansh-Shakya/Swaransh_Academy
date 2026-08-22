@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
 import 'package:swaransh_academy/features/settings/presentation/academy_content.dart';
+import 'package:swaransh_academy/features/settings/presentation/helper/permissions.dart';
+import 'package:swaransh_academy/features/settings/presentation/helper/url_launcher.dart';
 
 import '../../../Core/auth/user_role.dart';
 import '../../../Core/theme/app_colors.dart';
@@ -94,11 +96,7 @@ class SettingsPage extends ConsumerWidget {
             iconColor: AppColors.deptMusic,
             title: 'Notifications',
             subtitle: 'Fee reminders, announcements',
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Notification settings — coming soon'),
-              ),
-            ),
+            onTap:  openNotificationSettings,
           ),
           _SettingsTile(
             icon: Icons.info_outline_rounded,
@@ -443,14 +441,7 @@ class _SocialsSheet extends StatelessWidget {
               (s) => Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                 child: InkWell(
-                  onTap: () async {
-                    final uri = Uri.parse(s.url);
-                    // TODO: replace with url_launcher once added
-                    // launchUrl(uri, mode: LaunchMode.externalApplication);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Opening ${s.label}...')),
-                    );
-                  },
+                  onTap: () => openUrl(context, s.url, s.label),
                   borderRadius: BorderRadius.circular(AppRadius.md),
                   child: Container(
                     padding: const EdgeInsets.all(AppSpacing.md),

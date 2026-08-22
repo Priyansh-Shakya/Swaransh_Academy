@@ -277,6 +277,7 @@ class _ChatAssistantOverlayState extends ConsumerState<ChatAssistantOverlay>
             duration: const Duration(milliseconds: 200),
             child: Image.asset(
               'assets/chat_assistant_icon.png',
+
               fit: BoxFit.contain,
             ),
           ),
@@ -827,6 +828,7 @@ class _InputBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isStreaming = ref.watch(isStreamingProvider);
+    debugPrint("STREAMING STATUS FROM INPUT BAR:$isStreaming");
     debugPrint("Inside Input Bar");
     return Padding(
       padding: EdgeInsets.fromLTRB(12, 8, rightPadding, 20),

@@ -262,6 +262,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   Widget build(BuildContext context) {
     final selectedRole = ref.watch(selectedRoleProvider);
     final isAdminFlow = selectedRole == UserRole.admin;
+    final isStudentFlow = selectedRole == UserRole.student;
 
     return Scaffold(
       backgroundColor: AppColors.ivory,
@@ -277,8 +278,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   children: [
                     Image.asset(
                       'assets/app_logo.png',
-                      width: 72,
-                      height: 72,
+                      width: 180,
+                      height: 180,
                       errorBuilder: (_, __, ___) => const Icon(
                         Icons.music_note,
                         size: 56,
@@ -291,16 +292,27 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       style: AppTypography.headlineLarge,
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      isAdminFlow
-                          ? 'Admin sign-in'
-                          : _isSignUp
-                          ? 'Create your account'
-                          : 'Welcome back',
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textSecondary,
+                    Center(
+                      child: FractionallySizedBox(
+                        widthFactor: 0.85,
+                        child: Text(
+                          isAdminFlow
+                              ? 'Admin sign-in'
+                              : _isSignUp
+                              ? 'Create your account'
+                              : isStudentFlow
+                              ? "Use same email which you filled in admission form to access your student profile"
+                              : "Welcome Back",
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                          textAlign: TextAlign.center,
+                          // maxLines: 2,
+                          // overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
+
                     if (isAdminFlow) ...[
                       const SizedBox(height: AppSpacing.sm),
                       Container(

@@ -15,7 +15,7 @@ Our programmes span classical and contemporary forms, with experienced faculty g
 ''';
 
   //* Set to a Supabase Storage URL once the academy photo is uploaded.
-  static const String? academyImageUrl =
+  static const String academyImageUrl =
       'http://127.0.0.1:54321/storage/v1/object/public/admin-photos/WhatsApp%20Image%202026-07-27%20at%2010.34.15%20AM.jpeg';
 
   // ---- Contact ----
@@ -52,20 +52,20 @@ Our programmes span classical and contemporary forms, with experienced faculty g
   static const List<SocialLink> socials = [
     SocialLink(
       label: 'Instagram',
-      handle: '@swaranshacademy', // replace
-      url: 'https://instagram.com/swaranshacademy', // replace
+      handle: '@ravi_shakya_music', // replace
+      url: 'https://www.instagram.com/ravi_shakya__music/', // replace
       icon: 'instagram',
     ),
     SocialLink(
       label: 'YouTube',
-      handle: 'Swaransh Academy', // replace
+      handle: 'Ravi Shakya Films & Production', // replace
       url: 'https://youtube.com/@swaranshacademy', // replace
       icon: 'youtube',
     ),
     SocialLink(
       label: 'Facebook',
-      handle: 'Swaransh Academy', // replace
-      url: 'https://facebook.com/swaranshacademy', // replace
+      handle: 'Ravi Shakya Music Academy', // replace
+      url: 'https://www.facebook.com/profile.php?id=100063839989261', // replace
       icon: 'facebook',
     ),
   ];
