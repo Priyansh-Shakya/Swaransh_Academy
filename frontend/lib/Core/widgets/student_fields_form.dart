@@ -336,10 +336,12 @@ class StudentFieldsForm extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: locked
-          ? _ReadOnlyField(
-              label: label,
-              value: value?.replaceAll('_', ' ') ?? '-',
-            )
+    ? _ReadOnlyField(
+        label: label,
+        value: options.any((option) => option.value == value)
+            ? options.firstWhere((option) => option.value == value).label
+            : '-',
+      )
           : DropdownButtonFormField<String>(
               initialValue: value,
               isExpanded: true,

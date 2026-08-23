@@ -1,11 +1,10 @@
-import json
 from collections.abc import AsyncGenerator
 
-import httpx
-from app.features.ai_assistant.config import HF_MODEL, HF_ROUTER_URL, HF_TOKEN
 from app.features.ai_assistant.helper import _build_messages
 from app.features.ai_assistant.model import ChatMessage
+from app.features.ai_assistant.service.stream_service import AIServiceStream
 
+ai_service = AIServiceStream()
 
 async def stream_ai_response(
     query: str,
@@ -66,70 +65,9 @@ async def stream_ai_response(
 
     print("PROMPT:\n", message)
 
-    payload = {
-        "model": HF_MODEL,
-        "messages": message,
-        "stream": True,
-        "max_tokens": max_tokens,
-    }
+    async for chunk in ai_service.stream(
+        messages=message,
+        max_tokens=max_tokens,
+    ):
+        yield chunk
 
-    headers = {
-        "Authorization": f"Bearer {HF_TOKEN}",
-        "Content-Type": "application/json",
-    }
-
-
-    async with httpx.AsyncClient(timeout=60.0) as client, client.stream(
-        "POST",
-        HF_ROUTER_URL,
-        headers=headers,
-        json=payload
-    ) as response:
-
-        response.raise_for_status()
-
-        line_count = 0
-        chunk_count = 0
-
-        async for line in response.aiter_lines():
-
-            line_count += 1
-            
-
-            if not line or not line.startswith("data: "):
-                continue
-
-            raw = line[len("data: "):].strip()
-
-            if raw == "[DONE]":
-                print(
-                    f"[HF] done. total lines={line_count}, "
-                    f"chunks yielded={chunk_count}"
-                )
-                return
-
-            chunk = _extract_delta_content(raw)
-
-            if chunk:
-                chunk_count += 1
-                yield chunk
-
-                
-
-        print(
-            f"[HF] stream ended without [DONE]. "
-            f"lines={line_count}, chunks={chunk_count}"
-        )
-
-def _extract_delta_content(raw_json: str) -> str | None:
-    try:
-        data = json.loads(raw_json)
-    except json.JSONDecodeError:
-        return None
-
-    choices = data.get("choices") or []
-    if not choices:
-        return None
-
-    delta = choices[0].get("delta", {})
-    return delta.get("content")

@@ -14,7 +14,7 @@ OPENROUTER_API_KEY = os.getenv("OPEN_ROUTER_API_KEY")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 
-class AIService:
+class AIServiceSql:
 
     async def generate_sql(
         self,

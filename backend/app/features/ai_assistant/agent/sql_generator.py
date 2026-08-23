@@ -5,11 +5,11 @@ import json
 from app.features.ai_assistant.agent.normalize_query import normalize_write_query
 from app.features.ai_assistant.agent.query_validator import validate_sql
 from app.features.ai_assistant.model import ChatMessage
-from app.features.ai_assistant.service.sql_service import AIService
+from app.features.ai_assistant.service.sql_service import AIServiceSql
 from app.features.extra_config.prompts import get_prompt
 
 #* Instanciate Class.
-ai_service = AIService()
+ai_service = AIServiceSql()
 
 
 async def build_sql_messages(

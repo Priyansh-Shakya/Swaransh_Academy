@@ -10,6 +10,16 @@ from app.features.ai_assistant.sys_prompt import (
 )
 
 
+#* Removes Empty/Null fields from SQL fetched data we pass to LLM
+def strip_empty(obj):
+    if isinstance(obj, dict):
+        return {k: strip_empty(v) for k, v in obj.items() if v not in (None, "", [])}
+    if isinstance(obj, list):
+        return [strip_empty(x) for x in obj]
+    return obj
+
+
+
 async def check_role(user, db):
     if user is None:
         print("Returning guest role ...")
@@ -36,7 +46,7 @@ async def _build_messages(
         if executed_sql:
             prompt += f"\n[EXECUTED SQL QUERY]:\n```sql\n{executed_sql}\n```"
             
-        prompt += "\n[DATA FETCH RESULT]:\n" + json.dumps(agent_data, indent=2, default=str)
+        prompt += "\n[DATA FETCH RESULT]:\n" + json.dumps(strip_empty(agent_data), separators=(",", ":"), default=str)
         print("Agent Prompt:\n", prompt)
     else:
         if role in ("guest", "student"):

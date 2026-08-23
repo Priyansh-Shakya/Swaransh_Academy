@@ -41,7 +41,7 @@ async def get_user_role(user  = Depends(get_current_user), db = Depends(get_db))
 
 #! Verify admin password
 @router.post('/admin/verification')
-async def admin_verification(request: VerifyAdminPassword) -> bool:
-    return await service.verify_admin(request.password)
+async def admin_verification(request: VerifyAdminPassword, db = Depends(get_db)) -> bool:
+    return await service.verify_admin(request.password, db)
 
 

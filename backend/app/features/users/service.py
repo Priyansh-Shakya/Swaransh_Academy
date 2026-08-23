@@ -100,8 +100,17 @@ async def check_user_role(user, db):
     return User(**dict_row)
 
 
-async def verify_admin(password: str) -> bool:
-    # TODO: Check from db or Ask claude the best design , maybe .env ...
-    #? For now , using test password.
-
-    return (password == "swaransh2024") 
+async def verify_admin(password: str, db) -> bool:
+    # 1. Fetch the single row securely
+    row = await db.fetchrow("SELECT value FROM config WHERE key='admin_verification_code'")
+    
+    # 2. Prevent crash if table is empty
+    if not row:
+        print("VERIFICATION FAILED: No configuration row found in database.")
+        return False # Add a return statement to prevent continuing if row is None
+        
+    # FIX: Use 'value' instead of 'admin_verification_code'
+    stored_code = row['value'] 
+    print("VERIFICATION CODE FROM DB: ", stored_code)
+    
+    return (password == stored_code) # Best practice: compare against the actual DB value

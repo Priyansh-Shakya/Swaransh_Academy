@@ -187,7 +187,7 @@ CREATE TABLE payment (
 CREATE TABLE admissions (
     -- Auto-incrementing 8-byte ID matching your student ID scale
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    image_url Text,
+    
     -- Bound server-side from JWT; NULL if submitted anonymously
     user_id UUID not null REFERENCES users(user_id) ON DELETE SET NULL,
     
