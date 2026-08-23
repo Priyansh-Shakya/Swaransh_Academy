@@ -23,26 +23,31 @@ final dioProvider = Provider<Dio>((ref) {
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
-        // Get token from storage/provider
-        // Create your token provider and then uncomment this code.
+        debugPrint('========== DIO REQUEST ==========');
+        debugPrint('METHOD: ${options.method}');
+        debugPrint('URL: ${options.uri}');
+        debugPrint('HEADERS BEFORE: ${options.headers}');
+
         final supabase = ref.read(supabaseProvider);
         final session = supabase.auth.currentSession;
+
+        debugPrint('SESSION EXISTS: ${session != null}');
+
         if (session != null) {
           final token = session.accessToken;
+
           options.headers['Authorization'] = 'Bearer $token';
-          debugPrint("AUTH TOKEN: $token");
+
+          debugPrint('AUTH HEADER ATTACHED: YES');
+          debugPrint('TOKEN LENGTH: ${token.length}');
+        } else {
+          debugPrint('AUTH HEADER ATTACHED: NO — NO SESSION');
         }
 
+        debugPrint('HEADERS AFTER: ${options.headers}');
+        debugPrint('================================');
+
         handler.next(options);
-      },
-
-      onError: (error, handler) async {
-        // Handle 401 refresh/logout/etc
-        handler.next(error);
-      },
-
-      onResponse: (response, handler) {
-        handler.next(response);
       },
     ),
   );
