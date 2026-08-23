@@ -4,8 +4,7 @@
 
 from __future__ import annotations
 
-from typing import List
-
+from app.core.auth.auth import get_current_user
 from app.core.db import get_db
 from app.features.payment import service
 from app.features.payment.model import Payment, PaymentCreate
@@ -15,7 +14,7 @@ router = APIRouter(tags=['Payments'])
 
 
 @router.post('/student/{id}/payment', response_model=Payment, tags=['Payments'])
-async def post_student_id_payment(id: int, body: PaymentCreate = ..., db=Depends(get_db)) -> Payment:
+async def post_student_id_payment(id: int, body: PaymentCreate = ..., db=Depends(get_db), user = Depends(get_current_user)) -> Payment:
     """
     Record a Payment
     """
@@ -26,7 +25,7 @@ async def post_student_id_payment(id: int, body: PaymentCreate = ..., db=Depends
     '/student/{id}/payment/{payment_id}', response_model=Payment, tags=['Payments']
 )
 async def put_student_id_payment_payment_id(
-    id: int, payment_id: int = ..., body: PaymentCreate = ..., db=Depends(get_db)
+    id: int, payment_id: int = ..., body: PaymentCreate = ..., db=Depends(get_db), user = Depends(get_current_user)
 ) -> Payment:
     """
     Correct a Payment (supersede)
@@ -37,7 +36,7 @@ async def put_student_id_payment_payment_id(
 @router.delete(
     '/student/{id}/payment/{payment_id}', response_model=None, tags=['Payments']
 )
-async def delete_student_id_payment_payment_id(id: int, payment_id: int = ..., db=Depends(get_db)) -> None:
+async def delete_student_id_payment_payment_id(id: int, payment_id: int = ..., db=Depends(get_db), user = Depends(get_current_user)) -> None:
     """
     Delete a Payment (hard delete)
     """
@@ -45,9 +44,9 @@ async def delete_student_id_payment_payment_id(id: int, payment_id: int = ..., d
 
 
 @router.get(
-    '/student/{id}/paymentList', response_model=List[Payment], tags=['Payments']
+    '/student/{id}/paymentList', response_model=list[Payment], tags=['Payments']
 )
-async def get_student_id_payment_list(id: int, db=Depends(get_db)) -> List[Payment]:
+async def get_student_id_payment_list(id: int, db=Depends(get_db), user = Depends(get_current_user)) -> list[Payment]:
     """
     Get Payment History for a Student
     """

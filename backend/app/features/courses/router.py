@@ -4,8 +4,6 @@
 
 from __future__ import annotations
 
-from typing import List
-
 from app.core.auth.auth import get_current_user
 from app.core.db import get_db
 from app.features.courses import service
@@ -26,7 +24,7 @@ async def post_course(body: CourseCreate,user = Depends(get_current_user), db=De
 
 
 @router.put('/course/{id}', response_model=Course, tags=['Courses'])
-async def put_course_id(id: int, body: CourseCreate = ..., db=Depends(get_db)) -> Course:
+async def put_course_id(id: int, body: CourseCreate = ..., db=Depends(get_db), user = Depends(get_current_user)) -> Course:
     """
     Update Course
     """
@@ -34,15 +32,15 @@ async def put_course_id(id: int, body: CourseCreate = ..., db=Depends(get_db)) -
 
 
 @router.delete('/course/{id}', response_model=None, tags=['Courses'])
-async def delete_course_id(id: int, db=Depends(get_db)) -> None:
+async def delete_course_id(id: int, db=Depends(get_db), user = Depends(get_current_user)) -> None:
     """
     Delete Course
     """
     await service.delete_course(id, db)
 
 
-@router.get('/courseList', response_model=List[Course], tags=['Courses'])
-async def get_course_list(db=Depends(get_db)) -> List[Course]:
+@router.get('/courseList', response_model=list[Course], tags=['Courses'])
+async def get_course_list(db=Depends(get_db)) -> list[Course]:
     """
     Get list of all courses
     """

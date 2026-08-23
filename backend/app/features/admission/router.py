@@ -34,7 +34,7 @@ async def get_admission_form_me(user = Depends(get_current_user), db=Depends(get
 @router.post(
     '/admissionForm/{id}/approved', response_model=StudentFull, tags=['Admission']
 )
-async def post_admission_form_id_approved(id: int, db=Depends(get_db), supabase_client = Depends(get_supabase)) -> StudentFull:  # noqa: B008
+async def post_admission_form_id_approved(id: int, db=Depends(get_db),user = Depends(get_current_user), supabase_client = Depends(get_supabase)) -> StudentFull:  # noqa: B008
     """
     Approve Form
     """
@@ -42,7 +42,7 @@ async def post_admission_form_id_approved(id: int, db=Depends(get_db), supabase_
 
 
 @router.post('/admissionForm/{id}/declined', response_model=None, tags=['Admission'])
-async def post_admission_form_id_declined(id: int, db=Depends(get_db)) -> None:
+async def post_admission_form_id_declined(id: int, db=Depends(get_db), user = Depends(get_current_user)) -> None:
     """
     Decline Form
     """
@@ -54,6 +54,7 @@ async def post_admission_form_id_declined(id: int, db=Depends(get_db)) -> None:
 )
 async def get_admission_form_list(
     status: AdmissionStatus | None = None,
+    user = Depends(get_current_user),
     db=Depends(get_db)
 ) -> list[AdmissionForm]:
     """

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from datetime import date
 
+from app.core.auth.auth import get_current_user
 from app.core.db import get_db
 from app.core.enums import AdmissionType, Batch, Department, FeeType, LearningMode
 from app.features.student import service
@@ -20,7 +21,7 @@ router = APIRouter(tags=['Students'])
 
 
 @router.post('/student', response_model=StudentFullRead, tags=['Students'])
-async def post_student(body: StudentCreate, db=Depends(get_db)) -> StudentFullRead:
+async def post_student(body: StudentCreate, db=Depends(get_db), user = Depends(get_current_user)) -> StudentFullRead:
     """
     Create Student (manual, admin-only)
     """
@@ -31,7 +32,7 @@ async def post_student(body: StudentCreate, db=Depends(get_db)) -> StudentFullRe
 @router.get(
     '/student/{id}', response_model=StudentFullRead, tags=['Students']
 )
-async def get_student_id(id: int, db=Depends(get_db)) -> StudentFullRead:
+async def get_student_id(id: int, db=Depends(get_db),user = Depends(get_current_user)) -> StudentFullRead:
     """
     Get Student
     """
@@ -39,7 +40,7 @@ async def get_student_id(id: int, db=Depends(get_db)) -> StudentFullRead:
 
 
 @router.put('/student/{id}', response_model=StudentFullRead, tags=['Students'])
-async def put_student_id(id: int, body: StudentUpdate = ..., db=Depends(get_db)) -> StudentFullRead:
+async def put_student_id(id: int, body: StudentUpdate = ..., db=Depends(get_db), user = Depends(get_current_user))-> StudentFullRead:
     """
     Update Student
     """
@@ -48,7 +49,7 @@ async def put_student_id(id: int, body: StudentUpdate = ..., db=Depends(get_db))
 
 
 @router.delete('/student/{id}', response_model=None, tags=['Students'])
-async def delete_student_id(id: int, db=Depends(get_db)) -> None:
+async def delete_student_id(id: int, db=Depends(get_db), user = Depends(get_current_user)) -> None:
     """
     Delete Student
     """
@@ -72,6 +73,7 @@ async def get_student_list(
     joined_before: date | None = None,
     search: str | None = None,
     db=Depends(get_db),
+    user = Depends(get_current_user)
 ) -> list[StudentFullRead]:
     """
     Get Students List

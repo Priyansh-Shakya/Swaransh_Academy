@@ -29,7 +29,7 @@ async def get_my_profile(
     return await service.get_my_profile(user, db)
 
 @router.get('/profile/student/{student_id}', response_model=studentModel.StudentFullRead, tags=['Profile'])
-async def get_student_profile(student_id: int, db=Depends(get_db)) -> studentModel.StudentFullRead:
+async def get_student_profile(student_id: int, db=Depends(get_db), user = Depends(get_current_user)) -> studentModel.StudentFullRead:
     """
     Get student profile by student ID (admin view)
     """
@@ -37,7 +37,7 @@ async def get_student_profile(student_id: int, db=Depends(get_db)) -> studentMod
 
 
 @router.get('/profile/user/{user_id}', response_model=model.UserProfile, tags=['Profile'])
-async def get_user_profile(user_id: UUID, db=Depends(get_db)) -> model.UserProfile:
+async def get_user_profile(user_id: UUID, db=Depends(get_db), user = Depends(get_current_user)) -> model.UserProfile:
     """
     Get user profile by user ID
     """

@@ -25,7 +25,7 @@ async def post_user(body: UserCreate, user = Depends(get_current_user) ,db=Depen
 
 
 @router.get('/user/{id}', response_model=User, tags=['Users'])
-async def get_user_id(id: UUID, db=Depends(get_db)) -> User:
+async def get_user_id(id: UUID, db=Depends(get_db), user = Depends(get_current_user)) -> User:
     """
     Get User By ID
     """
@@ -41,7 +41,7 @@ async def get_user_role(user  = Depends(get_current_user), db = Depends(get_db))
 
 #! Verify admin password
 @router.post('/admin/verification')
-async def admin_verification(request: VerifyAdminPassword, db = Depends(get_db)) -> bool:
+async def admin_verification(request: VerifyAdminPassword, db = Depends(get_db), user = Depends(get_current_user)) -> bool:
     return await service.verify_admin(request.password, db)
 
 
