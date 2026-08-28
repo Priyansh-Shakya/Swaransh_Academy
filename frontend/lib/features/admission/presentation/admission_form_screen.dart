@@ -265,7 +265,8 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
     final isSignedIn = ref.read(isSignedInProvider);
     if (!isSignedIn) {
       _saveToNotifier(); // save text fields so nothing's lost
-      _showAuthWall();
+
+      showAuthWall();
       return;
     } else {
       _saveToNotifier();
@@ -274,23 +275,31 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
   }
 
   // In admission_form_screen.dart, replace _showAuthWall():
-  void _showAuthWall() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _AuthWallSheet(
-        onSignIn: () {
-          Navigator.pop(context);
-          final router = GoRouter.of(context); // capture before pop
-          router.push(
-            '/auth',
-            extra: () {
-              router.push('/admission/terms');
-            },
-          );
-        },
-      ),
-    );
+  void showAuthWall() {
+    //FocusScope.of(context).unfocus();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!context.mounted) return;
+
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (_) => _AuthWallSheet(
+          onSignIn: () {
+            Navigator.pop(context);
+
+            final router = GoRouter.of(context);
+
+            router.push(
+              '/auth',
+              extra: () {
+                router.push('/admission/terms');
+              },
+            );
+          },
+        ),
+      );
+    });
   }
 
   @override

@@ -1,16 +1,18 @@
-import 'dart:io' show Platform;
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:swaransh_academy/Core/fcm_service/tokenProvider.dart';
-import 'package:swaransh_academy/features/ai_assistant/data/ai_assistant_api_service.dart';
+import 'package:swaransh_academy/features/ai_assistant/data/ai_assistant_notifier.dart';
 import 'package:swaransh_academy/features/auth/data/provider.dart';
 import 'package:swaransh_academy/features/auth/data/users_api_service.dart';
 import 'package:swaransh_academy/features/auth/domain/user.dart' as model;
+import 'package:swaransh_academy/features/role_select/presentation/selectedRoleprovider.dart';
 
 import 'auth_user.dart';
+import 'io_platform.dart'; // See Step 2 for why we do this
 import 'user_role.dart';
 
 final _supabase = supabase.Supabase.instance.client;
@@ -117,12 +119,17 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
   Future<void> signInWithGoogle() async {
     state = const AsyncValue.loading();
     try {
-      if (_isAndroid()) {
+      // 1. Check for Mobile safely (kIsWeb must be checked first)
+      if (!kIsWeb && (isAndroid || isIOS)) {
         await _nativeGoogleSignIn();
       } else {
+        // 2. Web and Desktop flow
         await _supabase.auth.signInWithOAuth(
           supabase.OAuthProvider.google,
-          redirectTo: 'io.supabase.swaranshacademy://login-callback',
+          // The redirectTo is required for Desktop/Web to know where to return
+          redirectTo: kIsWeb
+              ? null
+              : 'io.supabase.swaranshacademy://login-callback',
         );
       }
     } catch (e, st) {
@@ -134,7 +141,7 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
   Future<void> signOut() async {
     ref.invalidate(isAdminRoleProvider);
     ref.invalidate(adminVerificationProvider);
-    ref.invalidate(aiAssistantApiServiceProvider);
+    ref.invalidate(aiAssistantProvider);
     await _supabase.auth.signOut();
     state = const AsyncValue.data(AppUser.guest);
   }
@@ -142,7 +149,6 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
   // ---- Role resolution ----
 
   Future<AppUser> _resolveUser(supabase.User user) async {
-    //? Send query ro users table to check role.
     final isAdmin = ref.read(isAdminRoleProvider);
     if (isAdmin == UserRole.admin) {
       debugPrint("Switching to ADMIN MODE via adminRoleProvider");
@@ -152,9 +158,18 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
     try {
       final user0 = await ref.read(usersApiServiceProvider).getCurrentUser();
       ref.read(currentUserProvider.notifier).state = user0;
-      final role = await ref.read(usersApiServiceProvider).checkRole(user0);
 
-      debugPrint("Role fetched from DB: ${role.name}"); // admin
+      if (user0 == null) {
+        // No profile row exists yet — shouldn't normally happen since the
+        // Google flow creates it first, but don't crash if it does.
+        debugPrint(
+          "No profile row found in _resolveUser — defaulting to guest",
+        );
+        return _makeUser(user, UserRole.guest);
+      }
+
+      final role = await ref.read(usersApiServiceProvider).checkRole(user0);
+      debugPrint("Role fetched from DB: ${role.name}");
 
       return _makeUser(user, role);
     } catch (e) {
@@ -173,34 +188,81 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
   );
 
   Future<void> _nativeGoogleSignIn() async {
-    // Web Client ID from Google Cloud Console — same one configured in
-    // Supabase Auth → Providers → Google.
-    const webClientId = 'YOUR_GOOGLE_WEB_CLIENT_ID';
-    final googleSignIn = GoogleSignIn(serverClientId: webClientId);
-    final googleUser = await googleSignIn.signIn();
-    if (googleUser == null) throw Exception('Google sign-in cancelled');
+    const webClientId =
+        "760961413610-l4qntn2n7gcfo7nu8blem899m4mgjsfs.apps.googleusercontent.com";
 
-    final googleAuth = await googleUser.authentication;
-    if (googleAuth.accessToken == null || googleAuth.idToken == null) {
-      throw Exception('Google sign-in failed — missing tokens');
+    final signIn = GoogleSignIn.instance;
+    await signIn.initialize(serverClientId: webClientId);
+
+    // authenticate() always shows the account chooser — no silent reuse
+    final googleAccount = await signIn.authenticate();
+
+    final googleAuthorization = await googleAccount.authorizationClient
+        .authorizationForScopes(['email', 'profile']);
+
+    final idToken = googleAccount.authentication.idToken;
+    final accessToken = googleAuthorization?.accessToken;
+
+    if (idToken == null) {
+      throw Exception('Google sign-in failed — missing ID token');
     }
+
+    debugPrint(
+      "============================== Token: $idToken =================================",
+    );
 
     final response = await _supabase.auth.signInWithIdToken(
       provider: supabase.OAuthProvider.google,
-      idToken: googleAuth.idToken!,
-      accessToken: googleAuth.accessToken,
+      idToken: idToken,
+      accessToken: accessToken,
     );
-    if (response.user != null) {
-      state = AsyncValue.data(await _resolveUser(response.user!));
-    }
-  }
+    debugPrint(
+      "============================== Response Access Token: ${response.session?.accessToken} =================================",
+    );
+    final user = response.user;
 
-  bool _isAndroid() {
-    if (kIsWeb) return false;
-    try {
-      return Platform.isAndroid;
-    } catch (_) {
-      return false;
+    debugPrint(
+      "============================== User: $user =================================",
+    );
+    if (user != null) {
+      final isNewUser = user.createdAt == user.lastSignInAt;
+      final model.User? userExistsInTable = await ref
+          .read(usersApiServiceProvider)
+          .getCurrentUser();
+      debugPrint(
+        "====+======+=====+=======+========+======+=====+========== USER EXISTS ALREADY? : $userExistsInTable =============================",
+      );
+      if (isNewUser || userExistsInTable == null) {
+        debugPrint(
+          "============================================== New user (Sign Up) ==================================================",
+        );
+        final isAdmin = ref.read(adminVerificationProvider);
+        final role = ref.read(selectedRoleProvider);
+        final fcmToken = ref.read(fcmTokenProvider);
+        debugPrint(
+          "====================================== FCM TOKEN FROM USER NOTIFIER:\n${fcmToken == null ? "NULL" : fcmToken.substring(1, 5)}",
+        );
+        final role0 = isAdmin
+            ? 'admin'
+            : (role == UserRole.student)
+            ? 'student'
+            : 'guest';
+        final newUser = model.User(
+          email: googleAccount.email, // always populated by Google
+          userName: googleAccount
+              .displayName, // can be null for some accounts — fine if model.User allows String?
+          role: role0, // no role selector in this flow, so default it
+          fcmToken: fcmToken,
+        );
+        debugPrint(
+          "---------------------------- CERATING USER FROM GOOGLE AUTH: ${newUser.toJson()}",
+        );
+        await ref.read(usersApiServiceProvider).createUser(newUser);
+      } else {
+        debugPrint("Old user (Sign In)");
+      }
+
+      state = AsyncValue.data(await _resolveUser(user));
     }
   }
 

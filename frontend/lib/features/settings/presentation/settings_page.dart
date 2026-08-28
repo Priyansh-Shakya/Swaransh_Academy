@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
 import 'package:swaransh_academy/features/settings/presentation/academy_content.dart';
 import 'package:swaransh_academy/features/settings/presentation/helper/permissions.dart';
@@ -96,7 +97,7 @@ class SettingsPage extends ConsumerWidget {
             iconColor: AppColors.deptMusic,
             title: 'Notifications',
             subtitle: 'Fee reminders, announcements',
-            onTap:  openNotificationSettings,
+            onTap: openNotificationSettings,
           ),
           _SettingsTile(
             icon: Icons.info_outline_rounded,
@@ -179,6 +180,14 @@ class _AccountTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final session = Supabase.instance.client.auth.currentSession;
+
+    final user = session?.user;
+
+    final avatarUrl = user?.userMetadata?['avatar_url'];
+    debugPrint(
+      "_______________________________________________ AVATAR URL: $avatarUrl",
+    );
     final label = switch (role) {
       UserRole.admin => 'Administrator',
       UserRole.student => 'Student',
@@ -195,7 +204,16 @@ class _AccountTile extends StatelessWidget {
       ),
       leading: CircleAvatar(
         backgroundColor: color.withOpacity(0.15),
-        child: Icon(Icons.person, color: color),
+        child: (avatarUrl != null && avatarUrl.isNotEmpty)
+            ? ClipOval(
+                child: Image.network(
+                  avatarUrl,
+                  width: 50,
+                  height: 50,
+                  fit: BoxFit.cover,
+                ),
+              )
+            : Icon(Icons.person, color: color),
       ),
       title: Text(
         'Signed in as $label',

@@ -35,6 +35,7 @@ async def get_user_id(id: UUID, db=Depends(get_db), user = Depends(get_current_u
 #? To get role of user
 @router.get('/users/me')
 async def get_user_role(user  = Depends(get_current_user), db = Depends(get_db)):
+    """Get User's Role from DB"""
     print("From router:", user['id'])
     return await service.check_user_role(user, db)
 

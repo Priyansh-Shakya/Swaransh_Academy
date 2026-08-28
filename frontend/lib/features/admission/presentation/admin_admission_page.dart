@@ -28,90 +28,110 @@ class _AdminAdmissionPageState extends ConsumerState<AdminAdmissionPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Admission Requests')),
-      body: Column(
-        children: [
-          // Status filter chips
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md,
-              AppSpacing.md,
-              AppSpacing.md,
-              0,
-            ),
-            child: Row(
-              children: AppOptions.admissionStatus.map((option) {
-                // Compare using value ('pending'), display using label ('Pending')
-                final selected = _filter == option.value;
-                final color = _statusColor(option.value);
+      body: RefreshIndicator(
+        color: AppColors.gold,
+        backgroundColor: AppColors.ivory,
+        onRefresh: () =>
+            ref.read(admissionFormsListProvider.notifier).refreshList(),
 
-                return Padding(
-                  padding: const EdgeInsets.only(right: AppSpacing.sm),
-                  child: FilterChip(
-                    label: Text(option.label),
-                    selected: selected,
-                    selectedColor: color.withOpacity(0.15),
-                    labelStyle: AppTypography.bodySmall.copyWith(
-                      color: selected ? color : AppColors.textSecondary,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                    ),
-                    showCheckmark: false,
-                    onSelected: (_) => setState(() => _filter = option.value),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Expanded(
-            child: formsAsync.when(
-              loading: () => const Center(
-                child: CircularProgressIndicator(color: AppColors.gold),
+        child: Column(
+          children: [
+            // Status filter chips
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+                0,
               ),
-              error: (e, _) => Center(child: Text('Could not load forms: $e')),
-              data: (forms) {
-                // Ensure case-insensitive or string value matching
-                final filtered = forms
-                    .where(
-                      (f) => f.status.toLowerCase() == _filter.toLowerCase(),
-                    )
-                    .toList();
+              child: Row(
+                children: AppOptions.admissionStatus.map((option) {
+                  // Compare using value ('pending'), display using label ('Pending')
+                  final selected = _filter == option.value;
+                  final color = _statusColor(option.value);
 
-                if (filtered.isEmpty) {
-                  final label = AppOptions.admissionStatus
-                      .firstWhere(
-                        (o) => o.value == _filter,
-                        orElse: () => AppOption(value: _filter, label: _filter),
-                      )
-                      .label;
-
-                  return Center(
-                    child: Text(
-                      'No $label applications',
-                      style: AppTypography.bodyMedium,
+                  return Padding(
+                    padding: const EdgeInsets.only(right: AppSpacing.sm),
+                    child: FilterChip(
+                      label: Text(option.label),
+                      selected: selected,
+                      selectedColor: color.withOpacity(0.15),
+                      labelStyle: AppTypography.bodySmall.copyWith(
+                        color: selected ? color : AppColors.textSecondary,
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                      ),
+                      showCheckmark: false,
+                      onSelected: (_) => setState(() => _filter = option.value),
                     ),
                   );
-                }
-
-                return ListView.separated(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  itemCount: filtered.length,
-                  separatorBuilder: (_, __) =>
-                      const SizedBox(height: AppSpacing.sm),
-                  itemBuilder: (context, i) => _AdmissionFormCard(
-                    form: filtered[i],
-                    // Check against lowercase value consistently
-                    onApprove: _filter == 'pending'
-                        ? () => _approve(filtered[i])
-                        : null,
-                    onDecline: _filter == 'pending'
-                        ? () => _decline(filtered[i])
-                        : null,
-                  ),
-                );
-              },
+                }).toList(),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: AppSpacing.sm),
+            Expanded(
+              child: formsAsync.when(
+                loading: () => const Center(
+                  child: CircularProgressIndicator(color: AppColors.gold),
+                ),
+                error: (e, _) =>
+                    Center(child: Text('Could not load forms: $e')),
+                data: (forms) {
+                  // Ensure case-insensitive or string value matching
+                  final filtered = forms
+                      .where(
+                        (f) => f.status.toLowerCase() == _filter.toLowerCase(),
+                      )
+                      .toList();
+
+                  if (filtered.isEmpty) {
+                    final label = AppOptions.admissionStatus
+                        .firstWhere(
+                          (o) => o.value == _filter,
+                          orElse: () =>
+                              AppOption(value: _filter, label: _filter),
+                        )
+                        .label;
+
+                    return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
+                        SizedBox(
+                          height: MediaQuery.sizeOf(context).height * 0.6,
+                          child: Center(
+                            child: Text(
+                              'No $label applications',
+                              style: AppTypography.bodyMedium,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+
+                  return ListView.separated(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: AppSpacing.sm),
+                    itemBuilder: (context, i) => _AdmissionFormCard(
+                      form: filtered[i],
+                      // Check against lowercase value consistently
+                      onApprove: _filter == 'pending'
+                          ? () => _approve(filtered[i])
+                          : null,
+                      onDecline: _filter == 'pending'
+                          ? () => _decline(filtered[i])
+                          : null,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

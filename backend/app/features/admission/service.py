@@ -1,4 +1,4 @@
-from app.core.enums import StudentStatus
+from app.core.enums import StudentStatus, UserRole
 from app.core.fcm_service import send_multiple_notifications, send_notification
 from app.core.helper import convert_enums_to_values
 from app.features.admission import model, queries
@@ -105,6 +105,19 @@ async def approve_form(admission_id: int, db, supabase):
     }
     
     student = await student_service.create_student(student_data, db)
+
+    # Promote the user from guest → student only after
+    # the student record has been created successfully.
+    await db.execute(
+        """
+        UPDATE users
+        SET role = $1
+        WHERE user_id = $2
+        AND role = 'guest'
+        """,
+        UserRole.student.value,
+        admission["user_id"],
+    )
 
     # Send approve notification safely
     try:

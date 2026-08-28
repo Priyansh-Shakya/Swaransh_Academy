@@ -7,12 +7,25 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:760961413610:android:45085df68e5924edd4c293",
+        "mobilesdk_app_id": "1:760961413610:android:3e3186a1dc07362ad4c293",
         "android_client_info": {
-          "package_name": "com.example.swaransh_academy"
+          "package_name": "com.drdwarfstudios.swaransh_academy"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "760961413610-dvkqu0mm0mvv4m29c1vn521scls8pl55.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.drdwarfstudios.swaransh_academy",
+            "certificate_hash": "a0c943be71085351fd5a0838d9f5b2a45a9e82de"
+          }
+        },
+        {
+          "client_id": "760961413610-l4qntn2n7gcfo7nu8blem899m4mgjsfs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyC994stPhjVqZ0xBzZJ90U1HTYdFaw7mKA"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "760961413610-l4qntn2n7gcfo7nu8blem899m4mgjsfs.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "760961413610-cnkstgfsvhto8bmtum8b3r0bvim4epcc.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.drdwarfstudios.swaransh_academy"
+              }
+            }
+          ]
         }
       }
     }

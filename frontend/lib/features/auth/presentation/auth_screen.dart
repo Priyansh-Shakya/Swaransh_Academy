@@ -123,64 +123,74 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   Future<void> _submitGoogle() async {
+    if (_busy) return;
     setState(() => _busy = true);
+    final authNotifier = ref.read(authProvider.notifier);
     final selectedRole = ref.read(selectedRoleProvider);
     debugPrint("Selected ROLE: $selectedRole");
+    try {
+      // Tell the auth subscription that THIS authentication
+      // is being explicitly handled by this screen.
+      authNotifier.authFlowInProgress = true;
+      
+      if (selectedRole == UserRole.admin) {
+        final isVerified = await _handlePostAuth();
 
-    if (selectedRole == UserRole.admin) {
-      final isVerified = await _handlePostAuth();
+        debugPrint(
+          "------------------ Verification result = "
+          "${isVerified ? "Successful" : "Failed"}",
+        );
+
+        if (!isVerified) {
+          return;
+        }
+      }
+
+      // IMPORTANT:
+      // selectedRole must STILL be admin here.
       debugPrint(
-        "Verification result = ${isVerified ? "Successful" : "Failed"}",
+        "ROLE BEFORE GOOGLE AUTH: "
+        "${ref.read(selectedRoleProvider)}",
       );
 
-      if (!isVerified) {
-        if (mounted) {
-          setState(() => _busy = false);
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(
-              const SnackBar(
-                content: Text(
-                  "Incorrect Password",
-                  textAlign: TextAlign.center,
-                ),
-                backgroundColor: Color(0xFFC1473B),
-              ),
-            );
-        }
-        return;
-      }
-    }
+      debugPrint("========== ABOUT TO CALL GOOGLE AUTH ==========");
 
-    try {
-      await ref.read(authProvider.notifier).signInWithGoogle();
+      await authNotifier.signInWithGoogle();
+
+      debugPrint("========== GOOGLE AUTH COMPLETED ==========");
+
       if (!mounted) return;
-    } catch (e) {
-      if (mounted) _showError(e.toString());
+
+      // Only clear the role after the complete auth flow
+      // has consumed it.
+      ref.read(selectedRoleProvider.notifier).state = null;
+
+      _onSuccess();
+    } catch (e, stack) {
+      debugPrint("GOOGLE AUTH ERROR: $e");
+      debugPrintStack(stackTrace: stack);
+
+      if (mounted) {
+        _showError(e.toString());
+      }
     } finally {
-      if (mounted) setState(() => _busy = false);
+      authNotifier.authFlowInProgress = false;
+
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     }
   }
 
   /// After Supabase auth succeeds, check if admin code is needed.
   Future<bool> _handlePostAuth() async {
-    // Show admin code dialog before proceeding.
-    ref.read(authProvider.notifier).handlingAdminVerification = true;
-    debugPrint(
-      "Handling Admin Auth Subscription: ${ref.read(authProvider.notifier).handlingAdminVerification}",
-    );
     debugPrint("SHOWING Password Screen ...");
+
     final verified = await _showAdminCodeDialog();
-    ref.read(authProvider.notifier).handlingAdminVerification = false;
+
     debugPrint("Entered Password: $verified");
 
-    if (verified) {
-      // Only clear the selected role intent once admin auth actually succeeds.
-      ref.read(selectedRoleProvider.notifier).state = null;
-    }
-
     return verified;
-    // Admin verified — role will be set by backend on POST /user call.
   }
 
   Future<bool> _showAdminCodeDialog() async {
@@ -249,6 +259,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   void _showError(String message) {
+    debugPrint(
+      "-------------------------------------- AUTH ERROR: $message ---------------------------------------",
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -272,7 +285,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.md),
               Center(
                 child: Column(
                   children: [
@@ -286,7 +299,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         color: AppColors.gold,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.md),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(
                       'Swaransh Academy',
                       style: AppTypography.headlineLarge,
@@ -347,7 +360,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 ),
               ),
 
-              const SizedBox(height: AppSpacing.xxl),
+              const SizedBox(height: AppSpacing.xl),
 
               Form(
                 key: _formKey,

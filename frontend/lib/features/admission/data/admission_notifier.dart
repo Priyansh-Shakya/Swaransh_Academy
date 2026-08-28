@@ -64,6 +64,14 @@ class AdmissionFormsListNotifier
     return ref.read(admissionApiServiceProvider).getAllAdmissionForms();
   }
 
+  Future<void> refreshList() async {
+    state = AsyncValue.loading();
+    final data = await ref
+        .read(admissionApiServiceProvider)
+        .getAllAdmissionForms();
+    state = AsyncValue.data(data);
+  }
+
   Future<void> approve(int formId) async {
     final current = state.valueOrNull ?? [];
     state = AsyncValue.data([

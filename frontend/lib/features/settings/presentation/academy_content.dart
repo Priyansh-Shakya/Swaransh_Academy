@@ -15,12 +15,12 @@ Our programmes span classical and contemporary forms, with experienced faculty g
 ''';
 
   //* Set to a Supabase Storage URL once the academy photo is uploaded.
-  static const String academyImageUrl =
-      'http://127.0.0.1:54321/storage/v1/object/public/admin-photos/WhatsApp%20Image%202026-07-27%20at%2010.34.15%20AM.jpeg';
+  static String academyImageUrl =
+      'https://tsvuqxoarslgmzzpfbcx.supabase.co/storage/v1/object/public/admin-photos/academy_image.jpeg';
 
   // ---- Contact ----
   static const String contactEmail = 'swaranshacademy@gmail.com';
-  static const String contactPhone = '+91 XXXXX XXXXX'; // replace
+  static const String contactPhone = '+91 9926945897';
 
   // ---- Team ----
   static const List<TeamMember> team = [
@@ -32,7 +32,7 @@ Our programmes span classical and contemporary forms, with experienced faculty g
           'carries a melody waiting to be discovered — that vision is the '
           'heart of Swaransh Academy.',
       photoUrl:
-          'http://127.0.0.1:54321/storage/v1/object/public/admin-photos/IMG_20160815_090735.jpg', // replace with Supabase Storage URL when ready
+          'https://tsvuqxoarslgmzzpfbcx.supabase.co/storage/v1/object/public/admin-photos/ravi_admin.jpg', // replace with Supabase Storage URL when ready
     ),
     TeamMember(
       name: 'Swaransh Shakya', // replace
@@ -42,7 +42,7 @@ Our programmes span classical and contemporary forms, with experienced faculty g
           'bringing both professional rigour and creative energy to the '
           'academy\'s growth.',
       photoUrl:
-          'http://127.0.0.1:54321/storage/v1/object/public/admin-photos/swaransh.jpeg',
+          'https://tsvuqxoarslgmzzpfbcx.supabase.co/storage/v1/object/public/admin-photos/swaransh_admin.jpeg',
     ),
   ];
 

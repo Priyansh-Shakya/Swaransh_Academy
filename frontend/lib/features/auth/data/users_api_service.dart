@@ -51,12 +51,16 @@ class UsersApiService {
     );
   }
 
-  Future<User> getCurrentUser() async {
-    final user = await _apiService.get(
+  Future<User?> getCurrentUser() async {
+    final user = await _apiService.get<User>(
       endpoint: '/users/me',
       parser: (json) => User.fromJson(json),
     );
-    debugPrint("CURRENT USER FROM API SERVICE LAYER:\n${user.toJson()}");
+
+    if (user != null) {
+      debugPrint("CURRENT USER FROM API SERVICE LAYER:\n${user.toJson()}");
+    }
+
     return user;
   }
 

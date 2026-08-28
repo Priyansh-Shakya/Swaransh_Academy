@@ -220,7 +220,7 @@ class ApiService<T> {
   }
 
   //? for another non JSON query
-  Future<R> get<R>({
+  Future<R?> get<R>({
     required String endpoint,
     required R Function(dynamic json) parser,
     Map<String, dynamic>? queryParams,
@@ -231,6 +231,10 @@ class ApiService<T> {
       queryParameters: queryParams,
       options: Options(headers: headers),
     );
+
+    if (response.data == null) {
+      return null;
+    }
 
     return parser(response.data);
   }
