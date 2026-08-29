@@ -9,7 +9,7 @@ from uuid import UUID
 from app.core.auth.auth import get_current_user
 from app.core.db import get_db
 from app.features.users import service
-from app.features.users.model import User, UserCreate, VerifyAdminPassword
+from app.features.users.model import User, UserCreate, UserUpdate, VerifyAdminPassword
 from fastapi import APIRouter, Depends
 
 router = APIRouter(tags=['Users'])
@@ -31,6 +31,18 @@ async def get_user_id(id: UUID, db=Depends(get_db), user = Depends(get_current_u
     """
     return await service.get_user(id, db)
 
+@router.patch('/update/user/{id}', response_model=User, tags=['Users'])
+async def update_user(
+    id: UUID, 
+    body: UserUpdate, 
+    user = Depends(get_current_user), 
+    db = Depends(get_db)
+) -> User:
+    """
+    Update User FCM Token / Profile
+    """
+    print("😶UPDATING FCM TOKEN FOR USER: ", user["user_id"])
+    return await service.update_user(id, body, db)
 
 #? To get role of user
 @router.get('/users/me')

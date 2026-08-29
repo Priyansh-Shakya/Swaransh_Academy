@@ -12,6 +12,11 @@ class UserCreate(BaseModel):
         None, description='Optional at creation; set/updated once push is configured.'
     )
 
+class UserUpdate(BaseModel):
+    email: str | None = None
+    user_name: str | None = None
+    role: str | None = None
+    fcm_token: str | None = None
 
 class User(BaseModel):
     user_name: str | None = None

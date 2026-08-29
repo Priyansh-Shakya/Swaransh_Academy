@@ -539,9 +539,21 @@ class TypingBubble extends StatefulWidget {
 }
 
 class _TypingBubbleState extends State<TypingBubble>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
+    with TickerProviderStateMixin {
+  late final AnimationController _shimmerController;
+  late final AnimationController _stepRotationController;
+  late final AnimationController
+  _controller; // 👈 Standard 3-dot typing controller
   bool _isExpanded = false;
+  int _currentStepIndex = 0;
+
+  // 💡 List of rotating agent status steps
+  final List<String> _agentSteps = const [
+    "Searching knowledge base...",
+    "Analyzing context dependencies",
+    "Querying PostgreSQL database",
+    "Synthesizing output stream...",
+  ];
 
   @override
   void initState() {
@@ -552,10 +564,33 @@ class _TypingBubbleState extends State<TypingBubble>
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     )..repeat();
+    // Shimmer effect controller
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat();
+
+    // 💡 Step rotation controller (rotates text every 2.2 seconds)
+    _stepRotationController =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 4000),
+        )..addStatusListener((status) {
+          if (status == AnimationStatus.completed) {
+            setState(() {
+              _currentStepIndex = (_currentStepIndex + 1) % _agentSteps.length;
+            });
+            _stepRotationController.forward(from: 0.0);
+          }
+        });
+
+    _stepRotationController.forward();
   }
 
   @override
   void dispose() {
+    _shimmerController.dispose();
+    _stepRotationController.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -580,13 +615,15 @@ class _TypingBubbleState extends State<TypingBubble>
           ),
         ),
         const SizedBox(width: 8),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          switchInCurve: Curves.easeOut,
-          switchOutCurve: Curves.easeIn,
-          child: widget.status == null
-              ? _buildTypingBubble()
-              : _buildAgentBubble(widget.status!),
+        Flexible(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeIn,
+            child: widget.status == null
+                ? _buildTypingBubble()
+                : _buildAgentBubble(widget.status!),
+          ),
         ),
       ],
     );
@@ -638,12 +675,14 @@ class _TypingBubbleState extends State<TypingBubble>
     );
   }
 
-  // --- UPGRADED: Technical Agent Process Visualizer ---
-  Widget _buildAgentBubble(String status) {
+  Widget _buildAgentBubble(String initialStatus) {
+    // Priority: dynamic step cycling string > passed status widget
+    final activeStatusText = _agentSteps[_currentStepIndex];
+
     return Container(
-      key: ValueKey('agent-$status'),
+      key: ValueKey('agent-$activeStatusText'),
       margin: const EdgeInsets.symmetric(vertical: 6),
-      width: 280,
+      constraints: const BoxConstraints(maxWidth: 280),
       decoration: BoxDecoration(
         color: AppColors.navyDark.withOpacity(0.85),
         borderRadius: const BorderRadius.only(
@@ -668,7 +707,31 @@ class _TypingBubbleState extends State<TypingBubble>
                 children: [
                   _buildPulseGlowIcon(),
                   const SizedBox(width: 10),
-                  Expanded(child: _buildStatusText(status)),
+
+                  // 💡 Rotating text inside header with smooth fade transition
+                  Expanded(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 350),
+                      transitionBuilder: (child, animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0.0, 0.2),
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: _buildStatusText(
+                        activeStatusText,
+                        key: ValueKey(activeStatusText),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 6),
                   AnimatedRotation(
                     turns: _isExpanded ? 0.25 : 0.0,
                     duration: const Duration(milliseconds: 200),
@@ -683,9 +746,9 @@ class _TypingBubbleState extends State<TypingBubble>
             ),
           ),
 
-          // Technical Steps / Process Trace Panel
+          // Technical Steps / Full History Panel (When Expanded)
           AnimatedCrossFade(
-            firstChild: const SizedBox(width: double.infinity),
+            firstChild: const SizedBox.shrink(),
             secondChild: _buildTechnicalTracePanel(),
             crossFadeState: _isExpanded
                 ? CrossFadeState.showSecond
@@ -700,9 +763,10 @@ class _TypingBubbleState extends State<TypingBubble>
   // Tech Icon with radar pulse indicator
   Widget _buildPulseGlowIcon() {
     return AnimatedBuilder(
-      animation: _controller,
+      animation: _shimmerController,
       builder: (context, child) {
-        final opacity = 0.3 + 0.7 * math.sin(_controller.value * math.pi);
+        final opacity =
+            0.3 + 0.7 * math.sin(_shimmerController.value * math.pi);
         return Stack(
           alignment: Alignment.center,
           children: [
@@ -722,15 +786,22 @@ class _TypingBubbleState extends State<TypingBubble>
   }
 
   // Shimmering status string
-  Widget _buildStatusText(String status) {
+  Widget _buildStatusText(String status, {Key? key}) {
     return AnimatedBuilder(
-      animation: _controller,
+      key: key,
+      animation: _shimmerController,
       builder: (context, child) {
         return ShaderMask(
           blendMode: BlendMode.srcIn,
           shaderCallback: (bounds) {
             final width = bounds.width;
-            final start = -width + (width * 2 * _controller.value);
+            if (width <= 0) {
+              return const LinearGradient(
+                colors: [AppColors.ivoryDeep, AppColors.ivoryDeep],
+              ).createShader(bounds);
+            }
+
+            final start = -width + (width * 2 * _shimmerController.value);
             final end = start + width * 0.7;
 
             return LinearGradient(
@@ -741,7 +812,12 @@ class _TypingBubbleState extends State<TypingBubble>
               ],
               stops: const [0.0, 0.5, 1.0],
             ).createShader(
-              Rect.fromLTWH(start, 0, math.max(0, end - start), bounds.height),
+              Rect.fromLTWH(
+                start,
+                0,
+                math.max(0.1, end - start),
+                bounds.height,
+              ),
             );
           },
           child: Text(
@@ -761,7 +837,7 @@ class _TypingBubbleState extends State<TypingBubble>
     );
   }
 
-  // Perplexity-style sub-step reasoning logs
+  // Perplexity-style full reasoning trace history (when chevron tapped)
   Widget _buildTechnicalTracePanel() {
     return Container(
       width: double.infinity,
@@ -773,24 +849,33 @@ class _TypingBubbleState extends State<TypingBubble>
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildTraceRow(Icons.search_rounded, "Searching knowledge base..."),
-          const SizedBox(height: 6),
-          _buildTraceRow(
-            Icons.account_tree_outlined,
-            "Analyzing context dependencies",
-          ),
-          const SizedBox(height: 6),
-          _buildTraceRow(Icons.code_rounded, "Synthesizing output stream"),
-        ],
+        children: List.generate(_agentSteps.length, (index) {
+          final isCurrent = index == _currentStepIndex;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: _buildTraceRow(
+              isCurrent
+                  ? Icons.sync_rounded
+                  : Icons.check_circle_outline_rounded,
+              _agentSteps[index],
+              isCurrent: isCurrent,
+            ),
+          );
+        }),
       ),
     );
   }
 
-  Widget _buildTraceRow(IconData icon, String label) {
+  Widget _buildTraceRow(IconData icon, String label, {bool isCurrent = false}) {
     return Row(
       children: [
-        Icon(icon, size: 12, color: AppColors.goldLight.withOpacity(0.7)),
+        Icon(
+          icon,
+          size: 12,
+          color: isCurrent
+              ? AppColors.gold
+              : AppColors.goldLight.withOpacity(0.4),
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
@@ -798,7 +883,10 @@ class _TypingBubbleState extends State<TypingBubble>
             style: TextStyle(
               fontSize: 11,
               fontFamily: 'Monospace',
-              color: AppColors.ivoryDeep.withOpacity(0.65),
+              color: isCurrent
+                  ? AppColors.ivoryDeep
+                  : AppColors.ivoryDeep.withOpacity(0.45),
+              fontWeight: isCurrent ? FontWeight.w600 : FontWeight.normal,
             ),
             overflow: TextOverflow.ellipsis,
           ),
@@ -806,6 +894,54 @@ class _TypingBubbleState extends State<TypingBubble>
       ],
     );
   }
+
+  // Untouched _buildTypingBubble...
+}
+
+// Perplexity-style sub-step reasoning logs
+Widget _buildTechnicalTracePanel() {
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.only(left: 12, right: 12, bottom: 10, top: 4),
+    decoration: BoxDecoration(
+      border: Border(
+        top: BorderSide(color: AppColors.gold.withOpacity(0.12), width: 0.8),
+      ),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildTraceRow(Icons.search_rounded, "Searching knowledge base..."),
+        const SizedBox(height: 6),
+        _buildTraceRow(
+          Icons.account_tree_outlined,
+          "Analyzing context dependencies",
+        ),
+        const SizedBox(height: 6),
+        _buildTraceRow(Icons.code_rounded, "Synthesizing output stream"),
+      ],
+    ),
+  );
+}
+
+Widget _buildTraceRow(IconData icon, String label) {
+  return Row(
+    children: [
+      Icon(icon, size: 12, color: AppColors.goldLight.withOpacity(0.7)),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontFamily: 'Monospace',
+            color: AppColors.ivoryDeep.withOpacity(0.65),
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    ],
+  );
 }
 
 // ── Input bar ─────────────────────────────────────────────────────────────────

@@ -9,7 +9,6 @@ import 'firebase_options.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
   debugPrint('🔵 BACKGROUND FCM: ${message.messageId}');
 }
 
@@ -19,17 +18,17 @@ class FcmService {
   static final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
 
+  // Importance.max + Priority.max forces the heads-up banner on Android
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
-    'high_importance_channel',
+    'high_importance_channel_v2', // Changed ID to force recreation of the channel
     'High Importance Notifications',
     description: 'Notifications for important events',
-    importance: Importance.high,
+    importance: Importance.max,
   );
 
   static String? _token;
-
   static String? get token => _token;
-
+  static set token(String? value) => _token = value;
   static final StreamController<String> _tokenController =
       StreamController<String>.broadcast();
 
@@ -42,10 +41,14 @@ class FcmService {
 
     final messaging = FirebaseMessaging.instance;
 
-    // -----------------------------
-    // Notification permission
-    // -----------------------------
+    // 1. Enable iOS foreground banners explicitly
+    await messaging.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
 
+    // 2. Request permission
     final settings = await messaging.requestPermission(
       alert: true,
       badge: true,
@@ -54,70 +57,48 @@ class FcmService {
 
     debugPrint('🟢 FCM: permission = ${settings.authorizationStatus}');
 
-    // -----------------------------
-    // Local notifications
-    // -----------------------------
-
+    // 3. Local notifications init (Android + iOS Darwin settings)
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
     );
 
+    const iosSettings = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+
     const initializationSettings = InitializationSettings(
       android: androidSettings,
+      iOS: iosSettings,
     );
 
     await _notifications.initialize(settings: initializationSettings);
 
     // Create Android notification channel
-    await _notifications
+    final androidPlugin = _notifications
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(_channel);
+        >();
 
-    // Android 13+
-    await _notifications
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.requestNotificationsPermission();
+    await androidPlugin?.createNotificationChannel(_channel);
 
-    // -----------------------------
-    // FCM token
-    // -----------------------------
+    // Android 13+ runtime permission
+    await androidPlugin?.requestNotificationsPermission();
 
-    debugPrint('🟡 FCM: getting token...');
-
+    // Fetch Token
     final token = await messaging.getToken();
-
     _token = token;
-
     debugPrint('🟢🟢🟢 FCM TOKEN: $token');
 
-    // -----------------------------
-    // Token refresh
-    // -----------------------------
-
     messaging.onTokenRefresh.listen((newToken) {
-      debugPrint('🔄 FCM: token refreshed: $newToken');
-
       _token = newToken;
-
       _tokenController.add(newToken);
     });
 
-    // -----------------------------
-    // Foreground messages
-    // -----------------------------
-
+    // Foreground listener
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       debugPrint('🟣 FOREGROUND FCM: ${message.messageId}');
-
-      debugPrint('🟣 Title: ${message.notification?.title}');
-
-      debugPrint('🟣 Body: ${message.notification?.body}');
-
-      debugPrint('🟣 Data: ${message.data}');
 
       final notification = message.notification;
 
@@ -129,29 +110,33 @@ class FcmService {
       }
     });
 
-    debugPrint('🟢 FCM: init() FINISHED');
-
     return token;
   }
-
-  // -----------------------------
-  // Local notification
-  // -----------------------------
 
   static Future<void> _showLocalNotification({
     required String title,
     required String body,
   }) async {
     const androidDetails = AndroidNotificationDetails(
-      'high_importance_channel',
+      'high_importance_channel_v2', // Matches channel ID above
       'High Importance Notifications',
       channelDescription: 'Notifications for important events',
-      importance: Importance.high,
-      priority: Priority.high,
+      importance: Importance.max,
+      priority: Priority.max,
       playSound: true,
+      visibility: NotificationVisibility.public,
     );
 
-    const notificationDetails = NotificationDetails(android: androidDetails);
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    const notificationDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
 
     await _notifications.show(
       id: DateTime.now().millisecondsSinceEpoch ~/ 1000,

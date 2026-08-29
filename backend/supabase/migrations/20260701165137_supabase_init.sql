@@ -89,7 +89,7 @@ CREATE TYPE user_role AS ENUM (
 CREATE TYPE student_gender AS ENUM (
     'male', 
     'female', 
-    'non-binary'
+    'nonbinary' --! it used to be "non-binary" changed because DB RESET was giving error
 );
 
 
@@ -126,7 +126,7 @@ CREATE TABLE courses(
 --- Student Table
 CREATE TABLE students(
     id BIGSERIAL PRIMARY KEY,
-    user_id UUID REFERENCES users(user_id) ON DELETE SET NULL,
+    user_id UUID REFERENCES users(user_id) , --! Removed "on delete set null" because new migration handles it.
     name TEXT NOT NULL,
     admission_type admission_type NOT NULL,
     learning_mode learning_mode NOT NULL,
