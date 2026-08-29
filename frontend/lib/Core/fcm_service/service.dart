@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:swaransh_academy/Core/theme/app_colors.dart';
 
 import 'firebase_options.dart';
 
@@ -58,9 +59,7 @@ class FcmService {
     debugPrint('🟢 FCM: permission = ${settings.authorizationStatus}');
 
     // 3. Local notifications init (Android + iOS Darwin settings)
-    const androidSettings = AndroidInitializationSettings(
-      '@mipmap/ic_launcher',
-    );
+    const androidSettings = AndroidInitializationSettings('ic_notification');
 
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
@@ -121,6 +120,8 @@ class FcmService {
       'high_importance_channel_v2', // Matches channel ID above
       'High Importance Notifications',
       channelDescription: 'Notifications for important events',
+      icon: 'ic_notification',
+      color: AppColors.ivory,
       importance: Importance.max,
       priority: Priority.max,
       playSound: true,

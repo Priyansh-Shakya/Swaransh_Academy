@@ -41,7 +41,7 @@ async def update_user(
     """
     Update User FCM Token / Profile
     """
-    print("😶UPDATING FCM TOKEN FOR USER: ", user["user_id"])
+    print("😶UPDATING FCM TOKEN FOR USER")
     return await service.update_user(id, body, db)
 
 #? To get role of user

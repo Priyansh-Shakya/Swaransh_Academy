@@ -1,1 +1,0 @@
-select user_id from public.users where role='admin';
