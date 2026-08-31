@@ -14,12 +14,15 @@ class AiAssistantNotifier extends AsyncNotifier<List<Map<String, String>>> {
     debugPrint("Chat Assistant called...");
     final current = state.valueOrNull ?? [];
 
-    // 1. Add user message + placeholder
+    // 1. Add user message + empty placeholder for assistant response
     final withUser = [
       ...current,
       {'role': 'user', 'content': query},
       {'role': 'assistant', 'content': ''}, // Placeholder for streaming
     ];
+
+    // Set UI streaming flag FIRST
+    ref.read(isStreamingProvider.notifier).state = true;
     state = AsyncValue.data(withUser);
 
     try {
@@ -28,8 +31,6 @@ class AiAssistantNotifier extends AsyncNotifier<List<Map<String, String>>> {
         query: query,
         conversationHistory: current,
       );
-
-      ref.read(isStreamingProvider.notifier).state = true;
 
       await for (final event
           in ref
@@ -41,6 +42,11 @@ class AiAssistantNotifier extends AsyncNotifier<List<Map<String, String>>> {
         }
 
         if (event is AssistantText) {
+          // As soon as first token arrives, clear the agent status badge
+          if (ref.read(agentStatusProvider) != null) {
+            ref.read(agentStatusProvider.notifier).state = null;
+          }
+
           final chunk = event.text;
           final currentList = state.valueOrNull ?? [];
           if (currentList.isEmpty) break;
@@ -57,17 +63,35 @@ class AiAssistantNotifier extends AsyncNotifier<List<Map<String, String>>> {
         }
       }
     } catch (e, st) {
-      // 2. Check if cancellation caused the exception
       if (e is DioException && CancelToken.isCancel(e)) {
         debugPrint("Stream cancelled successfully by user.");
         _cleanupCancelledState();
       } else {
-        // Only set AsyncError if it was an actual unhandled failure
         debugPrint("Error during streaming: $e");
-        state = AsyncValue.error(e, st);
+
+        // FIX: Preserve existing chat history and replace the empty placeholder
+        // with a user-friendly error string instead of throwing AsyncValue.error
+        final currentList = state.valueOrNull ?? [];
+        if (currentList.isNotEmpty) {
+          final lastMsg = currentList.last;
+
+          // If assistant message was left empty due to 402 / provider failure
+          if (lastMsg['role'] == 'assistant' &&
+              (lastMsg['content'] ?? '').isEmpty) {
+            final updated = [
+              ...currentList.sublist(0, currentList.length - 1),
+              {
+                'role': 'assistant',
+                'content':
+                    '⚠️ Unable to process request (Service unavailable or payment required). Please try again.',
+              },
+            ];
+            state = AsyncValue.data(updated);
+          }
+        }
       }
     } finally {
-      // 3. Guarantee streaming flags are reset
+      // ALWAYS reset UI flags regardless of success, cancellation, or crash
       ref.read(agentStatusProvider.notifier).state = null;
       ref.read(isStreamingProvider.notifier).state = false;
       debugPrint("Streaming set to FALSE");

@@ -37,6 +37,12 @@ class AssistantStatus extends AssistantStreamEvent {
   AssistantStatus(this.status);
 }
 
+class AssistantError extends AssistantStreamEvent {
+  final String error;
+
+  AssistantError(this.error);
+}
+
 /// Feature-specific API service for AI assistance.
 class AiAssistantApiService {
   AiAssistantApiService(this._dio);
@@ -68,23 +74,52 @@ class AiAssistantApiService {
         buffer = lines.removeLast();
 
         for (final line in lines) {
-          if (!line.startsWith('data: ')) continue;
+          final trimmedLine = line.trim();
+          if (!trimmedLine.startsWith('data: ')) continue;
 
-          final raw = line.substring(6).trim();
+          final raw = trimmedLine.substring(6).trim();
 
-          if (raw == '[DONE]') return;
+          // Standard completion check
+          if (raw == '[DONE]' || raw == '"[DONE]"') return;
           if (raw.isEmpty) continue;
 
+          // Legacy status check
           if (raw.startsWith('[STATUS]')) {
             final status = raw.replaceFirst('[STATUS]', '');
-            debugPrint("Setting Agent Status API:$status");
             yield AssistantStatus(status);
             continue;
           }
 
-          final chunk = jsonDecode(raw) as String;
+          try {
+            final decoded = jsonDecode(raw);
 
-          yield AssistantText(chunk);
+            if (decoded == '[DONE]') return;
+
+            if (decoded is String) {
+              yield AssistantText(decoded);
+            } else if (decoded is Map<String, dynamic>) {
+              final type = decoded['type'];
+
+              if (type == 'status') {
+                final statusMsg =
+                    decoded['content'] ?? decoded['message'] ?? '';
+                yield AssistantStatus(statusMsg);
+              } else if (type == 'content') {
+                final delta = decoded['delta'] as String?;
+                if (delta != null && delta.isNotEmpty) {
+                  yield AssistantText(delta);
+                }
+              } else if (type == 'error') {
+                final errorMsg = decoded['message'] ?? 'An error occurred';
+                yield AssistantError(errorMsg);
+                return; // End stream on error
+              } else if (type == 'done') {
+                return; // End stream cleanly
+              }
+            }
+          } catch (e) {
+            debugPrint("Error parsing SSE line: $e | Line: $raw");
+          }
         }
       }
     } catch (e) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/service/supabase_object_storage/helper.dart';
+import 'package:swaransh_academy/Core/sounds/player.dart';
 import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
 
 import '../../../Core/theme/app_colors.dart';
@@ -324,7 +325,14 @@ class AdminAdmissionDetailPage extends ConsumerWidget {
             style: FilledButton.styleFrom(
               backgroundColor: approve ? AppColors.active : AppColors.error,
             ),
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () async {
+              Navigator.pop(ctx, true);
+              if (approve) {
+                await AppSounds.playApproveSound();
+              } else {
+                await AppSounds.playDeclineSound();
+              }
+            },
             child: Text(approve ? 'Approve' : 'Decline'),
           ),
         ],

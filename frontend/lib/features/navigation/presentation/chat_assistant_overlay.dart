@@ -431,12 +431,10 @@ class _MessageList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userName = ref.watch(nameProvider);
-
     final name = userName ?? 'there';
     final greeting =
         'Hello ${name.split(' ').first}, I am Sargam.\n\nHow can I assist you today? 🤗';
 
-    // 3. Keep your scroll listener setup
     ref.listen(aiAssistantProvider, (_, __) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (scrollCtrl.hasClients) {
@@ -450,25 +448,29 @@ class _MessageList extends ConsumerWidget {
     });
 
     final history = ref.watch(aiAssistantProvider).valueOrNull ?? [];
-    final isStreaming =
-        history.isNotEmpty &&
-        history.last['role'] == 'assistant' &&
-        (history.last['content'] ?? '').isEmpty;
+    // Single source of truth for both InputBar and MessageList
+    final isStreaming = ref.watch(isStreamingProvider);
     final agentStatus = ref.watch(agentStatusProvider);
 
-    // 4. Return the Widget tree
     return ListView(
       controller: scrollCtrl,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       children: [
         _Bubble(text: greeting, isUser: false),
 
-        for (final msg in history)
-          // Skip drawing empty assistant bubble while streaming
-          if (!(msg == history.last && isStreaming))
-            _Bubble(text: msg['content'] ?? '', isUser: msg['role'] == 'user'),
+        for (int i = 0; i < history.length; i++)
+          // Hide empty assistant bubble while waiting for the first token stream
+          if (!(i == history.length - 1 &&
+              isStreaming &&
+              (history[i]['content'] ?? '').isEmpty))
+            _Bubble(
+              text: history[i]['content'] ?? '',
+              isUser: history[i]['role'] == 'user',
+            ),
 
-        if (isStreaming) TypingBubble(status: agentStatus),
+        if (isStreaming &&
+            (history.isEmpty || (history.last['content'] ?? '').isEmpty))
+          TypingBubble(status: agentStatus),
       ],
     );
   }

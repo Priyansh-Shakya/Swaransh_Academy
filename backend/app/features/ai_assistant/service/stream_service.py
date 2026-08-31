@@ -35,6 +35,7 @@ class AIServiceStream:
                 "messages": messages,
                 "stream": True,
                 "max_tokens": max_tokens,
+                "temperature": 0.65, #* Creativity
             }
 
             headers = {
@@ -52,7 +53,13 @@ class AIServiceStream:
 
                     print(f"[AI] HF status: {response.status_code}")
 
-                    response.raise_for_status()
+                    if response.is_error:
+                        error_body = await response.aread()
+                        print(
+                            "[AI] HF error body:",
+                            error_body.decode(errors="replace")
+                        )
+                        response.raise_for_status()
 
                     async for line in response.aiter_lines():
 
@@ -71,7 +78,8 @@ class AIServiceStream:
                             yield chunk
 
         except httpx.HTTPStatusError as e:
-
+            await e.response.aread()
+            print(f"[AI] HF error body: {e.response.text}")
             status = e.response.status_code
 
             print(f"[AI] HF HTTP error: {status}")
@@ -97,6 +105,7 @@ class AIServiceStream:
                 "messages": messages,
                 "stream": True,
                 "max_tokens": max_tokens,
+                "temperature": 0.65,
             }
 
             headers = {

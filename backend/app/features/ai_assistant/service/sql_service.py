@@ -1,12 +1,14 @@
 import os
 
 import httpx
-from app.features.ai_assistant.config import HF_MODEL, HF_ROUTER_URL, HF_TOKEN
+from app.features.ai_assistant.config import HF_ROUTER_URL, HF_SQL_MODEL, HF_TOKEN
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
+if not HF_SQL_MODEL:
+    print("HF SQL  MODEL DID not LOAD")
 
 OPENROUTER_API_KEY = os.getenv("OPEN_ROUTER_API_KEY")
 
@@ -30,7 +32,7 @@ class AIServiceSql:
             print("[AI] Trying Hugging Face...")
 
             payload = {
-                "model": HF_MODEL,
+                "model": HF_SQL_MODEL,
                 "messages": messages,
                 "temperature": 0,
             }
@@ -47,10 +49,15 @@ class AIServiceSql:
                     json=payload,
                 )
 
-            print(f"[AI] Hugging Face status: {response.status_code}")
-            print(f"[AI] Hugging Face raw response: {response.text}")
-
-            response.raise_for_status()
+            print(f"[AI] HF status: {response.status_code}")
+            
+            if response.is_error:
+                error_body = await response.aread()
+                print(
+                    "[AI] HF error body:",
+                    error_body.decode(errors="replace")
+                )
+                response.raise_for_status()
 
             try:
                 data = response.json()
@@ -70,7 +77,8 @@ class AIServiceSql:
             return result
 
         except httpx.HTTPStatusError as e:
-
+            await e.response.aread()
+            print(f"[AI] HF error body: {e.response.text}")
             status = e.response.status_code
 
             print(f"[AI] Hugging Face HTTP error: {status}")

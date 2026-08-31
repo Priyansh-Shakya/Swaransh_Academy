@@ -20,7 +20,7 @@ from app.features.ai_assistant.agent.sql_generator import extract_query, generat
 from app.features.ai_assistant.ai_service import stream_ai_response
 from app.features.ai_assistant.helper import check_role
 from app.features.ai_assistant.model import AssistanceQuery
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 
 router = APIRouter()
@@ -28,6 +28,7 @@ router = APIRouter()
 
 @router.post("/assistance")
 async def ask_assistant(
+    request: Request,
     body: AssistanceQuery,
     user=Depends(get_current_user_optional),
     db=Depends(get_db),
@@ -82,18 +83,18 @@ async def ask_assistant(
                     time.time()*1000,
                     chunk
                 )
-
-                yield data.encode("utf-8")
+                if await request.is_disconnected():
+                    print("[AI] Client disconnected mid-stream.")
+                    break
+                if data:
+                    yield data.encode("utf-8")
 
                 await asyncio.sleep(0)
 
         except Exception as e:
-            print(e)
-
-            yield f"data: {json.dumps({
-                'type': 'error',
-                'message': str(e)
-            })}\n\n"
+            print(f"[AI Stream Error]: {e}")
+            # Send explicit error payload to client
+            yield f"data: {json.dumps({'type': 'error', 'message': 'Service temporarily unavailable. Please try again.'})}\n\n"
 
         finally:
             yield "data: [DONE]\n\n"

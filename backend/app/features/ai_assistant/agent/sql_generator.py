@@ -1,6 +1,7 @@
 
 
 import json
+import re
 
 from app.features.ai_assistant.agent.normalize_query import normalize_write_query
 from app.features.ai_assistant.agent.query_validator import validate_sql
@@ -54,10 +55,30 @@ async def generate_sql(user_query: str, history, db):
 
 
 async def extract_query(sql_input: str | dict, db) -> tuple[any, str | None]:
-    """
-    Returns a tuple of (data_or_message, executed_sql_query)
-    """
-    sql = json.loads(sql_input) if isinstance(sql_input, str) else sql_input
+    """Returns a tuple of (data_or_message, executed_sql_query)"""
+
+    if isinstance(sql_input, str):
+        # 1. Strip markdown code fences (```json ... ``` or ``` ...)
+        cleaned_input = re.sub(
+            r"^```(?:json|sql)?\s*|\s*```$", "", sql_input.strip(), flags=re.IGNORECASE
+        )
+
+        # 2. Parse the sanitized JSON string
+        try:
+            sql = json.loads(cleaned_input)
+        except json.JSONDecodeError:
+            # Fallback: Extract the first valid JSON object payload {...} in case there is leading text
+            match = re.search(r"\{.*\}", sql_input, re.DOTALL)
+            if match:
+                sql = json.loads(match.group(0))
+            else:
+                raise ValueError(
+                    f"Failed to parse LLM response as JSON: {sql_input}"
+                )
+    else:
+        sql = sql_input
+
+    # Safely evaluate query_type for both str and dict inputs
     query_type = sql.get("type")
 
     if query_type == "sql":

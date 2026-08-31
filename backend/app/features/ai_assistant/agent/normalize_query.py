@@ -2,7 +2,7 @@ import re
 
 BASE_IDENTIFIERS = {
     "students": {"id", "scholar_no", "name", "status"},
-    "admissions": {"id", "name", "status", "admission_status"},
+    "admissions": {"id", "name", "status"},
     "payment": {"id", "student_id", "amount", "status"},
     "courses": {"id", "course_name"},
     "users": {"user_id", "user_name", "role"},

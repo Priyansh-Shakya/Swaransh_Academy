@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/service/supabase_object_storage/object_storage.dart';
+import 'package:swaransh_academy/Core/sounds/player.dart';
 import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
 import 'package:swaransh_academy/features/payments/presentation/payment_hostory.dart';
 import 'package:swaransh_academy/features/students/data/students_notifier.dart';
@@ -191,7 +192,10 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () async {
+              await AppSounds.playDeleteSound();
+              Navigator.pop(ctx, true);
+            },
             child: const Text('Delete'),
           ),
         ],

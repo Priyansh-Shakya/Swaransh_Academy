@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
 import 'package:swaransh_academy/Core/service/supabase_object_storage/helper.dart';
+import 'package:swaransh_academy/Core/sounds/player.dart';
 import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
 
 import '../../../Core/auth/user_role.dart';
@@ -220,6 +221,7 @@ class _CourseDetailBody extends ConsumerWidget {
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () async {
+              await AppSounds.playDeleteSound();
               Navigator.pop(dialogContext);
               if (context.mounted) context.pop();
               await ref.read(coursesProvider.notifier).deleteCourse(course.id);

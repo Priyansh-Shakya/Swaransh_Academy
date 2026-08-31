@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/enums/form_fields.dart';
 import 'package:swaransh_academy/Core/service/supabase_object_storage/helper.dart';
+import 'package:swaransh_academy/Core/sounds/player.dart';
 import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
 import 'package:swaransh_academy/features/admission/data/admission_notifier.dart';
 import 'package:swaransh_academy/features/admission/domain/admission_form_record.dart';
@@ -146,6 +147,7 @@ class _AdminAdmissionPageState extends ConsumerState<AdminAdmissionPage> {
     );
     if (!confirmed || !mounted) return;
     try {
+      await AppSounds.playApproveSound();
       await ref.read(admissionFormsListProvider.notifier).approve(form.id);
     } catch (_) {
       if (mounted) {
@@ -167,6 +169,7 @@ class _AdminAdmissionPageState extends ConsumerState<AdminAdmissionPage> {
     );
     if (!confirmed || !mounted) return;
     try {
+      await AppSounds.playDeclineSound();
       await ref.read(admissionFormsListProvider.notifier).decline(form.id);
     } catch (_) {
       if (mounted) {
