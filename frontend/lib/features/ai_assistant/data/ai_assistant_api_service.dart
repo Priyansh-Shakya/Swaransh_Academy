@@ -77,16 +77,31 @@ class AiAssistantApiService {
           final trimmedLine = line.trim();
           if (!trimmedLine.startsWith('data: ')) continue;
 
-          final raw = trimmedLine.substring(6).trim();
+          var raw = trimmedLine.substring(6).trim();
 
           // Standard completion check
           if (raw == '[DONE]' || raw == '"[DONE]"') return;
           if (raw.isEmpty) continue;
 
-          // Legacy status check
+          // 1. Handle [STATUS]: or [STATUS] (with or without colon/spaces)
           if (raw.startsWith('[STATUS]')) {
-            final status = raw.replaceFirst('[STATUS]', '');
-            yield AssistantStatus(status);
+            var statusContent = raw.replaceFirst(
+              RegExp(r'^\[STATUS\]:?\s*'),
+              '',
+            );
+
+            // Format if it's a ToolCall string
+            if (statusContent.contains('ToolCall(')) {
+              statusContent = formatToolStatus(statusContent);
+            }
+
+            yield AssistantStatus(statusContent);
+            continue;
+          }
+
+          // 2. Catch tool calls emitted without [STATUS] prefix
+          if (raw.startsWith('ToolCall(') || raw.startsWith('[ToolCall(')) {
+            yield AssistantStatus(formatToolStatus(raw));
             continue;
           }
 
@@ -96,14 +111,25 @@ class AiAssistantApiService {
             if (decoded == '[DONE]') return;
 
             if (decoded is String) {
-              yield AssistantText(decoded);
+              // Extra safety check in case decoded JSON is a [STATUS] string
+              // Handle legacy or plain string status checks with or without colon
+              if (raw.startsWith('[STATUS]')) {
+                final status = raw.replaceFirst(
+                  RegExp(r'^\[STATUS\]:?\s*'),
+                  '',
+                );
+                yield AssistantStatus(status);
+                continue;
+              } else {
+                yield AssistantText(decoded);
+              }
             } else if (decoded is Map<String, dynamic>) {
               final type = decoded['type'];
 
               if (type == 'status') {
                 final statusMsg =
                     decoded['content'] ?? decoded['message'] ?? '';
-                yield AssistantStatus(statusMsg);
+                yield AssistantStatus(formatToolStatus(statusMsg.toString()));
               } else if (type == 'content') {
                 final delta = decoded['delta'] as String?;
                 if (delta != null && delta.isNotEmpty) {
@@ -112,9 +138,9 @@ class AiAssistantApiService {
               } else if (type == 'error') {
                 final errorMsg = decoded['message'] ?? 'An error occurred';
                 yield AssistantError(errorMsg);
-                return; // End stream on error
+                return;
               } else if (type == 'done') {
-                return; // End stream cleanly
+                return;
               }
             }
           } catch (e) {
@@ -137,3 +163,29 @@ final aiAssistantApiServiceProvider = Provider<AiAssistantApiService>((ref) {
   final dio = ref.watch(dioProvider);
   return AiAssistantApiService(dio);
 });
+
+//* Tool Call Fornmatore for HOOD
+String formatToolStatus(String raw) {
+  final nameMatch = RegExp(r'''name=['"]([^'"]+)''').firstMatch(raw);
+  final toolName = nameMatch?.group(1);
+
+  if (toolName == 'get_tables_schema') {
+    final tableMatch = RegExp(
+      r'''tables['"]?:\s*\[?['"]([^'"\]]+)''',
+    ).firstMatch(raw);
+
+    final table = tableMatch?.group(1) ?? 'database';
+    return "Checking $table schema...";
+  }
+
+  if (toolName == 'sql_execute') {
+    return "Querying database...";
+  }
+
+  if (toolName != null) {
+    final clean = toolName.replaceAll('_', ' ');
+    return "Executing $clean...";
+  }
+
+  return raw.trim();
+}

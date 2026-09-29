@@ -120,6 +120,9 @@ async def check_user_role(user, db):
 
 
 async def verify_admin(password: str, db) -> bool:
+
+    
+
     # 1. Fetch the single row securely
     row = await db.fetchrow("SELECT value FROM config WHERE key='admin_verification_code'")
     

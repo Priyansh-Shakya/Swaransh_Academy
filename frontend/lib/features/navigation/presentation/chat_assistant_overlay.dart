@@ -532,9 +532,8 @@ class _Bubble extends StatelessWidget {
 
 class TypingBubble extends StatefulWidget {
   final String? status;
-  final bool isExpandedDefault;
 
-  const TypingBubble({super.key, this.status, this.isExpandedDefault = false});
+  const TypingBubble({super.key, this.status});
 
   @override
   State<TypingBubble> createState() => _TypingBubbleState();
@@ -543,57 +542,50 @@ class TypingBubble extends StatefulWidget {
 class _TypingBubbleState extends State<TypingBubble>
     with TickerProviderStateMixin {
   late final AnimationController _shimmerController;
-  late final AnimationController _stepRotationController;
-  late final AnimationController
-  _controller; // 👈 Standard 3-dot typing controller
-  bool _isExpanded = false;
-  int _currentStepIndex = 0;
+  late final AnimationController _dotController;
 
-  // 💡 List of rotating agent status steps
-  final List<String> _agentSteps = const [
-    "Searching knowledge base...",
-    "Analyzing context dependencies",
-    "Querying PostgreSQL database",
-    "Synthesizing output stream...",
-  ];
+  // Real backend trace history
+  final List<String> _receivedSteps = [];
 
   @override
   void initState() {
     super.initState();
-    _isExpanded = widget.isExpandedDefault;
 
-    _controller = AnimationController(
+    _dotController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     )..repeat();
-    // Shimmer effect controller
+
     _shimmerController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     )..repeat();
 
-    // 💡 Step rotation controller (rotates text every 2.2 seconds)
-    _stepRotationController =
-        AnimationController(
-          vsync: this,
-          duration: const Duration(milliseconds: 4000),
-        )..addStatusListener((status) {
-          if (status == AnimationStatus.completed) {
-            setState(() {
-              _currentStepIndex = (_currentStepIndex + 1) % _agentSteps.length;
-            });
-            _stepRotationController.forward(from: 0.0);
-          }
-        });
+    if (widget.status != null && widget.status!.trim().isNotEmpty) {
+      _receivedSteps.add(widget.status!.trim());
+    }
+  }
 
-    _stepRotationController.forward();
+  @override
+  void didUpdateWidget(covariant TypingBubble oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Append each new status as it arrives from SSE
+    if (widget.status != null &&
+        widget.status!.trim().isNotEmpty &&
+        widget.status != oldWidget.status) {
+      final newStatus = widget.status!.trim();
+      if (!_receivedSteps.contains(newStatus)) {
+        setState(() {
+          _receivedSteps.add(newStatus);
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
     _shimmerController.dispose();
-    _stepRotationController.dispose();
-    _controller.dispose();
+    _dotController.dispose();
     super.dispose();
   }
 
@@ -619,19 +611,17 @@ class _TypingBubbleState extends State<TypingBubble>
         const SizedBox(width: 8),
         Flexible(
           child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            switchInCurve: Curves.easeOut,
-            switchOutCurve: Curves.easeIn,
-            child: widget.status == null
+            duration: const Duration(milliseconds: 250),
+            child: _receivedSteps.isEmpty && widget.status == null
                 ? _buildTypingBubble()
-                : _buildAgentBubble(widget.status!),
+                : _buildVerticalTimelineBubble(),
           ),
         ),
       ],
     );
   }
 
-  // --- UNTOUCHED: Standard 3-Dot Typing Animation ---
+  // Standard 3-Dot fallback before status arrives
   Widget _buildTypingBubble() {
     return Container(
       key: const ValueKey('typing'),
@@ -650,13 +640,13 @@ class _TypingBubbleState extends State<TypingBubble>
         width: 28,
         height: 16,
         child: AnimatedBuilder(
-          animation: _controller,
+          animation: _dotController,
           builder: (context, child) {
             return Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: List.generate(3, (index) {
                 final delay = index * 0.18;
-                final progress = ((_controller.value - delay) % 1.0).clamp(
+                final progress = ((_dotController.value - delay) % 1.0).clamp(
                   0.0,
                   1.0,
                 );
@@ -677,14 +667,17 @@ class _TypingBubbleState extends State<TypingBubble>
     );
   }
 
-  Widget _buildAgentBubble(String initialStatus) {
-    // Priority: dynamic step cycling string > passed status widget
-    final activeStatusText = _agentSteps[_currentStepIndex];
+  // Vertical Timeline HUD (Default Open, No Collapsing)
+  Widget _buildVerticalTimelineBubble() {
+    final steps = _receivedSteps.isNotEmpty
+        ? _receivedSteps
+        : [widget.status ?? "Working on it..."];
 
     return Container(
-      key: ValueKey('agent-$activeStatusText'),
+      key: ValueKey('timeline-${steps.length}'),
       margin: const EdgeInsets.symmetric(vertical: 6),
-      constraints: const BoxConstraints(maxWidth: 280),
+      constraints: const BoxConstraints(maxWidth: 300),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.navyDark.withOpacity(0.85),
         borderRadius: const BorderRadius.only(
@@ -698,99 +691,116 @@ class _TypingBubbleState extends State<TypingBubble>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
+        children: List.generate(steps.length, (index) {
+          final isLast = index == steps.length - 1;
+          final isCompleted = !isLast;
+
+          return _buildTimelineCheckpointRow(
+            text: steps[index],
+            isCompleted: isCompleted,
+            isLast: isLast,
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildTimelineCheckpointRow({
+    required String text,
+    required bool isCompleted,
+    required bool isLast,
+  }) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Bar / Collapsible Toggle
-          InkWell(
-            onTap: () => setState(() => _isExpanded = !_isExpanded),
-            borderRadius: BorderRadius.circular(14),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              child: Row(
-                children: [
-                  _buildPulseGlowIcon(),
-                  const SizedBox(width: 10),
-
-                  // 💡 Rotating text inside header with smooth fade transition
-                  Expanded(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 350),
-                      transitionBuilder: (child, animation) {
-                        return FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0.0, 0.2),
-                              end: Offset.zero,
-                            ).animate(animation),
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: _buildStatusText(
-                        activeStatusText,
-                        key: ValueKey(activeStatusText),
-                      ),
-                    ),
+          // ── The vertical checkpoint track (Indicator node + line) ──
+          Column(
+            children: [
+              const SizedBox(height: 2),
+              _buildCheckpointNode(isCompleted),
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 1.5,
+                    margin: const EdgeInsets.symmetric(vertical: 3),
+                    color: AppColors.gold.withOpacity(0.25),
                   ),
-
-                  const SizedBox(width: 6),
-                  AnimatedRotation(
-                    turns: _isExpanded ? 0.25 : 0.0,
-                    duration: const Duration(milliseconds: 200),
-                    child: Icon(
-                      Icons.chevron_right_rounded,
-                      size: 18,
-                      color: AppColors.ivoryDeep.withOpacity(0.6),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                ),
+            ],
           ),
+          const SizedBox(width: 10),
 
-          // Technical Steps / Full History Panel (When Expanded)
-          AnimatedCrossFade(
-            firstChild: const SizedBox.shrink(),
-            secondChild: _buildTechnicalTracePanel(),
-            crossFadeState: _isExpanded
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 250),
+          // ── Checkpoint label ──
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
+              child: isCompleted
+                  ? Text(
+                      text,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontFamily: 'Monospace',
+                        color: AppColors.ivoryDeep.withOpacity(0.55),
+                      ),
+                    )
+                  : _buildShimmerText(text),
+            ),
           ),
         ],
       ),
     );
   }
 
-  // Tech Icon with radar pulse indicator
-  Widget _buildPulseGlowIcon() {
+  // Node: Checked icon when complete, pulsing radar halo when currently active
+  Widget _buildCheckpointNode(bool isCompleted) {
+    if (isCompleted) {
+      return Icon(
+        Icons.check_circle_rounded,
+        size: 13,
+        color: AppColors.gold.withOpacity(0.7),
+      );
+    }
+
+    // Active Node with breathing pulse
     return AnimatedBuilder(
       animation: _shimmerController,
       builder: (context, child) {
+        final scale = 1.0 + 0.25 * math.sin(_shimmerController.value * math.pi);
         final opacity =
             0.3 + 0.7 * math.sin(_shimmerController.value * math.pi);
+
         return Stack(
           alignment: Alignment.center,
           children: [
-            Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.gold.withOpacity(opacity * 0.25),
+            Transform.scale(
+              scale: scale,
+              child: Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.gold.withOpacity(opacity * 0.25),
+                ),
               ),
             ),
-            const Icon(Icons.blur_on_rounded, size: 16, color: AppColors.gold),
+            Container(
+              width: 6,
+              height: 6,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.gold,
+              ),
+            ),
           ],
         );
       },
     );
   }
 
-  // Shimmering status string
-  Widget _buildStatusText(String status, {Key? key}) {
+  // Shimmer effect for current active step
+  Widget _buildShimmerText(String text) {
     return AnimatedBuilder(
-      key: key,
       animation: _shimmerController,
       builder: (context, child) {
         return ShaderMask(
@@ -823,13 +833,10 @@ class _TypingBubbleState extends State<TypingBubble>
             );
           },
           child: Text(
-            status,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+            text,
             style: const TextStyle(
-              fontSize: 12.5,
+              fontSize: 12,
               fontWeight: FontWeight.w600,
-              letterSpacing: 0.2,
               fontFamily: 'Monospace',
               color: AppColors.ivoryDeep,
             ),
@@ -838,112 +845,6 @@ class _TypingBubbleState extends State<TypingBubble>
       },
     );
   }
-
-  // Perplexity-style full reasoning trace history (when chevron tapped)
-  Widget _buildTechnicalTracePanel() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.only(left: 12, right: 12, bottom: 10, top: 4),
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: AppColors.gold.withOpacity(0.12), width: 0.8),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: List.generate(_agentSteps.length, (index) {
-          final isCurrent = index == _currentStepIndex;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: _buildTraceRow(
-              isCurrent
-                  ? Icons.sync_rounded
-                  : Icons.check_circle_outline_rounded,
-              _agentSteps[index],
-              isCurrent: isCurrent,
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildTraceRow(IconData icon, String label, {bool isCurrent = false}) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 12,
-          color: isCurrent
-              ? AppColors.gold
-              : AppColors.goldLight.withOpacity(0.4),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontFamily: 'Monospace',
-              color: isCurrent
-                  ? AppColors.ivoryDeep
-                  : AppColors.ivoryDeep.withOpacity(0.45),
-              fontWeight: isCurrent ? FontWeight.w600 : FontWeight.normal,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Untouched _buildTypingBubble...
-}
-
-// Perplexity-style sub-step reasoning logs
-Widget _buildTechnicalTracePanel() {
-  return Container(
-    width: double.infinity,
-    padding: const EdgeInsets.only(left: 12, right: 12, bottom: 10, top: 4),
-    decoration: BoxDecoration(
-      border: Border(
-        top: BorderSide(color: AppColors.gold.withOpacity(0.12), width: 0.8),
-      ),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildTraceRow(Icons.search_rounded, "Searching knowledge base..."),
-        const SizedBox(height: 6),
-        _buildTraceRow(
-          Icons.account_tree_outlined,
-          "Analyzing context dependencies",
-        ),
-        const SizedBox(height: 6),
-        _buildTraceRow(Icons.code_rounded, "Synthesizing output stream"),
-      ],
-    ),
-  );
-}
-
-Widget _buildTraceRow(IconData icon, String label) {
-  return Row(
-    children: [
-      Icon(icon, size: 12, color: AppColors.goldLight.withOpacity(0.7)),
-      const SizedBox(width: 8),
-      Expanded(
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontFamily: 'Monospace',
-            color: AppColors.ivoryDeep.withOpacity(0.65),
-          ),
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-    ],
-  );
 }
 
 // ── Input bar ─────────────────────────────────────────────────────────────────

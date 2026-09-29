@@ -11,19 +11,35 @@ import time
 # from auth import get_current_user  # wire in your actual dependency
 from app.core.auth.auth import get_current_user_optional
 from app.core.db import get_db
-from app.features.ai_assistant.agent.intent_detector import (
-    Intent,
-    get_models,
-    intent_router,
-)
-from app.features.ai_assistant.agent.sql_generator import extract_query, generate_sql
-from app.features.ai_assistant.ai_service import stream_ai_response
+
 from app.features.ai_assistant.helper import check_role
 from app.features.ai_assistant.model import AssistanceQuery
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 
+from app.features.ai_assistant.agent.sparse_agent import build_agent
+from app.core.helper import _format_agent_status
+
 router = APIRouter()
+
+
+import asyncio
+import json
+import time
+import os
+
+DEBUG = os.getenv("AI_DEBUG", "1") == "1"  #! DEFAUL TRUE
+
+def dprint(*args, **kwargs):
+    if DEBUG:
+        print(*args, **kwargs)
+
+
+ROLE_CONFIG = {
+    "guest":   {"max_tokens": 250},
+    "student": {"max_tokens": 250},
+    "admin":   {"max_tokens": 800},
+}
 
 
 @router.post("/assistance")
@@ -32,72 +48,101 @@ async def ask_assistant(
     body: AssistanceQuery,
     user=Depends(get_current_user_optional),
     db=Depends(get_db),
-    models=Depends(get_models),
 ):
+    dprint("Assistant router called")
 
-    print("Assistant router called")
-    if  user is None:
-        role = 'guest'
-    role = await check_role(user, db)  # single DB call, source of truth
-    agent_call = False
-    
+    role = "guest" if user is None else await check_role(user, db)
+    max_tokens = ROLE_CONFIG.get(role, ROLE_CONFIG["guest"])["max_tokens"]
 
-    if role == "admin":  # not body.isAdmin
-        vec, clf = models
-
-        intent = intent_router(body.query, vec, clf)
-
-        print("INTENT DETECTED:", intent)
-        if intent == Intent.query:
-            agent_call = True
-            
-
+    # Build the agent fresh per request — messages/tools/client all populated here.
+    client = request.app.state.ai_client #! CLIENT PASSED TO BUILD AGENT
+    agent = build_agent(query_history=body.conversation_history, role=role, db=db, name=body.name, client=client)
 
     async def event_stream():
-        try:
-            agent_data = None #? Keep it here so that you dont get error later.
-            executed_sql = None #? Keep it here so that you dont get error later.
-             # tell client the mode FIRST, before anything else
-            if agent_call:
-                yield "data: [STATUS]Querying database...\n\n"
-                #* Generate SQL here and then Fetch From DB inside Resdponse Stream
-                response = await generate_sql(user_query=body.query, history = body.conversation_history, db = db)
-                # Unpack tuple output
-                agent_data, executed_sql = await extract_query(response, db)
+        dprint("[SSE] event_stream START")
 
-            async for chunk in stream_ai_response(
-                body.query,
-                body.conversation_history,
-                user,
-                db,
-                body.name,
-                agent_call,
-                agent_data,
-                executed_sql, # Pass executed_sql to streaming pipeline
-                role
-            ):
-                data = f"data: {json.dumps(chunk)}\n\n"
+        queue: asyncio.Queue = asyncio.Queue()
+        SENTINEL = object()
 
-                print(
-                    "SSE SEND",
-                    time.time()*1000,
-                    chunk
+        def on_token(chunk: str):
+            dprint("[SSE] TOKEN CALLBACK:", repr(chunk), '\n\n')
+            queue.put_nowait(chunk)
+
+        def show_state(state: str):
+            dprint("[SSE] __AGENT__STATE__:", repr(state), "\n\n")
+
+            formatted_msg = _format_agent_status(state)
+
+            # 1. Put dict into queue so the loop treats it as a structured event
+            queue.put_nowait({
+                "type": "status",
+                "content": formatted_msg
+            })
+
+        async def run_agent():
+            dprint("[SSE] run_agent START")
+
+            try:
+                result = await agent.run(
+                    body.query,
+                    stream=on_token,
+                    show_state=show_state
                 )
-                if await request.is_disconnected():
-                    print("[AI] Client disconnected mid-stream.")
+
+                dprint("[SSE] agent.run FINISHED:", repr(result))
+
+            except Exception as e:
+                dprint(f"[Agent Error]: {e}")
+                queue.put_nowait({
+                    "type": "error",
+                    "message": "Service temporarily unavailable. Please try again.",
+                })
+
+            finally:
+                dprint("[SSE] run_agent FINALLY")
+                queue.put_nowait(SENTINEL)
+
+        task = asyncio.create_task(run_agent())
+
+        dprint("[SSE] run_agent TASK CREATED")
+
+        try:
+            while True:
+                dprint("[SSE] WAITING FOR QUEUE...")
+
+                item = await queue.get()
+
+                dprint("[SSE] QUEUE ITEM:", repr(item))
+
+                if item is SENTINEL:
+                    dprint("[SSE] SENTINEL RECEIVED")
                     break
-                if data:
-                    yield data.encode("utf-8")
+
+                # 2. Both dicts (status/error) and string tokens now format cleanly
+                if isinstance(item, dict):
+                    data = f"data: {json.dumps(item)}\n\n"
+                else:
+                    data = f"data: {json.dumps({'type': 'content', 'delta': item})}\n\n"
+
+                dprint(
+                    "[SSE] SENDING:",
+                    repr(data),
+                )
+
+                if await request.is_disconnected():
+                    dprint("[SSE] CLIENT DISCONNECTED")
+                    task.cancel()
+                    break
+
+                yield data.encode("utf-8")
+
+                dprint("[SSE] YIELD COMPLETE")
 
                 await asyncio.sleep(0)
 
-        except Exception as e:
-            print(f"[AI Stream Error]: {e}")
-            # Send explicit error payload to client
-            yield f"data: {json.dumps({'type': 'error', 'message': 'Service temporarily unavailable. Please try again.'})}\n\n"
-
         finally:
-            yield "data: [DONE]\n\n"
+            dprint("[SSE] event_stream FINALLY")
+            yield "data: [DONE]\n\n".encode("utf-8")
 
 
     return StreamingResponse(
@@ -107,5 +152,5 @@ async def ask_assistant(
             "Cache-Control": "no-cache, no-transform",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
-        }
+        },
     )

@@ -42,7 +42,7 @@ CREATE TYPE education_qualification AS ENUM (
 CREATE TYPE fee_type AS ENUM (
     'Monthly', 
     'Quarterly', 
-    'Half_Yearly', 
+    'Half_Yearly',  
     'Yearly'
 );
 

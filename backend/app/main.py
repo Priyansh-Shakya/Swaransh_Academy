@@ -3,6 +3,8 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import joblib
+from sparse_ai import Client 
+from sparse_ai.client import Providers
 from app.core.db import close_db, init_db
 from app.features.admission.router import router as admission_router
 from app.features.ai_assistant.router import router as ai_assistant_router
@@ -40,19 +42,7 @@ def load_initial_configs(app: FastAPI):
     load_dotenv(env_path)
     print(">>> .env loaded")
 
-    vectorizer_path = BASE_DIR / "models" / "vectorizer.pkl"
-    classifier_path = BASE_DIR / "models" / "classifier.pkl"
-
-    print(">>> Vectorizer path:", vectorizer_path)
-    print(">>> Vectorizer exists:", vectorizer_path.exists())
-
-    print(">>> Loading vectorizer...")
-    app.state.vec = joblib.load(vectorizer_path)
-    print(">>> Vectorizer loaded")
-
-    print(">>> Loading classifier...")
-    app.state.clf = joblib.load(classifier_path)
-    print(">>> Classifier loaded")
+    
 
     print(">>> INITIAL CONFIGS LOADED SUCCESSFULLY")
 
@@ -61,13 +51,26 @@ def load_initial_configs(app: FastAPI):
 async def lifespan(app: FastAPI):
     print(">>> LIFESPAN STARTED")
 
+    # 1. Load env first so API keys exist
     load_initial_configs(app)
+
+    # 2. Initialize and attach the shared client to app.state
+    print(">>> Initializing AI Client...")
+    app.state.ai_client = Client(
+        api_key=os.getenv("GROQ_API_KEY"),
+        model=os.getenv("MODEL", "openai/gpt-oss-20b"),
+        provider=Providers.GROQ,
+    )
 
     print(">>> Initializing DB...")
     await init_db()
     init_supabase(app)
 
     yield
+
+    # Teardown / Cleanup
+    if hasattr(app.state.ai_client, "close"):
+        await app.state.ai_client.close()
 
     await close_db()
 

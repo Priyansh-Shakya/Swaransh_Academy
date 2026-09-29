@@ -127,11 +127,30 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
                 child: CircularProgressIndicator(color: AppColors.gold),
               ),
               error: (e, _) {
-                if (e.toString().contains('No Student Found')) {
-                  return Center(child: Text('No Student Found'));
-                }
-                return Center(child: Text('Could not load students: $e'));
+                return RefreshIndicator(
+                  color: AppColors.gold,
+                  backgroundColor: AppColors.ivory,
+                  onRefresh: () =>
+                      ref.read(studentsProvider.notifier).refreshList(),
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.7,
+                        child: Center(
+                          child: Text(
+                            e.toString().contains('No Student Found')
+                                ? 'No Student Found'
+                                : 'Could not load students: $e',
+                            style: AppTypography.bodyMedium,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
               },
+
               data: (students) {
                 final filtered = _filtered(students);
                 if (filtered.isEmpty) {
