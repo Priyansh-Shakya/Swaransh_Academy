@@ -8,6 +8,8 @@ from typing import Any
 
 import asyncpg
 
+from app.features.ai_assistant.agent.sql_validator import validate_sql
+
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
@@ -35,12 +37,20 @@ async def sql_execute(query: str) -> list[dict[str, Any]]:
     Execute SQL against PostgreSQL and return normal dictionaries.
     """
 
-    pool = await get_db()
+    validation = validate_sql(query)
 
-    async with pool.acquire() as conn:
-        rows = await conn.fetch(query)
+    if validation["valid"]:
+        pool = await get_db()
 
-        return [dict(row) for row in rows]
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(query)
+            return [dict(row) for row in rows]
+
+    error = validation["error"] or "SQL query failed validation."
+
+    print(error)
+    return error
+
 
 
 async def close_db():
