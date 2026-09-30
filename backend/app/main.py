@@ -2,7 +2,7 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-import joblib
+
 from sparse_ai import Client 
 from sparse_ai.client import Providers
 from app.core.db import close_db, init_db
