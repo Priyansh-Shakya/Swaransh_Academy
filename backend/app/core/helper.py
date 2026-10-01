@@ -12,7 +12,7 @@ def convert_enums_to_values(data):
             data[key] = val.value
         elif isinstance(val, AnyUrl):
             data[key] = str(val)
-    return 
+    return data
 
 
 import json

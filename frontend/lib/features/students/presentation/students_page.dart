@@ -153,33 +153,49 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
 
               data: (students) {
                 final filtered = _filtered(students);
-                if (filtered.isEmpty) {
-                  return Center(
-                    child: Text(
-                      students.isEmpty ? 'No students yet' : 'No results',
-                      style: AppTypography.bodyMedium,
-                    ),
-                  );
-                }
-                return RefreshIndicator(
-                  color: AppColors.gold,
-                  backgroundColor: AppColors.ivory,
-                  onRefresh: () =>
-                      ref.read(studentsProvider.notifier).refreshList(),
-                  child: ListView.separated(
-                    physics: const BouncingScrollPhysics(
-                      parent: AlwaysScrollableScrollPhysics(),
-                    ),
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, __) =>
-                        const SizedBox(height: AppSpacing.sm),
-                    itemBuilder: (context, i) => StudentListTile(
-                      student: filtered[i],
-                      onTap: () => _onTap(context, filtered[i], role),
-                    ),
-                  ),
-                );
+
+                return filtered.isEmpty
+                    ? RefreshIndicator(
+                        color: AppColors.gold,
+                        backgroundColor: AppColors.ivory,
+                        onRefresh: () =>
+                            ref.read(studentsProvider.notifier).refreshList(),
+                        child: ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [
+                            SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.7,
+                              child: Center(
+                                child: Text(
+                                  students.isEmpty
+                                      ? 'No students yet'
+                                      : 'No results',
+                                  style: AppTypography.bodyMedium,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : RefreshIndicator(
+                        color: AppColors.gold,
+                        backgroundColor: AppColors.ivory,
+                        onRefresh: () =>
+                            ref.read(studentsProvider.notifier).refreshList(),
+                        child: ListView.separated(
+                          physics: const BouncingScrollPhysics(
+                            parent: AlwaysScrollableScrollPhysics(),
+                          ),
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: AppSpacing.sm),
+                          itemBuilder: (context, i) => StudentListTile(
+                            student: filtered[i],
+                            onTap: () => _onTap(context, filtered[i], role),
+                          ),
+                        ),
+                      );
               },
             ),
           ),

@@ -7,7 +7,7 @@ import os
 
 from app.features.ai_assistant.agent.agent_tools import get_tables_schema, sql_execute , get_admission_schema
 from app.features.ai_assistant.sys_prompt import ADMIN_SYSTEM_PROMPT, STUDENT_GUEST_SYSTEM_PROMPT 
-
+from datetime import date
 
 # ============================================================
 # 1. SHARED MODEL CLIENT
@@ -47,6 +47,7 @@ Current User Context:
 - Name: {user_name}
 - Role: {normalized_role}
 Rule: Address {user_name} naturally when appropriate; do not repeat their name robotically in every turn.
+Today's Date: {date.today().strftime('%B %d, %Y')}
 """
 
     if normalized_role == "admin":

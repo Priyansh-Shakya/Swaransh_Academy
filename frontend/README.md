@@ -14,4 +14,5 @@ MAKE THESE CHANGES IN SUPABASE MIGRATION:
 
 - INJECT Todays DATE INTO ADMIN AGENT PROMPT. 
 - AGENT HOOD FRONTEND.
+- IF user not found in users table , dont silently asign them as guest - ceck what role they opted for!!
 ```

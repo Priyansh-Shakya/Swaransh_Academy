@@ -10,7 +10,7 @@ class StudentsApiService {
 
   final ApiService<Student> _apiService;
 
-  /// Get all students with optional filters.
+  // Get all students with filters.
   Future<List<Student>> getAllStudents({
     String? department,
     String? admissionType,
@@ -41,15 +41,17 @@ class StudentsApiService {
           if (search != null) 'search': search,
         },
       );
+
       debugPrint("After Await ...");
-      debugPrint("Students List: ${students.toString()}");
+      debugPrint("Students List: $students");
+
       return students;
     } catch (e) {
       debugPrint("Error from student repo: $e");
 
       if (e.toString().contains('NotFoundException')) {
-        final error = "No Student Found";
-        throw Exception(error);
+        debugPrint("No students found. Returning empty list.");
+        return [];
       }
 
       rethrow;
@@ -75,7 +77,6 @@ class StudentsApiService {
       id: student.id.toString(),
       data: student.toJson(),
     );
-    
   }
 
   /// Delete a student.

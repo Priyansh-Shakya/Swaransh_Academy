@@ -23,8 +23,12 @@ async def create_user(user_create: UserCreate, user,db) -> User:
     data = user_create.model_dump(mode='python')
     data['user_id'] = user_id
     data = convert_enums_to_values(data)
-    
+
+    print("DEBUG data:", data)
+    print("DEBUG data type:", type(data))
+
     user_name = data.get('user_name')
+
     email = data.get('email')
     fcm_token = data.get('fcm_token')
     role = data.get("role", UserRole.guest.value)
