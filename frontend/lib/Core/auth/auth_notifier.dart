@@ -54,7 +54,11 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
       if (user == null) {
         state = const AsyncValue.data(AppUser.guest);
       } else {
-        state = AsyncValue.data(await _resolveUser(user));
+        try {
+          state = AsyncValue.data(await _resolveUser(user));
+        } catch (e, st) {
+          state = AsyncValue.error(e, st);
+        }
       }
     });
     ref.onDispose(subscription.cancel);
@@ -95,22 +99,26 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
         password: password,
         data: displayName != null ? {'display_name': displayName} : null,
       );
-      //* CREATE USER ...
+
+      if (response.user == null) throw Exception('Sign-up failed');
+
       final isAdmin = ref.read(adminVerificationProvider);
       final fcmToken = ref.read(fcmTokenProvider);
-      debugPrint(
-        "FCM TOKEN FROM USER NOTIFIER:\n${fcmToken == null ? "NULL" : fcmToken.substring(1, 5)}",
-      );
+
       final user = model.User(
         email: email,
         userName: displayName,
         role: isAdmin ? 'admin' : role,
         fcmToken: fcmToken,
       );
+
+      // Create DB entry BEFORE resolving user
       await ref.read(usersApiServiceProvider).createUser(user);
-      if (response.user == null) throw Exception('Sign-up failed');
+
       state = AsyncValue.data(await _resolveUser(response.user!));
     } catch (e, st) {
+      // If table creation fails, clean up the auth session
+      await _supabase.auth.signOut();
       state = AsyncValue.error(_friendlyError(e), st);
       rethrow;
     }
@@ -155,27 +163,20 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
       return _makeUser(user, UserRole.admin);
     }
 
-    try {
-      final user0 = await ref.read(usersApiServiceProvider).getCurrentUser();
-      ref.read(currentUserProvider.notifier).state = user0;
+    final user0 = await ref.read(usersApiServiceProvider).getCurrentUser();
+    ref.read(currentUserProvider.notifier).state = user0;
 
-      if (user0 == null) {
-        // No profile row exists yet — shouldn't normally happen since the
-        // Google flow creates it first, but don't crash if it does.
-        debugPrint(
-          "No profile row found in _resolveUser — defaulting to guest",
-        );
-        return _makeUser(user, UserRole.guest);
-      }
-
-      final role = await ref.read(usersApiServiceProvider).checkRole(user0);
-      debugPrint("Role fetched from DB: ${role.name}");
-
-      return _makeUser(user, role);
-    } catch (e) {
-      debugPrint('[Auth] users table query failed: $e → guest');
-      return _makeUser(user, UserRole.guest);
+    if (user0 == null) {
+      debugPrint("No profile row found in DB — throwing UserNotFoundException");
+      // Sign out from Supabase Auth so they don't remain logged in with an orphaned session
+      await _supabase.auth.signOut();
+      throw UserNotFoundException();
     }
+
+    final role = await ref.read(usersApiServiceProvider).checkRole(user0);
+    debugPrint("Role fetched from DB: ${role.name}");
+
+    return _makeUser(user, role);
   }
 
   AppUser _makeUser(supabase.User user, UserRole role) => AppUser(
@@ -308,3 +309,13 @@ final currentRoleProvider = Provider<UserRole>((ref) {
 final isSignedInProvider = Provider<bool>((ref) {
   return ref.watch(authProvider).valueOrNull?.isAuthenticated ?? false;
 });
+
+class UserNotFoundException implements Exception {
+  final String message;
+  UserNotFoundException([
+    this.message =
+        'No account record found for this user. Please sign up first.',
+  ]);
+  @override
+  String toString() => message;
+}
