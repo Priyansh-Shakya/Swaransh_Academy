@@ -4,7 +4,7 @@ description: "A new Flutter project."
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 
-version: 1.0.0+1
+version: 1.0.0+2
 # ------------------------------ About Versioning ------------------------------
 # This single line contains two entirely different versions separated by a plus (+) sign.
 

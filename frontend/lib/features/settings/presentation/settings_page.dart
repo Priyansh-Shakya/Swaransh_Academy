@@ -160,7 +160,9 @@ class SettingsPage extends ConsumerWidget {
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () async {
               Navigator.pop(ctx);
+              //context.go('/home');
               await ref.read(authProvider.notifier).signOut();
+              //context.go('/role-select');
               if (context.mounted) context.go('/role-select');
             },
             child: const Text('Sign Out'),

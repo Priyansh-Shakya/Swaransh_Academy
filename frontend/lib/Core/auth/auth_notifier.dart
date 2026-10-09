@@ -150,6 +150,7 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
     ref.invalidate(isAdminRoleProvider);
     ref.invalidate(adminVerificationProvider);
     ref.invalidate(aiAssistantProvider);
+
     await _supabase.auth.signOut();
     state = const AsyncValue.data(AppUser.guest);
   }
