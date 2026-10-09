@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swaransh_academy/features/payments/presentation/payment_hostory.dart';
 import 'package:swaransh_academy/features/profile/domain/profile.dart';
-import 'package:swaransh_academy/features/profile/presentation/widgets/scholar_no.dart';
 import 'package:swaransh_academy/features/students/widgets/student_avatar.dart';
 
 import '../../../Core/theme/app_colors.dart';
@@ -18,23 +17,8 @@ class ProfilePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.listen<AsyncValue<ProfileResult>>(profileProvider, (prev, next) {
-      next.whenData((result) {
-        if (result.needsSelection) {
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (_) => ScholarNumberDialog(
-              candidates: result.students!,
-              onSelected: (id) => ref
-                  .read(profileProvider.notifier)
-                  .selectStudent(id, result.students!),
-            ),
-          );
-        }
-      });
-    });
-
+    // We no longer trigger ScholarNumberDialog here since all profiles
+    // are accessible via horizontal swipe.
     final profileAsync = ref.watch(profileProvider);
 
     return profileAsync.when(
@@ -43,25 +27,136 @@ class ProfilePage extends ConsumerWidget {
       ),
       error: (e, _) => Scaffold(body: Center(child: Text('Error: $e'))),
       data: (result) {
-        if (result.needsSelection) {
-          // dialog is showing via ref.listen above; nothing to render yet
-          return const Scaffold(body: SizedBox.shrink());
-        }
-
         if (result.isStudent) {
-          debugPrint("Siblings Found: ${result.hasSiblings}");
+          final students = result.students ?? [];
+
+          if (students.isEmpty) {
+            return const Scaffold(
+              body: Center(child: Text('No student profiles found.')),
+            );
+          }
+
+          // Case 1: Single profile (no swipe tabs needed)
+          if (students.length == 1) {
+            return RefreshIndicator(
+              color: AppColors.gold,
+              backgroundColor: AppColors.ivory,
+              onRefresh: () => ref.read(profileProvider.notifier).refreshList(),
+              child: _ProfileBody(
+                student: students.first,
+                hasSiblings: result.hasSiblings,
+              ),
+            );
+          }
+
+          // Case 2: Multiple profiles - WhatsApp classic swipeable TabBar + TabBarView
           return RefreshIndicator(
             color: AppColors.gold,
             backgroundColor: AppColors.ivory,
             onRefresh: () => ref.read(profileProvider.notifier).refreshList(),
-            child: _ProfileBody(
-              student: result.students!.first,
-              hasSiblings: result.hasSiblings,
+
+            child: DefaultTabController(
+              length: students.length,
+              child: Scaffold(
+                backgroundColor: AppColors.ivory,
+                appBar: AppBar(
+                  backgroundColor: AppColors.ivory,
+                  elevation: 0,
+                  scrolledUnderElevation: 0,
+                  titleSpacing: AppSpacing.md,
+                  title: Text(
+                    'Profiles (${students.length})',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.refresh, color: AppColors.gold),
+                      onPressed: () =>
+                          ref.read(profileProvider.notifier).refreshList(),
+                    ),
+                  ],
+                  bottom: PreferredSize(
+                    preferredSize: const Size.fromHeight(42),
+                    child: Container(
+                      alignment: Alignment.centerLeft,
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: AppColors.divider,
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: TabBar(
+                        isScrollable: true,
+                        tabAlignment: TabAlignment.start,
+                        indicatorColor: AppColors.gold,
+                        indicatorWeight: 3.0,
+                        labelColor: AppColors.gold,
+                        unselectedLabelColor: Colors.black54,
+                        labelStyle: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          letterSpacing: 0.2,
+                        ),
+                        unselectedLabelStyle: const TextStyle(
+                          fontWeight: FontWeight.normal,
+                          fontSize: 14,
+                        ),
+                        tabs: students.map((s) {
+                          final label = s.name.isNotEmpty
+                              ? s.name
+                              : (s.scholarNo ?? 'Profile');
+                          return Tab(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(label),
+                                if (s.scholarNo != null &&
+                                    s.scholarNo!.isNotEmpty) ...[
+                                  // const SizedBox(width: 6),
+                                  // Container(
+                                  //   padding: const EdgeInsets.symmetric(
+                                  //     horizontal: 6,
+                                  //     vertical: 1,
+                                  //   ),
+                                  //   decoration: BoxDecoration(
+                                  //     color: Colors.black.withOpacity(0.06),
+                                  //     borderRadius: BorderRadius.circular(10),
+                                  //   ),
+                                  //   child: Text(
+                                  //     '#${s.scholarNo}',
+                                  //     style: const TextStyle(fontSize: 11),
+                                  //   ),
+                                  // ),
+                                ],
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ),
+                body: TabBarView(
+                  children: students.map((student) {
+                    return _ProfileBody(
+                      key: ValueKey(student.id ?? student.scholarNo),
+                      student: student,
+                      hasSiblings: true,
+                    );
+                  }).toList(),
+                ),
+              ),
             ),
           );
         }
 
-        debugPrint("Build basic Profile page");
+        // Non-student basic profile fallback
         return RefreshIndicator(
           color: AppColors.gold,
           backgroundColor: AppColors.ivory,
@@ -74,7 +169,11 @@ class ProfilePage extends ConsumerWidget {
 }
 
 class _ProfileBody extends StatelessWidget {
-  const _ProfileBody({required this.student, required this.hasSiblings});
+  const _ProfileBody({
+    super.key,
+    required this.student,
+    required this.hasSiblings,
+  });
   final Student student;
   final bool hasSiblings;
 
@@ -252,22 +351,6 @@ class _ProfileHero extends StatelessWidget {
           ],
 
           const SizedBox(height: AppSpacing.md),
-          if (hasSiblings) ...[
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () {
-                  // switch profile
-                },
-                icon: const Icon(Icons.switch_account, size: 18),
-                label: const Text("Switch Profile"),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: Colors.white.withOpacity(0.12),
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );

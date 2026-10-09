@@ -9,6 +9,7 @@ import 'package:swaransh_academy/features/ai_assistant/data/ai_assistant_notifie
 import 'package:swaransh_academy/features/auth/data/provider.dart';
 import 'package:swaransh_academy/features/auth/data/users_api_service.dart';
 import 'package:swaransh_academy/features/auth/domain/user.dart' as model;
+import 'package:swaransh_academy/features/profile/data/profile_notifier.dart';
 import 'package:swaransh_academy/features/role_select/presentation/selectedRoleprovider.dart';
 
 import 'auth_user.dart';
@@ -147,12 +148,17 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
   }
 
   Future<void> signOut() async {
+    // 1. Sign out from Supabase first
+    await _supabase.auth.signOut();
+
+    // 2. Set state to guest (this triggers navigation/redirection away from protected screens)
+    state = const AsyncValue.data(AppUser.guest);
+
+    // 3. Invalidate dependent providers after the screen has unmounted / user is cleared
     ref.invalidate(isAdminRoleProvider);
     ref.invalidate(adminVerificationProvider);
     ref.invalidate(aiAssistantProvider);
-
-    await _supabase.auth.signOut();
-    state = const AsyncValue.data(AppUser.guest);
+    
   }
 
   // ---- Role resolution ----
