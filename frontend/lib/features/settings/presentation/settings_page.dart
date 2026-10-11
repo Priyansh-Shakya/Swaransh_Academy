@@ -103,7 +103,7 @@ class SettingsPage extends ConsumerWidget {
             icon: Icons.info_outline_rounded,
             iconColor: AppColors.textSecondary,
             title: 'App Version',
-            subtitle: 'v1.0.0',
+            subtitle: 'v1.0.1',
             onTap: null,
           ),
 
@@ -132,6 +132,8 @@ class SettingsPage extends ConsumerWidget {
   void _showContactSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled:
+          true, // Allows the sheet to expand beyond the default 50% screen height limit
       backgroundColor: Colors.transparent,
       builder: (_) => const _ContactSheet(),
     );
