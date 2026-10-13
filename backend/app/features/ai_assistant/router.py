@@ -65,19 +65,14 @@ async def ask_assistant(
             if chunk:
                 queue.put_nowait(chunk)
 
-        def show_state(state: str):
-            formatted_msg = _format_agent_status(state)
-            queue.put_nowait({
-                "type": "status",
-                "content": formatted_msg
-            })
+        
 
         async def run_agent():
             try:
                 await agent.run(
                     body.query,
                     stream=on_token,
-                    show_state=show_state
+                    
                 )
             except Exception as e:
                 # Print full traceback to Render/local logs for debugging
