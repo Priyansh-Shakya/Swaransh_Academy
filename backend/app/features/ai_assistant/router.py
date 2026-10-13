@@ -19,7 +19,7 @@ from fastapi.responses import StreamingResponse
 
 from app.features.ai_assistant.agent.sparse_agent import build_agent
 from app.core.helper import _format_agent_status
-
+from sparse_ai import StatusEvent
 router = APIRouter()
 
 
@@ -66,13 +66,19 @@ async def ask_assistant(
                 queue.put_nowait(chunk)
 
         
+        def on_status(event: StatusEvent):
+            formatted_msg = _format_agent_status(event)
+            queue.put_nowait({
+                "type": "status",
+                "content": formatted_msg
+            })
 
         async def run_agent():
             try:
                 await agent.run(
                     body.query,
                     stream=on_token,
-                    
+                    on_status=on_status,
                 )
             except Exception as e:
                 # Print full traceback to Render/local logs for debugging

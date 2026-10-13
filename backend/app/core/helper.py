@@ -1,6 +1,7 @@
 from enum import Enum
 
 from pydantic import AnyUrl
+from sparse_ai import StatusEvent
 
 
 def convert_enums_to_values(data):
@@ -18,25 +19,26 @@ def convert_enums_to_values(data):
 import json
 import re
 
-def _format_agent_status(state: str | object) -> str:
-    state_str = str(state)
+def _format_agent_status(event: StatusEvent) -> str:
+    tool_name = getattr(event, "tool_name", "")
+    detail = getattr(event, "detail", "")
+    state_str = f"{tool_name} {detail}"
 
     # 1. Schema check
-    if "get_tables_schema" in state_str:
+    if "get_tables_schema" in tool_name or "get_tables_schema" in state_str:
         match = re.search(r"tables['\"]?\s*:\s*\[?['\"]([^'\"\]]+)", state_str)
         table = match.group(1) if match else "database"
         return f"Checking {table} table schema..."
 
     # 2. SQL query execution
-    if "sql_execute" in state_str:
+    if "sql_execute" in tool_name or "sql_execute" in state_str:
         return "Querying database..."
 
-    # 3. Generic ToolCall fallback
-    match = re.search(r"name=['\"]([^'\"]+)['\"]", state_str)
-    if match:
-        clean_name = match.group(1).replace("_", " ")
+    # 3. Generic ToolCall fallback based on tool name
+    if tool_name:
+        clean_name = tool_name.replace("_", " ")
         return f"Executing {clean_name}..."
 
-    # 4. If it's already a clean string like "[STATUS]: searching..."
-    clean = re.sub(r"^\[STATUS\]:?\s*", "", state_str).strip()
+    # 4. Fallback to detail string if available
+    clean = re.sub(r"^\[STATUS\]:?\s*", "", detail).strip()
     return clean if clean else "Processing request..."
