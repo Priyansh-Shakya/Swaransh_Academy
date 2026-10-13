@@ -41,7 +41,6 @@ ROLE_CONFIG = {
     "admin":   {"max_tokens": 800},
 }
 
-
 @router.post("/assistance")
 async def ask_assistant(
     request: Request,
@@ -54,98 +53,75 @@ async def ask_assistant(
     role = "guest" if user is None else await check_role(user, db)
     max_tokens = ROLE_CONFIG.get(role, ROLE_CONFIG["guest"])["max_tokens"]
 
-    # Build the agent fresh per request — messages/tools/client all populated here.
-    client = request.app.state.ai_client #! CLIENT PASSED TO BUILD AGENT
+    # Build the agent fresh per request
+    client = request.app.state.ai_client
     agent = build_agent(query_history=body.conversation_history, role=role, db=db, name=body.name, client=client)
 
     async def event_stream():
-        #dprint("[SSE] event_stream START")
-
         queue: asyncio.Queue = asyncio.Queue()
         SENTINEL = object()
 
         def on_token(chunk: str):
-            #dprint("[SSE] TOKEN CALLBACK:", repr(chunk), '\n\n')
-            queue.put_nowait(chunk)
+            if chunk:
+                queue.put_nowait(chunk)
 
         def show_state(state: str):
-            #dprint("[SSE] __AGENT__STATE__:", repr(state), "\n\n")
-
             formatted_msg = _format_agent_status(state)
-
-            # 1. Put dict into queue so the loop treats it as a structured event
             queue.put_nowait({
                 "type": "status",
                 "content": formatted_msg
             })
 
         async def run_agent():
-            #dprint("[SSE] run_agent START")
-
-            
-
             try:
-                result = await agent.run(
+                await agent.run(
                     body.query,
                     stream=on_token,
                     show_state=show_state
                 )
-
-                #dprint("[SSE] agent.run FINISHED:", repr(result))
-
             except Exception as e:
-                #dprint(f"[Agent Error]: {e}")
-                queue.put_nowait({
+                # Print full traceback to Render/local logs for debugging
+                import traceback
+                print(f"[Agent Error Exception]: {e}", flush=True)
+                traceback.print_exc()
+                
+                await queue.put({
                     "type": "error",
-                    "message": "Service temporarily unavailable. Please try again.",
+                    "message": f"Tool or execution error: {str(e)}"
                 })
-
             finally:
-                #dprint("[SSE] run_agent FINALLY")
-                queue.put_nowait(SENTINEL)
+                await queue.put(SENTINEL)
 
         task = asyncio.create_task(run_agent())
 
-        #dprint("[SSE] run_agent TASK CREATED")
-
         try:
             while True:
-                #dprint("[SSE] WAITING FOR QUEUE...")
-
-                item = await queue.get()
-
-                #dprint("[SSE] QUEUE ITEM:", repr(item))
-
-                if item is SENTINEL:
-                    #dprint("[SSE] SENTINEL RECEIVED")
+                if await request.is_disconnected():
+                    task.cancel()
                     break
 
-                # 2. Both dicts (status/error) and string tokens now format cleanly
+                try:
+                    # Timeout prevents the generator from hanging indefinitely if a deadlock occurs
+                    item = await asyncio.wait_for(queue.get(), timeout=35.0)
+                except asyncio.TimeoutError:
+                    break
+
+                if item is SENTINEL:
+                    break
+
                 if isinstance(item, dict):
                     data = f"data: {json.dumps(item)}\n\n"
                 else:
                     data = f"data: {json.dumps({'type': 'content', 'delta': item})}\n\n"
 
-                # dprint(
-                #     "[SSE] SENDING:",
-                #     repr(data),
-                # )
-
-                if await request.is_disconnected():
-                    #dprint("[SSE] CLIENT DISCONNECTED")
-                    task.cancel()
-                    break
-
                 yield data.encode("utf-8")
 
-                #dprint("[SSE] YIELD COMPLETE")
-
-                await asyncio.sleep(0)
-
+        except Exception as stream_err:
+            print(f"[SSE Stream Error]: {stream_err}", flush=True)
         finally:
-            #dprint("[SSE] event_stream FINALLY")
-            yield "data: [DONE]\n\n".encode("utf-8")
-
+            if not task.done():
+                task.cancel()
+            yield "data: [DONE]\n\n"
 
     return StreamingResponse(
         event_stream(),
