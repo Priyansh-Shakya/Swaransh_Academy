@@ -133,6 +133,8 @@ def build_agent(query_history, role, db, name, client):
         Tool(get_tables_schema),
     ] if role == "admin" else [Tool(get_admission_schema)]
 
+    print(f"\n\n\nActive role: {role}, Tools assigned: {[t.name for t in tools]}\n\n\n")
+
     return Agent(
         client=client,
         messages=messages,

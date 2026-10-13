@@ -59,17 +59,17 @@ async def ask_assistant(
     agent = build_agent(query_history=body.conversation_history, role=role, db=db, name=body.name, client=client)
 
     async def event_stream():
-        dprint("[SSE] event_stream START")
+        #dprint("[SSE] event_stream START")
 
         queue: asyncio.Queue = asyncio.Queue()
         SENTINEL = object()
 
         def on_token(chunk: str):
-            dprint("[SSE] TOKEN CALLBACK:", repr(chunk), '\n\n')
+            #dprint("[SSE] TOKEN CALLBACK:", repr(chunk), '\n\n')
             queue.put_nowait(chunk)
 
         def show_state(state: str):
-            dprint("[SSE] __AGENT__STATE__:", repr(state), "\n\n")
+            #dprint("[SSE] __AGENT__STATE__:", repr(state), "\n\n")
 
             formatted_msg = _format_agent_status(state)
 
@@ -80,7 +80,9 @@ async def ask_assistant(
             })
 
         async def run_agent():
-            dprint("[SSE] run_agent START")
+            #dprint("[SSE] run_agent START")
+
+            
 
             try:
                 result = await agent.run(
@@ -89,33 +91,33 @@ async def ask_assistant(
                     show_state=show_state
                 )
 
-                dprint("[SSE] agent.run FINISHED:", repr(result))
+                #dprint("[SSE] agent.run FINISHED:", repr(result))
 
             except Exception as e:
-                dprint(f"[Agent Error]: {e}")
+                #dprint(f"[Agent Error]: {e}")
                 queue.put_nowait({
                     "type": "error",
                     "message": "Service temporarily unavailable. Please try again.",
                 })
 
             finally:
-                dprint("[SSE] run_agent FINALLY")
+                #dprint("[SSE] run_agent FINALLY")
                 queue.put_nowait(SENTINEL)
 
         task = asyncio.create_task(run_agent())
 
-        dprint("[SSE] run_agent TASK CREATED")
+        #dprint("[SSE] run_agent TASK CREATED")
 
         try:
             while True:
-                dprint("[SSE] WAITING FOR QUEUE...")
+                #dprint("[SSE] WAITING FOR QUEUE...")
 
                 item = await queue.get()
 
-                dprint("[SSE] QUEUE ITEM:", repr(item))
+                #dprint("[SSE] QUEUE ITEM:", repr(item))
 
                 if item is SENTINEL:
-                    dprint("[SSE] SENTINEL RECEIVED")
+                    #dprint("[SSE] SENTINEL RECEIVED")
                     break
 
                 # 2. Both dicts (status/error) and string tokens now format cleanly
@@ -124,24 +126,24 @@ async def ask_assistant(
                 else:
                     data = f"data: {json.dumps({'type': 'content', 'delta': item})}\n\n"
 
-                dprint(
-                    "[SSE] SENDING:",
-                    repr(data),
-                )
+                # dprint(
+                #     "[SSE] SENDING:",
+                #     repr(data),
+                # )
 
                 if await request.is_disconnected():
-                    dprint("[SSE] CLIENT DISCONNECTED")
+                    #dprint("[SSE] CLIENT DISCONNECTED")
                     task.cancel()
                     break
 
                 yield data.encode("utf-8")
 
-                dprint("[SSE] YIELD COMPLETE")
+                #dprint("[SSE] YIELD COMPLETE")
 
                 await asyncio.sleep(0)
 
         finally:
-            dprint("[SSE] event_stream FINALLY")
+            #dprint("[SSE] event_stream FINALLY")
             yield "data: [DONE]\n\n".encode("utf-8")
 
 
