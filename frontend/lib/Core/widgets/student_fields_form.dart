@@ -167,10 +167,11 @@ class StudentFieldsForm extends StatelessWidget {
               context,
               'scholarNo',
               'Scholar No.',
-              helperText: _isLocked('scholarNo')
-                  ? 'Scholar Number is asigned by Database itself and cannot be changed.'
-                  : null,
-            ), //* Only Show Scholar Number in Read Mode
+              readOnly: true, // Forces read-only mode for everyone
+              helperText:
+                  'Scholar Number is assigned by Database itself and cannot be changed.',
+            ),
+
           _pickerField(
             context,
             'dateOfJoining',
@@ -199,15 +200,18 @@ class StudentFieldsForm extends StatelessWidget {
     String? helperText,
     int maxLines = 1,
     TextInputType? keyboardType,
+    bool readOnly = false, // Add this parameter
   }) {
     final controller = controllers[key];
     if (controller == null) return const SizedBox.shrink();
-    final locked = _isLocked(key);
+
+    // Field is locked if explicitly flagged OR if locked by role logic
+    final isFieldLocked = readOnly || _isLocked(key);
     final displayLabel = _labelWithMarker(key, label);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: locked
+      child: isFieldLocked
           ? _ReadOnlyField(label: label, value: controller.text)
           : TextFormField(
               controller: controller,
@@ -217,9 +221,8 @@ class StudentFieldsForm extends StatelessWidget {
                 labelText: displayLabel,
                 hintText: hint,
                 helperText: helperText,
-
                 labelStyle: _isRequired(key)
-                    ? TextStyle(color: AppColors.textSecondary)
+                    ? const TextStyle(color: AppColors.textSecondary)
                     : null,
               ),
             ),
@@ -336,12 +339,12 @@ class StudentFieldsForm extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: locked
-    ? _ReadOnlyField(
-        label: label,
-        value: options.any((option) => option.value == value)
-            ? options.firstWhere((option) => option.value == value).label
-            : '-',
-      )
+          ? _ReadOnlyField(
+              label: label,
+              value: options.any((option) => option.value == value)
+                  ? options.firstWhere((option) => option.value == value).label
+                  : '-',
+            )
           : DropdownButtonFormField<String>(
               initialValue: value,
               isExpanded: true,

@@ -135,160 +135,192 @@ class _AddPaymentSheetState extends ConsumerState<AddPaymentSheet> {
           AppSpacing.lg,
           AppSpacing.xl,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Handle
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.divider,
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              _isCorrection ? 'Correct Payment' : 'Record Payment',
-              style: AppTypography.headlineMedium,
-            ),
-            if (_isCorrection) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.lg),
               Text(
-                'A corrected row will be created. '
-                'The original will be marked as superseded.',
-                style: AppTypography.bodySmall,
+                _isCorrection ? 'Correct Payment' : 'Record Payment',
+                style: AppTypography.headlineMedium,
+              ),
+              if (_isCorrection) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'A corrected row will be created. '
+                  'The original will be marked as superseded.',
+                  style: AppTypography.bodySmall,
+                ),
+              ],
+              const SizedBox(height: AppSpacing.lg),
+
+              // Payment type
+              DropdownButtonFormField<String>(
+                initialValue: _type,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: AppColors.navy,
+                  fontWeight: FontWeight.normal,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Payment Type',
+                  filled: true,
+                  fillColor: AppColors.surface,
+                ),
+                items: AppOptions.feeType
+                    .map(
+                      (option) => DropdownMenuItem<String>(
+                        value: option.value,
+                        child: Text(
+                          option.label,
+                          style: const TextStyle(color: AppColors.navy),
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _type = value);
+                  }
+                },
+              ),
+              const SizedBox(height: AppSpacing.md),
+              DropdownButtonFormField<String>(
+                initialValue: _category,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: AppColors.navy,
+                  fontWeight: FontWeight.normal,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Payment Category',
+                ),
+                items: AppOptions.paymentCategory
+                    .map(
+                      (option) => DropdownMenuItem<String>(
+                        value: option.value,
+                        child: Text(
+                          option.label,
+                          style: const TextStyle(color: AppColors.navy),
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _category = value);
+                  }
+                },
+              ),
+              const SizedBox(height: AppSpacing.md),
+              // Amount
+              TextFormField(
+                controller: _amountCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Amount (\u20B9)',
+                  prefixText: '₹ ',
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+
+              // Mode
+              DropdownButtonFormField<String>(
+                initialValue: _mode,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: AppColors.navy,
+                  fontWeight: FontWeight.normal,
+                ),
+                decoration: const InputDecoration(labelText: 'Payment Mode'),
+                items: AppOptions.paymentMode
+                    .map(
+                      (option) => DropdownMenuItem<String>(
+                        value: option.value,
+                        child: Text(
+                          option.label,
+                          style: const TextStyle(color: AppColors.navy),
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _mode = value);
+                  }
+                },
+              ),
+              const SizedBox(height: AppSpacing.md),
+
+              // Date (optional — for backfilling)
+              TextFormField(
+                controller: _dateCtrl,
+                readOnly: true,
+                decoration: InputDecoration(
+                  labelText: 'Date (optional — for backfilling)',
+                  hintText: 'Tap to pick',
+                  suffixIcon: const Icon(
+                    Icons.calendar_today_outlined,
+                    size: 18,
+                  ),
+                  helperText: 'Leave blank to use today\'s date.',
+                ),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) {
+                    _dateCtrl.text =
+                        '${picked.year.toString().padLeft(4, '0')}-'
+                        '${picked.month.toString().padLeft(2, '0')}-'
+                        '${picked.day.toString().padLeft(2, '0')}';
+                  }
+                },
+              ),
+              const SizedBox(height: AppSpacing.md),
+
+              // Txn ref (optional)
+              TextFormField(
+                controller: _txnCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Transaction Reference (optional)',
+                  hintText: 'UPI ID, cheque no. etc.',
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _saving ? null : _submit,
+                  child: _saving
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          _isCorrection ? 'Save Correction' : 'Record Payment',
+                        ),
+                ),
               ),
             ],
-            const SizedBox(height: AppSpacing.lg),
-
-            // Payment type
-            DropdownButtonFormField<String>(
-              initialValue: _type,
-              decoration: const InputDecoration(labelText: 'Payment Type'),
-              items: AppOptions.feeType
-                  .map(
-                    (option) => DropdownMenuItem<String>(
-                      value: option.value,
-                      child: Text(option.label),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _type = value);
-                }
-              },
-            ),
-            const SizedBox(height: AppSpacing.md),
-            DropdownButtonFormField<String>(
-              initialValue: _category,
-              decoration: const InputDecoration(labelText: 'Payment Category'),
-              items: AppOptions.paymentCategory
-                  .map(
-                    (option) => DropdownMenuItem<String>(
-                      value: option.value,
-                      child: Text(option.label),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _category = value);
-                }
-              },
-            ),
-            const SizedBox(height: AppSpacing.md),
-            // Amount
-            TextFormField(
-              controller: _amountCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Amount (\u20B9)',
-                prefixText: '₹ ',
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-
-            // Mode
-            DropdownButtonFormField<String>(
-              initialValue: _mode,
-              decoration: const InputDecoration(labelText: 'Payment Mode'),
-              items: AppOptions.paymentMode
-                  .map(
-                    (option) => DropdownMenuItem<String>(
-                      value: option.value,
-                      child: Text(option.label),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _mode = value);
-                }
-              },
-            ),
-            const SizedBox(height: AppSpacing.md),
-
-            // Date (optional — for backfilling)
-            TextFormField(
-              controller: _dateCtrl,
-              readOnly: true,
-              decoration: InputDecoration(
-                labelText: 'Date (optional — for backfilling)',
-                hintText: 'Tap to pick',
-                suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18),
-                helperText: 'Leave blank to use today\'s date.',
-              ),
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime(2000),
-                  lastDate: DateTime.now(),
-                );
-                if (picked != null) {
-                  _dateCtrl.text =
-                      '${picked.year.toString().padLeft(4, '0')}-'
-                      '${picked.month.toString().padLeft(2, '0')}-'
-                      '${picked.day.toString().padLeft(2, '0')}';
-                }
-              },
-            ),
-            const SizedBox(height: AppSpacing.md),
-
-            // Txn ref (optional)
-            TextFormField(
-              controller: _txnCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Transaction Reference (optional)',
-                hintText: 'UPI ID, cheque no. etc.',
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: _saving ? null : _submit,
-                child: _saving
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(
-                        _isCorrection ? 'Save Correction' : 'Record Payment',
-                      ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

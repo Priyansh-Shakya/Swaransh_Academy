@@ -153,6 +153,10 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
             DropdownButtonFormField<String>(
               initialValue: _mode,
               isExpanded: true,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+    color: AppColors.navy,
+    fontWeight: FontWeight.normal,
+  ),
               decoration: const InputDecoration(
                 labelText: 'Learning mode',
                 filled: true,
@@ -226,6 +230,10 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
             DropdownButtonFormField<String>(
               initialValue: _department,
               isExpanded: true,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+    color: AppColors.navy,
+    fontWeight: FontWeight.normal,
+  ),
               decoration: const InputDecoration(
                 labelText: 'Maps to Department',
                 filled: true,
