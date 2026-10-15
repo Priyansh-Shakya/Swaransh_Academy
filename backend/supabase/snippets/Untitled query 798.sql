@@ -1,0 +1,1 @@
+update students set dob=current_date where id=1;

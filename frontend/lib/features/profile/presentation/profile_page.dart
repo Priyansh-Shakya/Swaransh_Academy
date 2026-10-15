@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swaransh_academy/features/payments/presentation/payment_hostory.dart';
 import 'package:swaransh_academy/features/profile/domain/profile.dart';
+import 'package:swaransh_academy/features/profile/presentation/widgets/birthday.dart';
+import 'package:swaransh_academy/features/students/helper.dart';
+import 'package:swaransh_academy/features/students/widgets/birthday_elements.dart';
 import 'package:swaransh_academy/features/students/widgets/student_avatar.dart';
 
 import '../../../Core/theme/app_colors.dart';
@@ -174,12 +177,14 @@ class _ProfileBody extends StatelessWidget {
     required this.student,
     required this.hasSiblings,
   });
+
   final Student student;
   final bool hasSiblings;
 
   @override
   Widget build(BuildContext context) {
     final deptColor = AppColors.departmentColor(student.department);
+    final isBday = hasBirthday(student);
 
     final controllers = {
       'name': TextEditingController(text: student.name),
@@ -212,69 +217,86 @@ class _ProfileBody extends StatelessWidget {
 
     final studentId = student.id;
 
+    // The original white card, exactly as you had it
+    Widget infoCard = Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: isBday ? null : Border.all(color: AppColors.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CourseBanner(student: student, deptColor: deptColor),
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                StudentFieldsForm(
+                  isCreate: false,
+                  controllers: controllers,
+                  values: values,
+                  editable: false,
+                  lockedFields: const {},
+                  visibleSections: const {
+                    StudentFieldSection.identity,
+                    StudentFieldSection.contact,
+                    StudentFieldSection.course,
+                  },
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                const Center(child: StaffLineDivider(width: 56)),
+                const SizedBox(height: AppSpacing.lg),
+                _FeesCard(student: student),
+                const SizedBox(height: AppSpacing.lg),
+                if (studentId != null) ...[
+                  PaymentHistoryWidget(studentId: studentId, isAdmin: false),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    // Apply only the 2.5px rotating border glow if it's the student's birthday
+    if (isBday) {
+      infoCard = ProfileCardGlowWrapper(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: infoCard,
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.ivory,
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: _ProfileHero(
-              student: student,
-              deptColor: deptColor,
-              hasSiblings: hasSiblings,
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Container(
-              margin: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                border: Border.all(color: AppColors.divider),
+      body: Stack(
+        children: [
+          CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: _ProfileHero(
+                  student: student,
+                  deptColor: deptColor,
+                  hasSiblings: hasSiblings,
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _CourseBanner(student: student, deptColor: deptColor),
-                  const Divider(height: 1),
-                  Padding(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        StudentFieldsForm(
-                          isCreate: false,
-                          controllers: controllers,
-                          values: values,
-                          editable: false,
-                          lockedFields: const {},
-                          visibleSections: const {
-                            StudentFieldSection.identity,
-                            StudentFieldSection.contact,
-                            StudentFieldSection.course,
-                          },
-                        ),
-                        const SizedBox(height: AppSpacing.lg),
-                        const Center(child: StaffLineDivider(width: 56)),
-                        const SizedBox(height: AppSpacing.lg),
-                        _FeesCard(student: student),
-                        const SizedBox(height: AppSpacing.lg),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: infoCard,
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
+            ],
+          ),
 
-                        // In _ProfileBody, student needs their own ID
-                        // student.id is available from the Student model
-                        if (studentId != null) ...[
-                          PaymentHistoryWidget(
-                            studentId: studentId, //? using local variable
-                            isAdmin: false,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+          // Birthday confetti / sparkles burst overlay
+          if (isBday)
+            const Positioned.fill(
+              child: IgnorePointer(child: ConfettiPopperBlast()),
             ),
-          ),
-          const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
         ],
       ),
     );
@@ -286,73 +308,111 @@ class _ProfileHero extends StatelessWidget {
     required this.student,
     required this.deptColor,
     required this.hasSiblings,
+    this.isBirthday = false,
   });
+
   final Student student;
   final Color deptColor;
   final bool hasSiblings;
+  final bool isBirthday;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(
-        top: MediaQuery.paddingOf(context).top + AppSpacing.lg,
-        bottom: AppSpacing.md,
-        left: AppSpacing.lg,
-        right: AppSpacing.lg,
-      ),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.navy, deptColor.withOpacity(0.75)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return Stack(
+      children: [
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.only(
+            top: MediaQuery.paddingOf(context).top + AppSpacing.lg,
+            bottom: AppSpacing.md,
+            left: AppSpacing.lg,
+            right: AppSpacing.lg,
+          ),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.navy, deptColor.withOpacity(0.75)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isBirthday
+                        ? const Color(0xFFFFD700)
+                        : AppColors.gold,
+                    width: 2.5,
+                  ),
+                  boxShadow: isBirthday
+                      ? [
+                          BoxShadow(
+                            color: Colors.amber.withOpacity(0.4),
+                            blurRadius: 14,
+                            spreadRadius: 2,
+                          ),
+                        ]
+                      : null,
+                ),
+                child: StudentAvatar(student: student, radius: 60),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                student.name,
+                style: AppTypography.headlineLarge.copyWith(
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                student.subject,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.goldLight,
+                ),
+              ),
+              if (student.scholarNo != null) ...[
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                  ),
+                  child: Text(
+                    'Scholar No. ${student.scholarNo}',
+                    style: AppTypography.caption.copyWith(
+                      color: Colors.white70,
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.md),
+            ],
+          ),
         ),
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.gold, width: 2.5),
-            ),
-            child: StudentAvatar(student: student, radius: 60),
-          ),
 
-          const SizedBox(height: AppSpacing.md),
-
-          Text(
-            student.name,
-            style: AppTypography.headlineLarge.copyWith(color: Colors.white),
-            textAlign: TextAlign.center,
-          ),
-
-          const SizedBox(height: 4),
-
-          Text(
-            student.subject,
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.goldLight,
-            ),
-          ),
-
-          if (student.scholarNo != null) ...[
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(AppRadius.pill),
-              ),
-              child: Text(
-                'Scholar No. ${student.scholarNo}',
-                style: AppTypography.caption.copyWith(color: Colors.white70),
+        // Hanging Garland Drapes (Only rendered on birthday)
+        if (isBirthday)
+          Positioned(
+            top: MediaQuery.paddingOf(context).top,
+            left: 0,
+            right: 0,
+            height: 70,
+            child: const IgnorePointer(
+              child: CustomPaint(
+                size: Size.infinite,
+                painter: BuntingGarlandPainter(),
               ),
             ),
-          ],
-
-          const SizedBox(height: AppSpacing.md),
-        ],
-      ),
+          ),
+      ],
     );
   }
 }

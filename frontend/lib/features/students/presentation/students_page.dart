@@ -5,6 +5,7 @@ import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
 import 'package:swaransh_academy/Core/enums/form_fields.dart';
 import 'package:swaransh_academy/features/students/data/students_notifier.dart';
 import 'package:swaransh_academy/features/students/domain/student.dart';
+import 'package:swaransh_academy/features/students/helper.dart';
 
 import '../../../../Core/auth/user_role.dart';
 import '../../../../Core/theme/app_colors.dart';
@@ -32,18 +33,31 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
     super.dispose();
   }
 
+  //* puts birthday students on top.
   List<Student> _filtered(List<Student> all) {
-    return all.where((s) {
-      final q = _searchQuery.toLowerCase();
-      final matchesSearch =
-          q.isEmpty ||
-          s.name.toLowerCase().contains(q) ||
-          s.subject.toLowerCase().contains(q);
-      final matchesDept = _filterDept == null || s.department == _filterDept;
-      final matchesBatch = _filterBatch == null || s.batch == _filterBatch;
-      return matchesSearch && matchesDept && matchesBatch;
-    }).toList();
-  }
+  final filtered = all.where((s) {
+    final q = _searchQuery.toLowerCase();
+    final matchesSearch =
+        q.isEmpty ||
+        s.name.toLowerCase().contains(q) ||
+        s.subject.toLowerCase().contains(q);
+    final matchesDept = _filterDept == null || s.department == _filterDept;
+    final matchesBatch = _filterBatch == null || s.batch == _filterBatch;
+    return matchesSearch && matchesDept && matchesBatch;
+  }).toList();
+
+  // Sort birthday students to the top
+  filtered.sort((a, b) {
+    final aBday = hasBirthday(a);
+    final bBday = hasBirthday(b);
+
+    if (aBday && !bBday) return -1; // a comes first
+    if (!aBday && bBday) return 1;  // b comes first
+    return 0; // retain relative order
+  });
+
+  return filtered;
+}
 
   void _onTap(BuildContext context, Student student, UserRole role) {
     debugPrint("Student ID: ${student.id}");
@@ -190,10 +204,17 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
                           itemCount: filtered.length,
                           separatorBuilder: (_, __) =>
                               const SizedBox(height: AppSpacing.sm),
-                          itemBuilder: (context, i) => StudentListTile(
-                            student: filtered[i],
-                            onTap: () => _onTap(context, filtered[i], role),
-                          ),
+                          itemBuilder: (context, i) {
+                            final student =
+                                filtered[i]; // Access the Student object using index i
+                            final isBirthday = hasBirthday(student);
+
+                            return StudentListTile(
+                              student: student,
+                              isBirthday: isBirthday,
+                              onTap: () => _onTap(context, student, role),
+                            );
+                          },
                         ),
                       );
               },

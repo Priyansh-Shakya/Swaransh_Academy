@@ -9,7 +9,6 @@ import 'package:swaransh_academy/features/ai_assistant/data/ai_assistant_notifie
 import 'package:swaransh_academy/features/auth/data/provider.dart';
 import 'package:swaransh_academy/features/auth/data/users_api_service.dart';
 import 'package:swaransh_academy/features/auth/domain/user.dart' as model;
-import 'package:swaransh_academy/features/profile/data/profile_notifier.dart';
 import 'package:swaransh_academy/features/role_select/presentation/selectedRoleprovider.dart';
 
 import 'auth_user.dart';
@@ -20,7 +19,7 @@ final _supabase = supabase.Supabase.instance.client;
 
 /// Set to a UserRole to bypass Supabase entirely during development.
 /// Set to null to use real Supabase auth. Remove before production.
-const UserRole? kDebugRole = null;
+const UserRole? kDebugRole = UserRole.admin;
 
 //! ADMIN Only Role Provider
 final isAdminRoleProvider = StateProvider<UserRole>((ref) => UserRole.guest);
@@ -158,7 +157,6 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
     ref.invalidate(isAdminRoleProvider);
     ref.invalidate(adminVerificationProvider);
     ref.invalidate(aiAssistantProvider);
-    
   }
 
   // ---- Role resolution ----
