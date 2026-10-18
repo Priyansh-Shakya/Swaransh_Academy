@@ -33,8 +33,8 @@ async def get_students_birthday(payload: BirthdayNotification):
     if payload.fcm_token:
         await send_notification(
             fcm_token=payload.fcm_token, 
-            task="🎵 Happy Birthday!",
+            task="🎵 Happy Birthday! ",
             msg=f"Wishing you a very musical birthday {payload.name}"
         )
     
-    return {"status": "success", "processed_student": payload.name}
+    print({"status": "success", "processed_student": payload.name})
