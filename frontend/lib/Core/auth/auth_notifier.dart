@@ -19,7 +19,7 @@ final _supabase = supabase.Supabase.instance.client;
 
 /// Set to a UserRole to bypass Supabase entirely during development.
 /// Set to null to use real Supabase auth. Remove before production.
-const UserRole? kDebugRole = UserRole.admin;
+const UserRole? kDebugRole = null;
 
 //! ADMIN Only Role Provider
 final isAdminRoleProvider = StateProvider<UserRole>((ref) => UserRole.guest);
@@ -30,6 +30,9 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
   @override
   Future<AppUser> build() async {
     if (kDebugRole != null) {
+      debugPrint(
+        "\n\n\n\nIMPORTANT!!!!!\nDEBUG USER ROLE IS SET TO $kDebugRole , AUTH FLOW IS DISTRUPTED\n\n\n\n",
+      );
       debugPrint('[Auth] DEBUG override: $kDebugRole');
       return AppUser.debugUser(kDebugRole!);
     }

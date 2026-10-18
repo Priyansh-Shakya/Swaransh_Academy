@@ -20,7 +20,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from supabase import create_client
-
+from app.features.ai_assistant.agent.client import build_client
 
 def init_supabase(app: FastAPI):
     app.state.supabase = create_client(
@@ -57,11 +57,10 @@ async def lifespan(app: FastAPI):
 
     # 2. Initialize and attach the shared client to app.state
     print(">>> Initializing AI Client...")
-    app.state.ai_client = Client(
-        api_key=os.getenv("GROQ_API_KEY"),
-        model=os.getenv("MODEL", "openai/gpt-oss-20b"),
-        provider=Providers.GROQ,
-    )
+    app.state.ai_clients = {
+        "admin": build_client(),
+        "default": build_client(),
+    }
 
     print(">>> Initializing DB...")
     await init_db()

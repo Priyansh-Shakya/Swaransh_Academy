@@ -54,7 +54,7 @@ async def ask_assistant(
     max_tokens = ROLE_CONFIG.get(role, ROLE_CONFIG["guest"])["max_tokens"]
 
     # Build the agent fresh per request
-    client = request.app.state.ai_client
+    client = request.app.state.ai_clients["admin" if role == "admin" else "default"]
     agent = build_agent(query_history=body.conversation_history, role=role, db=db, name=body.name, client=client)
 
     async def event_stream():

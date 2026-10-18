@@ -75,32 +75,26 @@ def route_chat(state):
 
     return END
 
-
-graph = Graph()
-
-graph.graph_builder(
-    nodes={
-        "chat": Node.llm_call(),
-        "tool": Node.tool_exec(),
-    },
-
-    edges=[
-        (START, "chat"),
-        ("tool", "chat"),
-    ],
-
-    routers=[
-        (
-            "chat",
-            route_chat,
-            {
-                "Tool_Call": "tool",
-                "No_Tool": "END",
-            },
-        )
-    ],
-)
-
+def build_graph():
+    g = Graph()
+    g.graph_builder(
+        nodes={
+            "chat": Node.llm_call(),
+            "tool": Node.tool_exec(),
+        },
+        edges=[
+            (START, "chat"),
+            ("tool", "chat"),
+        ],
+        routers=[
+            (
+                "chat",
+                route_chat,
+                {"Tool_Call": "tool", "No_Tool": "END"},
+            )
+        ],
+    )
+    return g
 
 # ============================================================
 # 7. BUILD AGENT
@@ -139,7 +133,7 @@ def build_agent(query_history, role, db, name, client):
         client=client,
         messages=messages,
         state=State(messages=messages),
-        graph=graph,
+        graph=build_graph(),
         auto_handle_interrupts=True,
         tools=tools,
         logging=True,

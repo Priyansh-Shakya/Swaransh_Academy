@@ -44,7 +44,6 @@ class _SplashPageState extends ConsumerState<SplashPage>
 
   // Cinematic aura / glow
   late final Animation<double> _haloEntrance;
-  late final Animation<double> _haloSettle;
 
   // Music Staff reveal
   late final Animation<double> _staffExpand;
@@ -54,6 +53,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
   static const _introDuration = Duration(milliseconds: 2200);
   static const _minHoldDuration = Duration(milliseconds: 800);
 
+  late final Animation<double> _haloFade;
   @override
   void initState() {
     super.initState();
@@ -141,13 +141,6 @@ class _SplashPageState extends ConsumerState<SplashPage>
       ),
     );
 
-    _haloSettle = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _mainController,
-        curve: const Interval(0.08, 0.40, curve: Curves.easeOut),
-      ),
-    );
-
     // ------------------------------------------------------------
     // 4. MUSICAL STAFF UNFURL (Drawn out horizontally like notation)
     // ------------------------------------------------------------
@@ -167,6 +160,28 @@ class _SplashPageState extends ConsumerState<SplashPage>
     _mainController.forward();
     _pulseController.repeat(reverse: true);
 
+    // Fades the halo in during logo entry, then dissolves it completely to 0.0
+    _haloFade = TweenSequence<double>([
+      // 1. Aura blooms in
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 0.0,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 35,
+      ),
+      // 2. Holds briefly at peak
+      TweenSequenceItem(tween: ConstantTween<double>(1.0), weight: 25),
+      // 3. Completely dissolves out to transparent
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 1.0,
+          end: 0.0,
+        ).chain(CurveTween(curve: Curves.easeInCubic)),
+        weight: 40,
+      ),
+    ]).animate(_mainController);
+
     // Coordinate minimum display time with authentication
     _coordinateRouting();
   }
@@ -178,24 +193,31 @@ class _SplashPageState extends ConsumerState<SplashPage>
     // 2. Await the underlying authProvider to finish loading from storage/network
     final authCheck = () async {
       try {
-        // .future waits until AsyncLoading resolves to AsyncData or AsyncError
         final authState = await ref.read(authProvider.future);
+        debugPrint("SPLASH AUTH STATE: $authState");
+        debugPrint(
+          "SPLASH AUTH STATE: isAuthenticated = ${authState.isAuthenticated}",
+        );
         return authState.isAuthenticated;
-      } catch (_) {
+      } catch (error, stack) {
+        debugPrint("SPLASH AUTH FAILED WITH ERROR: $error");
+        debugPrint("SPLASH AUTH STACKTRACE:\n$stack");
         return false;
       }
     }();
-
+    debugPrint("AUTH CHECK FROM SPLASH: $authCheck");
     // 3. Wait for BOTH to complete in parallel
     final results = await Future.wait([minTimer, authCheck]);
     final bool isSignedIn = results[1] as bool;
-
+    debugPrint("SPLASH: isSignedIn = $isSignedIn");
     if (!mounted) return;
 
     // 4. Navigate directly — no flicker, no hop to /role-select
     if (isSignedIn) {
+      debugPrint("SPLASH: Navigating to /home");
       context.go('/home');
     } else {
+      debugPrint("SPLASH: Navigating to /role-select");
       context.go('/role-select');
     }
   }
@@ -209,6 +231,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
 
   @override
   Widget build(BuildContext context) {
+    debugPrint("\n\n\n\nSPLASH PAGE BUILD INITIATED\n\n\n\n");
     return Scaffold(
       backgroundColor: AppColors.ivory,
       body: AnimatedBuilder(
@@ -231,30 +254,37 @@ class _SplashPageState extends ConsumerState<SplashPage>
                   Stack(
                     alignment: Alignment.center,
                     children: [
-                      // Radial depth bloom behind the logo
-                      Transform.scale(
-                        scale: _haloEntrance.value,
-                        child: Opacity(
-                          opacity: (_haloSettle.value * ambientGlowOpacity)
-                              .clamp(0.0, 1.0),
-                          child: Container(
-                            width: 170,
-                            height: 170,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.navy.withValues(alpha: 0.35),
-                                  blurRadius: ambientGlowRadius,
-                                  spreadRadius: 22,
-                                ),
-                              ],
+                      // ------------------------------------------------
+                      // 1. RADIAL AURA BLOOM (Fades in, then dissolves to 0.0)
+                      // ------------------------------------------------
+                      if (_haloFade.value > 0.001)
+                        Transform.scale(
+                          scale: _haloEntrance.value,
+                          child: Opacity(
+                            opacity: (_haloFade.value * ambientGlowOpacity)
+                                .clamp(0.0, 1.0),
+                            child: Container(
+                              width: 170,
+                              height: 170,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.navy.withValues(
+                                      alpha: 0.35,
+                                    ),
+                                    blurRadius: ambientGlowRadius,
+                                    spreadRadius: 22,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
 
-                      // Academy Logo with translation, scaling, and opacity
+                      // ------------------------------------------------
+                      // 2. ACADEMY LOGO
+                      // ------------------------------------------------
                       Transform.translate(
                         offset: Offset(0, _logoTranslationY.value),
                         child: Transform.scale(
