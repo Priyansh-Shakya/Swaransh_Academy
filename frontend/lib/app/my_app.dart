@@ -4,6 +4,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:swaransh_academy/Core/fcm_service/tokenProvider.dart";
 
 import "../Core/theme/app_theme.dart";
+import "../Core/widgets/connectivity_banner.dart";
 import "../features/navigation/router/app_router.dart";
 
 class MyApp extends ConsumerWidget {
@@ -22,6 +23,8 @@ class MyApp extends ConsumerWidget {
       theme: AppTheme.theme,
       debugShowCheckedModeBanner: false,
       routerConfig: router,
+      builder: (context, child) =>
+          ConnectivityBanner(child: child ?? const SizedBox.shrink()),
     );
   }
 }

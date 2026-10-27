@@ -60,23 +60,31 @@ class CoursesPage extends ConsumerWidget {
           }
 
           if (isWide) {
-            return GridView.builder(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 340,
-                mainAxisSpacing: AppSpacing.md,
-                crossAxisSpacing: AppSpacing.md,
-                childAspectRatio: 0.82,
+            return RefreshIndicator(
+              color: AppColors.gold,
+              backgroundColor: AppColors.ivory,
+              onRefresh: () => ref.read(coursesProvider.notifier).refreshList(),
+              child: GridView.builder(
+                physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
+                ),
+                padding: const EdgeInsets.all(AppSpacing.md),
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 340,
+                  mainAxisSpacing: AppSpacing.md,
+                  crossAxisSpacing: AppSpacing.md,
+                  childAspectRatio: 0.82,
+                ),
+                itemCount: courses.length,
+                itemBuilder: (context, index) {
+                  final course = courses[index];
+                  return CourseCard(
+                    course: course,
+                    imageHeight: 140,
+                    onTap: () => _openDetail(context, course.id),
+                  );
+                },
               ),
-              itemCount: courses.length,
-              itemBuilder: (context, index) {
-                final course = courses[index];
-                return CourseCard(
-                  course: course,
-                  imageHeight: 140,
-                  onTap: () => _openDetail(context, course.id),
-                );
-              },
             );
           }
 

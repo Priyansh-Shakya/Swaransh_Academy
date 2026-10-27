@@ -62,4 +62,4 @@ frontend/android/app/release
 # Android signing
 android/key.properties
 android/*.jks
-android/*.keystore
+android/*.keystorebackend/.env

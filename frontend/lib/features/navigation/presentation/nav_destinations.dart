@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../Core/auth/user_role.dart';
 
 /// One destination list, used to build BOTH the bottom nav bar (Android)
@@ -37,7 +38,9 @@ const List<NavDestination> kAllDestinations = [
     label: 'Students',
     icon: Icons.groups_outlined,
     selectedIcon: Icons.groups,
-    roles: {UserRole.student, UserRole.admin},
+    roles: {
+      UserRole.admin,
+    }, //! ONLY FOR ADMINS {UserRole.student, UserRole.admin},
   ),
   NavDestination(
     path: '/admission',
