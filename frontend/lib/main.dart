@@ -1,7 +1,5 @@
-
 import 'Core/app_starter.dart';
 
-void main() {
-  Bootstrap.initialize();
+void main() async {
+  await Bootstrap.initialize();
 }
-

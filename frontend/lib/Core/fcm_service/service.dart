@@ -8,6 +8,7 @@ import 'package:swaransh_academy/Core/theme/app_colors.dart';
 
 import 'firebase_options.dart';
 
+@pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   debugPrint('🔵 BACKGROUND FCM: ${message.messageId}');
@@ -36,6 +37,8 @@ class FcmService {
   static Stream<String> get onTokenRefresh => _tokenController.stream;
 
   static Future<String?> init() async {
+    if (kIsWeb) return null; // FCM disabled on web
+
     debugPrint('🟡 FCM: init() STARTED');
 
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -86,7 +89,12 @@ class FcmService {
     await androidPlugin?.requestNotificationsPermission();
 
     // Fetch Token
-    final token = await messaging.getToken();
+    String? token;
+    try {
+      token = await messaging.getToken();
+    } catch (e) {
+      debugPrint('FCM getToken failed: $e');
+    }
     _token = token;
     debugPrint('🟢🟢🟢 FCM TOKEN: $token');
 
@@ -110,6 +118,12 @@ class FcmService {
     });
 
     return token;
+  }
+
+  /// Safe token fetch for use anywhere in the app
+  static Future<String?> safeGetToken() async {
+    if (kIsWeb) return null;
+    return _token ?? await FirebaseMessaging.instance.getToken();
   }
 
   static Future<void> _showLocalNotification({

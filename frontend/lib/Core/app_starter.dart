@@ -32,7 +32,7 @@ class Bootstrap {
       ),
     );
 
-    await dotenv.load(fileName: '.env');
+    await dotenv.load(fileName: kIsWeb ? 'assets/env/web.env' : '.env');
 
     // Supabase init
     await Supabase.initialize(
@@ -52,7 +52,11 @@ class Bootstrap {
     //* FCM Init
     //! ONLY Run when Platform is Not WEB
     if (!kIsWeb) {
-      await FcmService.init();
+      try {
+        await FcmService.init();
+      } catch (e, st) {
+        debugPrint('FCM init failed (non-fatal): $e\n$st');
+      }
     }
 
     // Initilize Local Shared pref
@@ -61,6 +65,23 @@ class Bootstrap {
     // Dependency injection
     // Error handlers
     // Logger setup
+
+    //! CHECK ERROR ON WEB
+    WidgetsFlutterBinding.ensureInitialized();
+
+    // Catch errors in the Flutter framework
+    FlutterError.onError = (FlutterErrorDetails details) {
+      FlutterError.presentError(details);
+      debugPrint('FLUTTER ERROR: ${details.exception}');
+      debugPrint('${details.stack}');
+    };
+
+    // Catch async errors outside Flutter widgets
+    PlatformDispatcher.instance.onError = (error, stack) {
+      debugPrint('ASYNC ERROR: $error');
+      debugPrint('$stack');
+      return true;
+    };
 
     runApp(const ProviderScope(child: MyApp()));
   }

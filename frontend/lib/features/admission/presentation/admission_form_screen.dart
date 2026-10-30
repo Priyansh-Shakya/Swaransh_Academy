@@ -270,7 +270,7 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
       return;
     } else {
       _saveToNotifier();
-      context.push('/admission/terms');
+      context.push('/admission/terms/apply');
     }
   }
 
@@ -293,7 +293,7 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
             router.push(
               '/auth',
               extra: () {
-                router.push('/admission/terms');
+                router.push('/admission/terms/apply');
               },
             );
           },

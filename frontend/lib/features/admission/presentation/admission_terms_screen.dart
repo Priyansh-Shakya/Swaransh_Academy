@@ -29,8 +29,9 @@ class LanguageChip extends ConsumerWidget {
 }
 
 class AdmissionTermsScreen extends ConsumerStatefulWidget {
-  const AdmissionTermsScreen({super.key});
+  const AdmissionTermsScreen({super.key, required this.viewType});
 
+  final String viewType; //! would be either 'view' or 'apply'
   @override
   ConsumerState<AdmissionTermsScreen> createState() =>
       _AdmissionTermsScreenState();
@@ -41,6 +42,10 @@ class _AdmissionTermsScreenState extends ConsumerState<AdmissionTermsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isApply = widget.viewType == 'apply';
+    print(
+      '>>> TermsScreen build: viewType=${widget.viewType}, isApply=$isApply',
+    );
     return Scaffold(
       backgroundColor: AppColors.ivory,
       appBar: AppBar(
@@ -86,23 +91,24 @@ class _AdmissionTermsScreenState extends ConsumerState<AdmissionTermsScreen> {
                               ),
                             ),
                             const SizedBox(height: AppSpacing.lg),
-                            Row(
-                              children: [
-                                Checkbox(
-                                  value: _accepted,
-                                  activeColor: AppColors.gold,
-                                  onChanged: (v) =>
-                                      setState(() => _accepted = v ?? false),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    'I have read and agree to the Terms & Conditions of '
-                                    'Swaransh Academy of Music & Art.',
-                                    style: AppTypography.bodySmall,
+                            if (isApply)
+                              Row(
+                                children: [
+                                  Checkbox(
+                                    value: _accepted,
+                                    activeColor: AppColors.gold,
+                                    onChanged: (v) =>
+                                        setState(() => _accepted = v ?? false),
                                   ),
-                                ),
-                              ],
-                            ),
+                                  Expanded(
+                                    child: Text(
+                                      'I have read and agree to the Terms & Conditions of '
+                                      'Swaransh Academy of Music & Art.',
+                                      style: AppTypography.bodySmall,
+                                    ),
+                                  ),
+                                ],
+                              ),
                           ],
                         ),
                       ),
@@ -119,38 +125,41 @@ class _AdmissionTermsScreenState extends ConsumerState<AdmissionTermsScreen> {
               ),
             ),
             // Fixed bottom bar: checkbox + button
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border(top: BorderSide(color: AppColors.divider)),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.navy.withOpacity(0.06),
-                    blurRadius: 12,
-                    offset: const Offset(0, -4),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: AppSpacing.sm),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: _accepted
-                          ? () => context.push('/admission/payment')
-                          : null,
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                        child: Text('Continue to Payment'),
+            if (isApply)
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border(top: BorderSide(color: AppColors.divider)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.navy.withValues(alpha: 0.06),
+                      blurRadius: 12,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: AppSpacing.sm),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: _accepted
+                            ? () => context.push('/admission/payment')
+                            : null,
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                            vertical: AppSpacing.xs,
+                          ),
+                          child: Text('Continue to Payment'),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -184,7 +193,7 @@ class _TermsClauseState extends State<_TermsClause> {
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              color: AppColors.gold.withOpacity(0.12),
+              color: AppColors.gold.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: Center(

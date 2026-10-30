@@ -14,6 +14,8 @@ final fcmTokenProvider = StateProvider<String?>((ref) {
 //! MATERIAL APP in my_app.dart listens to this provider directly and runs on every app start.
 
 final fcmInitProvider = Provider<void>((ref) {
+  if (kIsWeb) return; //* RETURN IF PLATFORM IS WEB, FCM NOT SUPPORTED
+
   // 1. Listen for Auth changes using your domain User model
   ref.listen<User?>(currentUserProvider, (previous, nextUser) async {
     if (nextUser?.userId != null) {

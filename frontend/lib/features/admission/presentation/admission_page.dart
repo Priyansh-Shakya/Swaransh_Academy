@@ -26,7 +26,18 @@ class AdmissionPage extends ConsumerWidget {
         : null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Admission')),
+      appBar: AppBar(
+        title: const Text('Admission'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.policy),
+            onPressed: () {
+              print("/n/n/n/nNAVIGATIG to T&C");
+              context.push('/admission/terms/view');
+            },
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
@@ -217,7 +228,7 @@ class _MyApplicationCard extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.12),
+                  color: statusColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
                 child: Text(
@@ -288,7 +299,7 @@ class _Step extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: AppColors.gold.withOpacity(0.12),
+              color: AppColors.gold.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: Center(

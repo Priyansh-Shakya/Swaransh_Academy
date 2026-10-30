@@ -159,8 +159,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const AdmissionFormScreen(),
       ),
       GoRoute(
-        path: '/admission/terms',
-        builder: (_, __) => const AdmissionTermsScreen(),
+        //! 2 parameters used in this route [view = viewing terms from main admission screen , apply = actual admission form applied and went to T&C]
+        path: '/admission/terms/:type',
+        builder: (context, state) {
+          final viewType = state.pathParameters['type'] ?? 'view';
+          print("/n/n/n/nview type from router: $viewType/n/n/n/n");
+          return AdmissionTermsScreen(viewType: viewType);
+        },
       ),
       GoRoute(
         path: '/admission/payment',

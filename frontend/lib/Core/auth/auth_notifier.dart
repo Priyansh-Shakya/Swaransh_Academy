@@ -137,9 +137,8 @@ class AuthNotifier extends AsyncNotifier<AppUser> {
         // 2. Web and Desktop flow
         await _supabase.auth.signInWithOAuth(
           supabase.OAuthProvider.google,
-          // The redirectTo is required for Desktop/Web to know where to return
           redirectTo: kIsWeb
-              ? null
+              ? "https://swaransh-academy.web.app" //! WEB URL, or http://localhost:8080 when testing
               : 'io.supabase.swaranshacademy://login-callback',
         );
       }

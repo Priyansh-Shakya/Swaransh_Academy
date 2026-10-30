@@ -1,11 +1,11 @@
 {
-    "name": "flutter_starter_template",
-    "short_name": "flutter_starter_template",
+    "name": "Swaransh Academy",
+    "short_name": "Swaransh Academy",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "The official web application of Swaransh Academy, a platform for learning and growth.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
