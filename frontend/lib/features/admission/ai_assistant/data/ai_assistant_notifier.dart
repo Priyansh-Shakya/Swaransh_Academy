@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:swaransh_academy/features/ai_assistant/data/ai_assistant_api_service.dart';
+import 'package:swaransh_academy/features/admission/ai_assistant/data/ai_assistant_api_service.dart';
 
 final isStreamingProvider = StateProvider<bool>((ref) => false);
 

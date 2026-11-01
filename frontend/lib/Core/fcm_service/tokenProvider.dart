@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swaransh_academy/Core/fcm_service/service.dart';
-import 'package:swaransh_academy/features/ai_assistant/data/ai_assistant_notifier.dart';
+import 'package:swaransh_academy/features/admission/ai_assistant/data/ai_assistant_notifier.dart';
 import 'package:swaransh_academy/features/auth/data/users_api_service.dart';
 import 'package:swaransh_academy/features/auth/domain/user.dart';
 

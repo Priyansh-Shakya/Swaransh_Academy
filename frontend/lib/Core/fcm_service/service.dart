@@ -33,8 +33,20 @@ class FcmService {
   static set token(String? value) => _token = value;
   static final StreamController<String> _tokenController =
       StreamController<String>.broadcast();
+  static final StreamController<String> _notificationTapController =
+      StreamController<String>.broadcast();
+  static bool _notificationListenersRegistered = false;
+  static String? _pendingNotificationRoute;
 
   static Stream<String> get onTokenRefresh => _tokenController.stream;
+  static Stream<String> get onNotificationTap =>
+      _notificationTapController.stream;
+
+  static String? takePendingNotificationRoute() {
+    final route = _pendingNotificationRoute;
+    _pendingNotificationRoute = null;
+    return route;
+  }
 
   static Future<String?> init() async {
     if (kIsWeb) return null; // FCM disabled on web
@@ -75,7 +87,10 @@ class FcmService {
       iOS: iosSettings,
     );
 
-    await _notifications.initialize(settings: initializationSettings);
+    await _notifications.initialize(
+      settings: initializationSettings,
+      onDidReceiveNotificationResponse: _handleLocalNotificationTap,
+    );
 
     // Create Android notification channel
     final androidPlugin = _notifications
@@ -103,21 +118,69 @@ class FcmService {
       _tokenController.add(newToken);
     });
 
-    // Foreground listener
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      debugPrint('🟣 FOREGROUND FCM: ${message.messageId}');
+    if (!_notificationListenersRegistered) {
+      FirebaseMessaging.onMessageOpenedApp.listen(_handleRemoteNotificationTap);
 
-      final notification = message.notification;
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+        debugPrint('🟣 FOREGROUND FCM: ${message.messageId}');
 
-      if (notification != null) {
-        await _showLocalNotification(
-          title: notification.title ?? '',
-          body: notification.body ?? '',
-        );
-      }
-    });
+        final notification = message.notification;
+
+        if (notification != null) {
+          await _showLocalNotification(
+            title: notification.title ?? '',
+            body: notification.body ?? '',
+            route: message.data['route'] as String?,
+          );
+        }
+      });
+
+      _notificationListenersRegistered = true;
+    }
+
+    final initialMessage = await messaging.getInitialMessage();
+    if (initialMessage != null) {
+      _handleRemoteNotificationTap(initialMessage);
+    }
+
+    final localLaunchDetails = await _notifications
+        .getNotificationAppLaunchDetails();
+    if (localLaunchDetails?.didNotificationLaunchApp ?? false) {
+      _handleLocalNotificationTap(
+        localLaunchDetails!.notificationResponse ??
+            const NotificationResponse(
+              id: null,
+              notificationResponseType:
+                  NotificationResponseType.selectedNotification,
+            ),
+      );
+    }
 
     return token;
+  }
+
+  static void _handleRemoteNotificationTap(RemoteMessage message) {
+    _handleNotificationRoute(message.data['route'] as String?);
+  }
+
+  static void _handleLocalNotificationTap(NotificationResponse response) {
+    _handleNotificationRoute(response.payload);
+  }
+
+  static void _handleNotificationRoute(String? route) {
+    const admissionRoute = '/admission';
+    if (route == null || route != admissionRoute) {
+      if (route != null) {
+        debugPrint('Ignoring unsupported notification route: $route');
+      }
+      return;
+    }
+
+    if (_notificationTapController.hasListener) {
+      _notificationTapController.add(admissionRoute);
+    } else {
+      _pendingNotificationRoute = admissionRoute;
+    }
   }
 
   /// Safe token fetch for use anywhere in the app
@@ -129,6 +192,7 @@ class FcmService {
   static Future<void> _showLocalNotification({
     required String title,
     required String body,
+    String? route,
   }) async {
     const androidDetails = AndroidNotificationDetails(
       'high_importance_channel_v2', // Matches channel ID above
@@ -158,6 +222,7 @@ class FcmService {
       title: title,
       body: body,
       notificationDetails: notificationDetails,
+      payload: route,
     );
   }
 }

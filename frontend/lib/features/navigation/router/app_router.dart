@@ -138,20 +138,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/admission',
-                builder: (_, __) => const SettingsPage(),
-                routes: [
-                  GoRoute(
-                    path: 'form',
-                    builder: (_, __) => const AdmissionFormScreen(),
-                  ),
-                ],
-              ),
-            ],
-          ),
         ],
       ),
       GoRoute(

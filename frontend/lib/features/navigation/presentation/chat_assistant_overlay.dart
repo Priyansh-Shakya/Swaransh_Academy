@@ -11,8 +11,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
-import 'package:swaransh_academy/features/ai_assistant/data/ai_assistant_notifier.dart';
-import 'package:swaransh_academy/features/ai_assistant/widgets/markdown_renderer.dart';
+import 'package:swaransh_academy/features/admission/ai_assistant/data/ai_assistant_notifier.dart';
+import 'package:swaransh_academy/features/admission/ai_assistant/widgets/markdown_renderer.dart';
 
 import '../../../Core/theme/app_colors.dart';
 import '../../../Core/theme/app_typography.dart';
@@ -154,7 +154,7 @@ class _ChatAssistantOverlayState extends ConsumerState<ChatAssistantOverlay>
                         250,
                         248,
                         248,
-                      ).withOpacity(0.18),
+                      ).withValues(alpha: 0.18),
                     ),
                   ),
                 ),
@@ -335,19 +335,19 @@ class _PanelSurface extends StatelessWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Colors.white.withOpacity(.38),
-                      Colors.white.withOpacity(.18),
+                      Colors.white.withValues(alpha: .38),
+                      Colors.white.withValues(alpha: .18),
                     ],
                   ),
 
                   border: Border.all(
-                    color: Colors.white.withOpacity(.80),
+                    color: Colors.white.withValues(alpha: .80),
                     width: 1.6,
                   ),
 
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(.12),
+                      color: Colors.black.withValues(alpha: .12),
                       blurRadius: 30,
                       offset: const Offset(0, 12),
                     ),
@@ -358,7 +358,10 @@ class _PanelSurface extends StatelessWidget {
                   child: Column(
                     children: [
                       _Header(onClose: onClose),
-                      Divider(height: 1, color: Colors.white.withOpacity(.18)),
+                      Divider(
+                        height: 1,
+                        color: Colors.white.withValues(alpha: .18),
+                      ),
                       Expanded(child: _MessageList(scrollCtrl: scrollCtrl)),
                       _InputBar(
                         controller: inputCtrl,
@@ -493,7 +496,7 @@ class _Bubble extends StatelessWidget {
       decoration: BoxDecoration(
         color: isUser
             ? AppColors.goldLight
-            : AppColors.navyDark.withOpacity(0.65),
+            : AppColors.navyDark.withValues(alpha: 0.65),
         borderRadius: BorderRadius.only(
           topLeft: const Radius.circular(16),
           topRight: const Radius.circular(16),
@@ -628,7 +631,7 @@ class _TypingBubbleState extends State<TypingBubble>
       margin: const EdgeInsets.symmetric(vertical: 6),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.navyDark.withOpacity(0.65),
+        color: AppColors.navyDark.withValues(alpha: 0.65),
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(16),
           topRight: Radius.circular(16),
@@ -679,14 +682,17 @@ class _TypingBubbleState extends State<TypingBubble>
       constraints: const BoxConstraints(maxWidth: 300),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.navyDark.withOpacity(0.85),
+        color: AppColors.navyDark.withValues(alpha: 0.85),
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(14),
           topRight: Radius.circular(14),
           bottomLeft: Radius.circular(4),
           bottomRight: Radius.circular(14),
         ),
-        border: Border.all(color: AppColors.gold.withOpacity(0.25), width: 0.8),
+        border: Border.all(
+          color: AppColors.gold.withValues(alpha: 0.25),
+          width: 0.8,
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -724,7 +730,7 @@ class _TypingBubbleState extends State<TypingBubble>
                   child: Container(
                     width: 1.5,
                     margin: const EdgeInsets.symmetric(vertical: 3),
-                    color: AppColors.gold.withOpacity(0.25),
+                    color: AppColors.gold.withValues(alpha: 0.25),
                   ),
                 ),
             ],
@@ -741,7 +747,7 @@ class _TypingBubbleState extends State<TypingBubble>
                       style: TextStyle(
                         fontSize: 12,
                         fontFamily: 'Monospace',
-                        color: AppColors.ivoryDeep.withOpacity(0.55),
+                        color: AppColors.ivoryDeep.withValues(alpha: 0.55),
                       ),
                     )
                   : _buildShimmerText(text),
@@ -758,7 +764,7 @@ class _TypingBubbleState extends State<TypingBubble>
       return Icon(
         Icons.check_circle_rounded,
         size: 13,
-        color: AppColors.gold.withOpacity(0.7),
+        color: AppColors.gold.withValues(alpha: 0.7),
       );
     }
 
@@ -780,7 +786,7 @@ class _TypingBubbleState extends State<TypingBubble>
                 height: 12,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.gold.withOpacity(opacity * 0.25),
+                  color: AppColors.gold.withValues(alpha: opacity * 0.25),
                 ),
               ),
             ),
@@ -881,7 +887,7 @@ class _InputBar extends ConsumerWidget {
                 horizontal: 14,
               ), // Removed vertical padding from container
               decoration: BoxDecoration(
-                color: AppColors.ivory.withOpacity(0.92),
+                color: AppColors.ivory.withValues(alpha: 0.92),
                 borderRadius: BorderRadius.circular(22),
               ),
               child: TextField(

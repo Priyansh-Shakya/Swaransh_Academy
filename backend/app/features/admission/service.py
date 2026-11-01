@@ -51,7 +51,12 @@ async def create_admission_form(form: model.AdmissionFormCreate, user, db):
         tokens = [r["fcm_token"] for r in admins if r["fcm_token"]]
         if tokens:
             print("Sending Admission Application Notification TO admins.")
-            send_multiple_notifications(tokens, "Admission Enquiry", "A new admission enquiry has occurred.")
+            send_multiple_notifications(
+                tokens,
+                "Admission Enquiry",
+                "A new admission enquiry has occurred.",
+                data={"route": "/admission"},
+            )
     except Exception as e:
         print(f"[FCM NON-BLOCKING ERROR] Admin notification skipped: {e}")
 
@@ -133,7 +138,8 @@ async def approve_form(admission_id: int, db, supabase):
             send_notification(
                 row["fcm_token"],
                 "Admission Approved",
-                "Your admission has been approved!"
+                "Your admission has been approved!",
+                data={"route": "/admission"},
             )
     except Exception as e:
         print(f"[FCM NON-BLOCKING ERROR] Approval notification skipped: {e}")
@@ -163,7 +169,8 @@ async def decline_form(admission_id: int, db):
             send_notification(
                 user_row["fcm_token"],
                 "Admission Declined",
-                "Your admission has been declined!"
+                "Your admission has been declined!",
+                data={"route": "/admission"},
             )
     except Exception as e:
         print(f"[FCM NON-BLOCKING ERROR] Decline notification skipped: {e}")

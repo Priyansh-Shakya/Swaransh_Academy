@@ -40,6 +40,7 @@ def send_notification(
     fcm_token: str,
     task: str,
     msg: str,
+    data: dict[str, str] | None = None,
 ):
     print("FCM TOKEN RECEIVED:", repr(fcm_token))
     print("FCM TOKEN TYPE:", type(fcm_token))
@@ -50,6 +51,7 @@ def send_notification(
 
     try:
         message = messaging.Message(
+            data=data,
             notification=messaging.Notification(
                 title=task,
                 body=msg,
@@ -76,6 +78,7 @@ def send_multiple_notifications(
     recipients: list[dict | str],
     task: str,
     msg: str,
+    data: dict[str, str] | None = None,
 ):
     """
     Accepts either a list of FCM tokens (strings) OR a list of dicts/objects.
@@ -106,6 +109,7 @@ def send_multiple_notifications(
 
         messages.append(
             messaging.Message(
+                data=data,
                 notification=messaging.Notification(
                     title=task,
                     body=msg,
