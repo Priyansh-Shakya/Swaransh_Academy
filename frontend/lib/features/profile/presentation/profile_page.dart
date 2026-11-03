@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:swaransh_academy/features/payments/data/payments_notifier.dart';
+import 'package:swaransh_academy/features/payments/presentation/pay_fees_button.dart';
 import 'package:swaransh_academy/features/payments/presentation/payment_hostory.dart';
 import 'package:swaransh_academy/features/profile/domain/profile.dart';
 import 'package:swaransh_academy/features/profile/presentation/widgets/birthday.dart';
@@ -330,7 +332,7 @@ class _ProfileHero extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [AppColors.navy, deptColor.withOpacity(0.75)],
+              colors: [AppColors.navy, deptColor.withValues(alpha: 0.75)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -350,7 +352,7 @@ class _ProfileHero extends StatelessWidget {
                   boxShadow: isBirthday
                       ? [
                           BoxShadow(
-                            color: Colors.amber.withOpacity(0.4),
+                            color: Colors.amber.withValues(alpha: 0.4),
                             blurRadius: 14,
                             spreadRadius: 2,
                           ),
@@ -382,7 +384,7 @@ class _ProfileHero extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.12),
+                    color: Colors.white.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
                   child: Text(
@@ -429,7 +431,7 @@ class _CourseBanner extends StatelessWidget {
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.md,
       ),
-      color: deptColor.withOpacity(0.06),
+      color: deptColor.withValues(alpha: 0.06),
       child: Row(
         children: [
           Expanded(
@@ -481,12 +483,13 @@ class _BannerStat extends StatelessWidget {
   }
 }
 
-class _FeesCard extends StatelessWidget {
+class _FeesCard extends ConsumerWidget {
   const _FeesCard({required this.student});
   final Student student;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final studentId = student.id; // int?
     final hasFees = student.fees != null;
     final isPaid = student.feePaidTill != null;
 
@@ -495,8 +498,8 @@ class _FeesCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.navy.withOpacity(0.06),
-            AppColors.gold.withOpacity(0.06),
+            AppColors.navy.withValues(alpha: 0.06),
+            AppColors.gold.withValues(alpha: 0.06),
           ],
         ),
         borderRadius: BorderRadius.circular(AppRadius.md),
@@ -543,16 +546,21 @@ class _FeesCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Pay Fees — coming soon')),
+          if (studentId != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              child: PayFeesButton(
+                studentId: studentId,
+                onPaid: () => ref.invalidate(paymentProvider(studentId)),
+                builder: (context, onTap, loading) => OutlinedButton.icon(
+                  onPressed: onTap,
+                  icon: const Icon(Icons.payment_outlined, size: 18),
+                  label: Text(loading ? 'Please wait…' : 'Pay Fees'),
+                ),
               ),
-              icon: const Icon(Icons.payment_outlined, size: 18),
-              label: const Text('Pay Fees'),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -630,7 +638,7 @@ class _BasicProfileBody extends StatelessWidget {
                     ),
                     child: CircleAvatar(
                       radius: 44,
-                      backgroundColor: AppColors.gold.withOpacity(0.2),
+                      backgroundColor: AppColors.gold.withValues(alpha: 0.2),
                       child: Text(
                         initials,
                         style: AppTypography.headlineLarge.copyWith(
@@ -660,7 +668,7 @@ class _BasicProfileBody extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.12),
+                      color: Colors.white.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(AppRadius.pill),
                     ),
                     child: Text(

@@ -15,12 +15,16 @@ from app.features.profile.router import router as profile_router
 from app.features.student.router import router as student_router
 from app.features.users.router import router as user_router
 from app.features.student_birthday.router import router as birthday_router
+from app.features.payment.razorpay.webhook_router import router as razorpay_webhook_router
+from app.features.payment.razorpay.router import router as razorpay_router
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from supabase import create_client
 from app.features.ai_assistant.agent.client import build_client
+
+
 
 def init_supabase(app: FastAPI):
     app.state.supabase = create_client(
@@ -107,6 +111,8 @@ app.include_router(admission_router)
 app.include_router(profile_router)
 app.include_router(admin_image_router)
 app.include_router(birthday_router)
+app.include_router(razorpay_webhook_router)
+app.include_router(razorpay_router)
 
 print("FastAPI Initilized ...")
 

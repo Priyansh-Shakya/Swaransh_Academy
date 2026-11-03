@@ -11,4 +11,5 @@ joblib==1.5.3
 supabase
 openai
 git+https://github.com/Priyansh-Shakya/Sparse-ai
-
+razorpay
+pydantic-settings

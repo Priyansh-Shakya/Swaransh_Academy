@@ -1,13 +1,17 @@
-
 create extension if not exists pg_cron with schema extensions;
 
+-- Safely unschedule only if the job exists
+do $$
+begin
+  if exists (select 1 from cron.job where jobname = 'trigger-birthday-greetings') then
+    perform cron.unschedule('trigger-birthday-greetings');
+  end if;
+end;
+$$;
 
-
--- Unschedule first so running 'supabase db reset' won't throw duplicate job errors
-select cron.unschedule('trigger-birthday-greetings');
-
+-- Schedule the job
 select cron.schedule(
-  'trigger-birthday-greetings', -- Job name
-  '0 8 * * *',                  -- Runs every day at 8:00 AM
+  'trigger-birthday-greetings',
+  '0 8 * * *',
   $$select check_student_birthdays();$$
 );

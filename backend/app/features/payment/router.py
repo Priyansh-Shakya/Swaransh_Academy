@@ -13,11 +13,28 @@ from fastapi import APIRouter, Depends
 router = APIRouter(tags=['Payments'])
 
 
+#* ------------------ HELPER CHECK ROLE FUNCTION ------------------
+
+async def check_role(user, db):
+    if user is None:
+        print("Returning guest role ...")
+        return 'guest'
+    role = await db.fetchrow('select role from users where user_id = $1', user['id'])
+    role = role['role'] if role else 'guest'
+    print("Role fetched from DB: ", role)
+    return role
+
+#* ------------------------------------------------------------------
+
+
 @router.post('/student/{id}/payment', response_model=Payment, tags=['Payments'])
 async def post_student_id_payment(id: int, body: PaymentCreate = ..., db=Depends(get_db), user = Depends(get_current_user)) -> Payment:
     """
     Record a Payment
     """
+    role = await check_role(user, db)
+    if role != 'admin':
+        raise Exception("Unauthorized: Only admin can create payments.")
     return await service.create_payment(id, body, db)
 
 
@@ -30,6 +47,9 @@ async def put_student_id_payment_payment_id(
     """
     Correct a Payment (supersede)
     """
+    role = await check_role(user, db)
+    if role != 'admin':
+        raise Exception("Unauthorized: Only admin can correct payments.")
     return await service.correct_payment(id, payment_id, body, db)
 
 
@@ -40,6 +60,9 @@ async def delete_student_id_payment_payment_id(id: int, payment_id: int = ..., d
     """
     Delete a Payment (hard delete)
     """
+    role = await check_role(user, db)
+    if role != 'admin':
+        raise Exception("Unauthorized: Only admin can delete payments.")
     await service.delete_payment(payment_id, db)
 
 
@@ -50,5 +73,6 @@ async def get_student_id_payment_list(id: int, db=Depends(get_db), user = Depend
     """
     Get Payment History for a Student
     """
+    
     return await service.get_payment_history(id, db)
 

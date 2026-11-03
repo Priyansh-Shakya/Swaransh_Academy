@@ -42,3 +42,16 @@ def _format_agent_status(event: StatusEvent) -> str:
     # 4. Fallback to detail string if available
     clean = re.sub(r"^\[STATUS\]:?\s*", "", detail).strip()
     return clean if clean else "Processing request..."
+
+
+
+
+
+async def check_role(user, db):
+    if user is None:
+        print("Returning guest role ...")
+        return 'guest'
+    role = await db.fetchrow('select role from users where user_id = $1', user['id'])
+    role = role['role'] if role else 'guest'
+    print("Role fetched from DB: ", role)
+    return role

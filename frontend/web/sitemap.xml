@@ -1,4 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://swaransh-academy.web.app/</loc></url>
+
+    <!-- Main website -->
+    <url>
+        <loc>https://swaransh-academy.web.app/</loc>
+    </url>
+
+    <!-- Courses -->
+    <url>
+        <loc>https://swaransh-academy.web.app/home</loc>
+    </url>
+
+    <!-- Admissions -->
+    <url>
+        <loc>https://swaransh-academy.web.app/admission</loc>
+    </url>
+
+    <url>
+        <loc>https://swaransh-academy.web.app/admission/form</loc>
+    </url>
+
+    <!-- Academy information -->
+    <url>
+        <loc>https://swaransh-academy.web.app/settings</loc>
+    </url>
+    <url>
+        <loc>https://swaransh-academy.web.app/settings/about</loc>
+    </url>
+
 </urlset>
