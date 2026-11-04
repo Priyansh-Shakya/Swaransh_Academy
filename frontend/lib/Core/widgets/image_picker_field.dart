@@ -286,7 +286,7 @@ class ImagePickerField extends StatelessWidget {
                   shape: shape,
                   color: AppColors.ivoryDeep,
                   border: Border.all(
-                    color: AppColors.gold.withOpacity(0.4),
+                    color: AppColors.gold.withValues(alpha: 0.4),
                     width: 2,
                   ),
                 ),
@@ -351,7 +351,7 @@ class _SheetOption extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(AppSpacing.sm),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
               child: Icon(icon, color: color, size: 20),
