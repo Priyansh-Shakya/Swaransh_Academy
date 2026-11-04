@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
 import 'package:swaransh_academy/Core/enums/form_fields.dart';
+import 'package:swaransh_academy/Core/service/image_cache_service.dart';
 import 'package:swaransh_academy/features/students/data/students_notifier.dart';
 import 'package:swaransh_academy/features/students/domain/student.dart';
 import 'package:swaransh_academy/features/students/helper.dart';
@@ -35,29 +36,29 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
 
   //* puts birthday students on top.
   List<Student> _filtered(List<Student> all) {
-  final filtered = all.where((s) {
-    final q = _searchQuery.toLowerCase();
-    final matchesSearch =
-        q.isEmpty ||
-        s.name.toLowerCase().contains(q) ||
-        s.subject.toLowerCase().contains(q);
-    final matchesDept = _filterDept == null || s.department == _filterDept;
-    final matchesBatch = _filterBatch == null || s.batch == _filterBatch;
-    return matchesSearch && matchesDept && matchesBatch;
-  }).toList();
+    final filtered = all.where((s) {
+      final q = _searchQuery.toLowerCase();
+      final matchesSearch =
+          q.isEmpty ||
+          s.name.toLowerCase().contains(q) ||
+          s.subject.toLowerCase().contains(q);
+      final matchesDept = _filterDept == null || s.department == _filterDept;
+      final matchesBatch = _filterBatch == null || s.batch == _filterBatch;
+      return matchesSearch && matchesDept && matchesBatch;
+    }).toList();
 
-  // Sort birthday students to the top
-  filtered.sort((a, b) {
-    final aBday = hasBirthday(a);
-    final bBday = hasBirthday(b);
+    // Sort birthday students to the top
+    filtered.sort((a, b) {
+      final aBday = hasBirthday(a);
+      final bBday = hasBirthday(b);
 
-    if (aBday && !bBday) return -1; // a comes first
-    if (!aBday && bBday) return 1;  // b comes first
-    return 0; // retain relative order
-  });
+      if (aBday && !bBday) return -1; // a comes first
+      if (!aBday && bBday) return 1; // b comes first
+      return 0; // retain relative order
+    });
 
-  return filtered;
-}
+    return filtered;
+  }
 
   void _onTap(BuildContext context, Student student, UserRole role) {
     debugPrint("Student ID: ${student.id}");
@@ -67,6 +68,15 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
     } else {
       StudentBasicSheet.show(context, student);
     }
+  }
+
+  Future<void> _refreshStudents() async {
+    final students =
+        ref.read(studentsProvider).valueOrNull ?? const <Student>[];
+    await ImageCacheService.evictAll(
+      students.map((student) => student.imageUrl),
+    );
+    await ref.read(studentsProvider.notifier).refreshList();
   }
 
   @override
@@ -144,8 +154,7 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
                 return RefreshIndicator(
                   color: AppColors.gold,
                   backgroundColor: AppColors.ivory,
-                  onRefresh: () =>
-                      ref.read(studentsProvider.notifier).refreshList(),
+                  onRefresh: _refreshStudents,
                   child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     children: [
@@ -172,8 +181,7 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
                     ? RefreshIndicator(
                         color: AppColors.gold,
                         backgroundColor: AppColors.ivory,
-                        onRefresh: () =>
-                            ref.read(studentsProvider.notifier).refreshList(),
+                        onRefresh: _refreshStudents,
                         child: ListView(
                           physics: const AlwaysScrollableScrollPhysics(),
                           children: [
@@ -194,8 +202,7 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
                     : RefreshIndicator(
                         color: AppColors.gold,
                         backgroundColor: AppColors.ivory,
-                        onRefresh: () =>
-                            ref.read(studentsProvider.notifier).refreshList(),
+                        onRefresh: _refreshStudents,
                         child: ListView.separated(
                           physics: const BouncingScrollPhysics(
                             parent: AlwaysScrollableScrollPhysics(),

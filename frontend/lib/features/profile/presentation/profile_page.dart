@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:swaransh_academy/Core/service/image_cache_service.dart';
 import 'package:swaransh_academy/features/payments/data/payments_notifier.dart';
 import 'package:swaransh_academy/features/payments/presentation/pay_fees_button.dart';
 import 'package:swaransh_academy/features/payments/presentation/payment_hostory.dart';
@@ -19,6 +20,14 @@ import '../../students/domain/student.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
+
+  Future<void> _refreshProfiles(WidgetRef ref) async {
+    final students = ref.read(profileProvider).valueOrNull?.students ?? [];
+    await ImageCacheService.evictAll(
+      students.map((student) => student.imageUrl),
+    );
+    await ref.read(profileProvider.notifier).refreshList();
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -46,7 +55,7 @@ class ProfilePage extends ConsumerWidget {
             return RefreshIndicator(
               color: AppColors.gold,
               backgroundColor: AppColors.ivory,
-              onRefresh: () => ref.read(profileProvider.notifier).refreshList(),
+              onRefresh: () => _refreshProfiles(ref),
               child: _ProfileBody(
                 student: students.first,
                 hasSiblings: result.hasSiblings,
@@ -58,7 +67,7 @@ class ProfilePage extends ConsumerWidget {
           return RefreshIndicator(
             color: AppColors.gold,
             backgroundColor: AppColors.ivory,
-            onRefresh: () => ref.read(profileProvider.notifier).refreshList(),
+            onRefresh: () => _refreshProfiles(ref),
 
             child: DefaultTabController(
               length: students.length,
@@ -80,8 +89,7 @@ class ProfilePage extends ConsumerWidget {
                   actions: [
                     IconButton(
                       icon: const Icon(Icons.refresh, color: AppColors.gold),
-                      onPressed: () =>
-                          ref.read(profileProvider.notifier).refreshList(),
+                      onPressed: () => _refreshProfiles(ref),
                     ),
                   ],
                   bottom: PreferredSize(
@@ -165,7 +173,7 @@ class ProfilePage extends ConsumerWidget {
         return RefreshIndicator(
           color: AppColors.gold,
           backgroundColor: AppColors.ivory,
-          onRefresh: () => ref.read(profileProvider.notifier).refreshList(),
+          onRefresh: () => _refreshProfiles(ref),
           child: _BasicProfileBody(user: result.userProfile!),
         );
       },

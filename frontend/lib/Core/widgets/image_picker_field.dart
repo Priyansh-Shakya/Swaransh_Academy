@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:swaransh_academy/Core/service/supabase_object_storage/object_storage.dart';
 
@@ -54,7 +55,20 @@ class ImagePickerController extends ChangeNotifier {
   String? error;
 
   bool _removed = false;
+  String? _displayUrlPath;
+  Future<String>? _displayUrlFuture;
   bool get hasLocalChange => pickedBytes != null;
+
+  Future<String> displayUrl(
+    String path,
+    Future<String> Function(String path) resolveDisplayUrl,
+  ) {
+    if (_displayUrlPath != path || _displayUrlFuture == null) {
+      _displayUrlPath = path;
+      _displayUrlFuture = resolveDisplayUrl(path);
+    }
+    return _displayUrlFuture!;
+  }
 
   /// What the widget should render as a preview right now.
   ImageProvider? get previewImage {
@@ -123,6 +137,8 @@ class ImagePickerController extends ChangeNotifier {
             bytes: pickedBytes!,
           );
       existingUrl = path;
+      _displayUrlFuture = null;
+      _displayUrlPath = null;
       pickedBytes = null;
       pickedFileName = null;
       return path;
@@ -248,8 +264,9 @@ class ImagePickerField extends StatelessWidget {
         controller.existingUrl != null &&
         controller.existingUrl!.isNotEmpty) {
       if (resolveDisplayUrl == null) return null;
+      final path = controller.existingUrl!;
       return FutureBuilder<String>(
-        future: resolveDisplayUrl!(controller.existingUrl!),
+        future: controller.displayUrl(path, resolveDisplayUrl!),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(
@@ -259,7 +276,19 @@ class ImagePickerField extends StatelessWidget {
               ),
             );
           }
-          return Image.network(snapshot.data!, fit: BoxFit.cover);
+          return CachedNetworkImage(
+            imageUrl: snapshot.data!,
+            cacheKey: path,
+            fit: BoxFit.cover,
+            placeholder: (_, __) => const Center(
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.gold,
+              ),
+            ),
+            errorWidget: (_, __, ___) =>
+                const Icon(Icons.broken_image_outlined, color: AppColors.gold),
+          );
         },
       );
     }
