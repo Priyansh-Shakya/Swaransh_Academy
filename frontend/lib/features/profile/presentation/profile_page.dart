@@ -14,7 +14,9 @@ import '../../../Core/theme/app_colors.dart';
 import '../../../Core/theme/app_spacing.dart';
 import '../../../Core/theme/app_typography.dart';
 import '../../../Core/theme/staff_line_divider.dart';
+import '../../../Core/utils/time_format.dart';
 import '../../../Core/widgets/student_fields_form.dart';
+import '../../navigation/presentation/app_shell.dart';
 import '../../profile/data/profile_notifier.dart';
 import '../../students/domain/student.dart';
 
@@ -279,6 +281,21 @@ class _ProfileBody extends StatelessWidget {
       );
     }
 
+    final isWide = MediaQuery.sizeOf(context).width >= kRailBreakpoint;
+    Widget infoContent = Padding(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: infoCard,
+    );
+
+    if (isWide) {
+      infoContent = Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 960),
+          child: infoContent,
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.ivory,
       body: Stack(
@@ -292,12 +309,7 @@ class _ProfileBody extends StatelessWidget {
                   hasSiblings: hasSiblings,
                 ),
               ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  child: infoCard,
-                ),
-              ),
+              SliverToBoxAdapter(child: infoContent),
               const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
             ],
           ),
@@ -456,7 +468,9 @@ class _CourseBanner extends StatelessWidget {
           Expanded(
             child: _BannerStat(
               label: 'Timing',
-              value: '${student.startTime}–${student.endTime}',
+              value:
+                  '${formatTime12Hour(student.startTime)}–'
+                  '${formatTime12Hour(student.endTime)}',
             ),
           ),
         ],

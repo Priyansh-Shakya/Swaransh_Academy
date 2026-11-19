@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:swaransh_academy/Core/utils/time_format.dart';
 import 'package:swaransh_academy/features/students/domain/student.dart';
 import 'package:swaransh_academy/features/students/widgets/birthday_elements.dart';
 
@@ -39,7 +40,7 @@ class StudentListTile extends StatelessWidget {
               // Avatar with conditional Party Hat
               BirthdayAvatarWrapper(
                 isBirthday: isBirthday,
-                child: StudentAvatar(student: student, radius: 30),
+                child: StudentAvatar(student: student, radius: 38),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
@@ -84,7 +85,9 @@ class StudentListTile extends StatelessWidget {
                         _Chip(label: student.batch, color: deptColor),
                         const SizedBox(width: AppSpacing.xs),
                         _Chip(
-                          label: '${student.startTime} – ${student.endTime}',
+                          label:
+                              '${formatTime12Hour(student.startTime)} – '
+                              '${formatTime12Hour(student.endTime)}',
                           color: AppColors.navy,
                         ),
                         if (isBirthday) ...[
@@ -187,7 +190,7 @@ class _Chip extends StatelessWidget {
         style: AppTypography.caption.copyWith(
           color: color,
           fontWeight: FontWeight.w700,
-          fontSize: 10
+          fontSize: 10,
         ),
       ),
     );

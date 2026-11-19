@@ -1,61 +1,10 @@
-INSERT INTO public.students
-(
-    
-    name,
-    admission_type,
-    learning_mode,
-    department,
-    batch,
-    education_qualification,
-    admission_status,
-    status,
-    start_time,
-    end_time,
-    subject,
-    courses,
-    dob,
-    father_name,
-    gender,
-    address,
-    religion,
-    caste,
-    scholar_no,
-    date_of_joining,
-    contact,
-    email,
-    fees,
-    fee_type,
-    fee_paid_till,
-    image_url
-)
-VALUES
-
-(
-
-'Aarav Verma',
-'regular',
-'offline',
-'Music',
-'morning',
-'high_school',
-'approved',
-'active',
-'2025-07-01 09:00:00+05:30',
-'2025-07-01 10:30:00+05:30',
-'Hindustani Classical',
-ARRAY['Beginner Vocal Music'],
-'2008-03-15',
-'Rajesh Verma',
-'male',
-'Bhopal',
-'Hindu',
-'General',
-'SV001',
-'2025-07-01',
-'9876543210',
-'aarav@gmail.com',
-12000,
-'monthly',
-'2025-07-31',
-NULL
-)
+SELECT 
+    n.nspname AS schema_name,
+    t.typname AS enum_name,
+    array_agg(e.enumlabel ORDER BY e.enumsortorder) AS enum_values
+FROM pg_type t
+JOIN pg_enum e ON t.oid = e.enumtypid
+JOIN pg_namespace n ON n.oid = t.typnamespace
+WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
+GROUP BY n.nspname, t.typname
+ORDER BY schema_name, enum_name;

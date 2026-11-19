@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:swaransh_academy/Core/utils/time_format.dart';
 import 'package:swaransh_academy/features/students/domain/student.dart';
 import 'package:swaransh_academy/features/students/helper.dart';
 import 'package:swaransh_academy/features/students/widgets/birthday_elements.dart';
@@ -131,7 +132,9 @@ class StudentBasicSheet extends StatelessWidget {
           _InfoRow(label: 'Batch', value: student.batch),
           _InfoRow(
             label: 'Timing',
-            value: '${student.startTime} – ${student.endTime}',
+            value:
+                '${formatTime12Hour(student.startTime)} – '
+                '${formatTime12Hour(student.endTime)}',
           ),
           const SizedBox(height: AppSpacing.md),
         ],

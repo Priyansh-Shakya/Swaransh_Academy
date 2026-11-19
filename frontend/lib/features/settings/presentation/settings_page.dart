@@ -11,6 +11,7 @@ import '../../../Core/auth/user_role.dart';
 import '../../../Core/theme/app_colors.dart';
 import '../../../Core/theme/app_spacing.dart';
 import '../../../Core/theme/app_typography.dart';
+import '../../navigation/presentation/app_shell.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -23,9 +24,114 @@ class SettingsPage extends ConsumerWidget {
 
     final currentRole = appUser?.role;
     debugPrint("From Settings , Current Role: $currentRole");
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
+    final isWide = MediaQuery.sizeOf(context).width >= kRailBreakpoint;
+
+    Widget bodyContent = ListView(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      children: [
+        // ---- Account section ----
+        _SectionLabel('Account'),
+        if (isSignedIn) ...[
+          _AccountTile(role: role, email: appUser?.email ?? ''),
+        ] else
+          _SettingsTile(
+            icon: Icons.login,
+            iconColor: AppColors.navy,
+            title: 'Sign In',
+            subtitle: 'Access your student profile or admin panel',
+            onTap: () {
+              context.push('/auth');
+            },
+          ),
+
+        const _Divider(),
+
+        //* Only visible if Role is Guest.
+        if (currentRole == UserRole.guest || currentRole == null) ...[
+          _SectionLabel('Change Role'),
+          _SettingsTile(
+            icon: Icons.manage_accounts,
+            iconColor: AppColors.navy,
+            title: 'Select Role',
+            subtitle: 'Change your role to (Guest , Student , Admin)',
+            onTap: () {
+              context.push('/role-select');
+            },
+          ),
+
+          const _Divider(),
+        ],
+        // ---- Support & Info ----
+        _SectionLabel('Support & Info'),
+        _SettingsTile(
+          icon: Icons.headset_mic_outlined,
+          iconColor: AppColors.deptActing,
+          title: 'Contact Support',
+          subtitle: 'Get in touch with the academy',
+          onTap: () => _showContactSheet(context),
+        ),
+        _SettingsTile(
+          icon: Icons.info_outline,
+          iconColor: AppColors.gold,
+          title: 'About Swaransh Academy',
+          subtitle: 'Our story, our team',
+          onTap: () => context.push('/settings/about'),
+        ),
+
+        const _Divider(),
+
+        // ----- Social Media -----
+        _SettingsTile(
+          icon: Icons.people_outline,
+          iconColor: AppColors.deptDance,
+          title: 'Follow Us',
+          subtitle: 'Instagram, YouTube & more',
+          onTap: () => _showSocialsSheet(context),
+        ),
+
+        const _Divider(),
+
+        // ---- App ----
+        _SectionLabel('App'),
+        _SettingsTile(
+          icon: Icons.notifications_outlined,
+          iconColor: AppColors.deptMusic,
+          title: 'Notifications',
+          subtitle: 'Fee reminders, announcements',
+          onTap: openNotificationSettings,
+        ),
+        _SettingsTile(
+          icon: Icons.info_outline_rounded,
+          iconColor: AppColors.textSecondary,
+          title: 'App Version',
+          subtitle: 'v1.0.1',
+          onTap: null,
+        ),
+
+        const SizedBox(height: AppSpacing.xl),
+
+        // ---- Logout (only when signed in) ----
+        if (isSignedIn)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.error,
+                side: const BorderSide(color: AppColors.error),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+              ),
+              onPressed: () => _confirmLogout(context, ref),
+              icon: const Icon(Icons.logout),
+              label: const Text('Sign Out'),
+            ),
+          ),
+      ],
+    );
+
+    if (isWide) {
+      final wideList = ListView(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         children: [
           // ---- Account section ----
@@ -125,7 +231,36 @@ class SettingsPage extends ConsumerWidget {
               ),
             ),
         ],
-      ),
+      );
+
+      bodyContent = Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 820),
+          margin: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.divider),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            child: SingleChildScrollView(child: wideList),
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Settings'), centerTitle: true),
+      body: bodyContent,
     );
   }
 

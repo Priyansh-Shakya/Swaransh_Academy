@@ -276,263 +276,292 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final selectedRole = ref.watch(selectedRoleProvider);
     final isAdminFlow = selectedRole == UserRole.admin;
     final isStudentFlow = selectedRole == UserRole.student;
+    final isWide = MediaQuery.sizeOf(context).width >= 700;
+
+    final innerContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: AppSpacing.md),
+        Center(
+          child: Column(
+            children: [
+              Image.asset(
+                'assets/app_logo.png',
+                width: isWide ? 110 : 180,
+                height: isWide ? 110 : 180,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.music_note,
+                  size: 56,
+                  color: AppColors.gold,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Swaransh Academy',
+                style: AppTypography.headlineLarge,
+              ),
+              const SizedBox(height: 4),
+              Center(
+                child: FractionallySizedBox(
+                  widthFactor: 0.85,
+                  child: Text(
+                    isAdminFlow
+                        ? 'Admin sign-in'
+                        : _isSignUp
+                        ? 'Create your account'
+                        : isStudentFlow
+                        ? "Use same email which you filled in admission form to access your student profile"
+                        : "Welcome Back",
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+
+              if (isAdminFlow) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.navy.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.admin_panel_settings_outlined,
+                        size: 14,
+                        color: AppColors.navy,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Admin flow — code required after sign-in',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.navy,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        const SizedBox(height: AppSpacing.xl),
+
+        Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              if (_isSignUp) ...[
+                _Field(
+                  controller: _nameCtrl,
+                  label: 'Full Name',
+                  icon: Icons.person_outline,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Please enter your name'
+                      : null,
+                ),
+                const SizedBox(height: AppSpacing.md),
+              ],
+              _Field(
+                controller: _emailCtrl,
+                label: 'Email address',
+                icon: Icons.email_outlined,
+                keyboardType: TextInputType.emailAddress,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty)
+                    return 'Please enter your email';
+                  if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(v))
+                    return 'Enter a valid email';
+                  return null;
+                },
+              ),
+              const SizedBox(height: AppSpacing.md),
+              _Field(
+                controller: _passwordCtrl,
+                label: 'Password',
+                icon: Icons.lock_outline,
+                obscureText: _obscurePassword,
+                suffix: IconButton(
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    color: AppColors.textSecondary,
+                    size: 20,
+                  ),
+                  onPressed: () => setState(
+                    () => _obscurePassword = !_obscurePassword,
+                  ),
+                ),
+                validator: (v) {
+                  if (v == null || v.isEmpty)
+                    return 'Please enter a password';
+                  if (_isSignUp && v.length < 6)
+                    return 'Password must be at least 6 characters';
+                  return null;
+                },
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _busy ? null : _submitEmail,
+                  child: _busy
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: AppSpacing.xs,
+                          ),
+                          child: Text(
+                            _isSignUp ? 'Create Account' : 'Sign In',
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: AppSpacing.lg),
+        Row(
+          children: [
+            const Expanded(child: Divider()),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+              ),
+              child: Text(
+                'or',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+            const Expanded(child: Divider()),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.lg),
+
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: _busy ? null : _submitGoogle,
+            style: OutlinedButton.styleFrom(
+              backgroundColor: Colors.white,
+              side: const BorderSide(color: AppColors.divider),
+              padding: const EdgeInsets.symmetric(
+                vertical: AppSpacing.md,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const GoogleLogo(size: 20),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  'Continue with Google',
+                  style: AppTypography.button.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: AppSpacing.xl),
+        Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _isSignUp
+                    ? 'Already have an account? '
+                    : "Don't have an account? ",
+                style: AppTypography.bodySmall,
+              ),
+              GestureDetector(
+                onTap: _toggleMode,
+                child: Text(
+                  _isSignUp ? 'Sign In' : 'Sign Up',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.gold,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Center(
+          child: TextButton(
+            onPressed: () {
+              ref.read(selectedRoleProvider.notifier).state = null;
+              context.canPop() ? context.pop() : context.go('/home');
+            },
+            child: Text(
+              'Continue as Guest',
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+      ],
+    );
+
+    if (isWide) {
+      return Scaffold(
+        backgroundColor: AppColors.ivory,
+        body: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 580),
+            padding: const EdgeInsets.symmetric(
+              vertical: AppSpacing.xl,
+              horizontal: AppSpacing.lg,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(color: AppColors.divider),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 32,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: SingleChildScrollView(child: innerContent),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.ivory,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: AppSpacing.md),
-              Center(
-                child: Column(
-                  children: [
-                    Image.asset(
-                      'assets/app_logo.png',
-                      width: 180,
-                      height: 180,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.music_note,
-                        size: 56,
-                        color: AppColors.gold,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      'Swaransh Academy',
-                      style: AppTypography.headlineLarge,
-                    ),
-                    const SizedBox(height: 4),
-                    Center(
-                      child: FractionallySizedBox(
-                        widthFactor: 0.85,
-                        child: Text(
-                          isAdminFlow
-                              ? 'Admin sign-in'
-                              : _isSignUp
-                              ? 'Create your account'
-                              : isStudentFlow
-                              ? "Use same email which you filled in admission form to access your student profile"
-                              : "Welcome Back",
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                          textAlign: TextAlign.center,
-                          // maxLines: 2,
-                          // overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-
-                    if (isAdminFlow) ...[
-                      const SizedBox(height: AppSpacing.sm),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.navy.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(AppRadius.pill),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.admin_panel_settings_outlined,
-                              size: 14,
-                              color: AppColors.navy,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Admin flow — code required after sign-in',
-                              style: AppTypography.caption.copyWith(
-                                color: AppColors.navy,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.xl),
-
-              Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    if (_isSignUp) ...[
-                      _Field(
-                        controller: _nameCtrl,
-                        label: 'Full Name',
-                        icon: Icons.person_outline,
-                        validator: (v) => (v == null || v.trim().isEmpty)
-                            ? 'Please enter your name'
-                            : null,
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                    ],
-                    _Field(
-                      controller: _emailCtrl,
-                      label: 'Email address',
-                      icon: Icons.email_outlined,
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty)
-                          return 'Please enter your email';
-                        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(v))
-                          return 'Enter a valid email';
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    _Field(
-                      controller: _passwordCtrl,
-                      label: 'Password',
-                      icon: Icons.lock_outline,
-                      obscureText: _obscurePassword,
-                      suffix: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                          color: AppColors.textSecondary,
-                          size: 20,
-                        ),
-                        onPressed: () => setState(
-                          () => _obscurePassword = !_obscurePassword,
-                        ),
-                      ),
-                      validator: (v) {
-                        if (v == null || v.isEmpty)
-                          return 'Please enter a password';
-                        if (_isSignUp && v.length < 6)
-                          return 'Password must be at least 6 characters';
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: _busy ? null : _submitEmail,
-                        child: _busy
-                            ? const SizedBox(
-                                height: 18,
-                                width: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: AppSpacing.xs,
-                                ),
-                                child: Text(
-                                  _isSignUp ? 'Create Account' : 'Sign In',
-                                ),
-                              ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.lg),
-              Row(
-                children: [
-                  const Expanded(child: Divider()),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md,
-                    ),
-                    child: Text(
-                      'or',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                  const Expanded(child: Divider()),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.lg),
-
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: _busy ? null : _submitGoogle,
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    side: const BorderSide(color: AppColors.divider),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AppSpacing.md,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const GoogleLogo(size: 20),
-                      const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        'Continue with Google',
-                        style: AppTypography.button.copyWith(
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.xl),
-              Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _isSignUp
-                          ? 'Already have an account? '
-                          : "Don't have an account? ",
-                      style: AppTypography.bodySmall,
-                    ),
-                    GestureDetector(
-                      onTap: _toggleMode,
-                      child: Text(
-                        _isSignUp ? 'Sign In' : 'Sign Up',
-                        style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.gold,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Center(
-                child: TextButton(
-                  onPressed: () {
-                    ref.read(selectedRoleProvider.notifier).state = null;
-                    context.canPop() ? context.pop() : context.go('/home');
-                  },
-                  child: Text(
-                    'Continue as Guest',
-                    style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xxl),
-            ],
-          ),
+          child: innerContent,
         ),
       ),
     );

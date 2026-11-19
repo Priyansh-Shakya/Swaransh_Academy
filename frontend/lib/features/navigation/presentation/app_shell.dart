@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/auth/auth_notifier.dart';
+import 'package:swaransh_academy/Core/auth/user_role.dart';
 
 import '../../../Core/theme/app_colors.dart';
+import '../../../Core/theme/app_spacing.dart';
+import '../../../Core/theme/app_typography.dart';
 import 'nav_destinations.dart';
 
 /// Breakpoint below which we use a bottom nav bar (phone-shaped windows,
-/// Android), and at/above which we use a side rail (Windows desktop).
-/// This is a width check, not a platform check on purpose - a resized
-/// desktop window or a tablet should get whichever layout actually fits.
+/// Android), and at/above which we use a professional desktop sidebar.
 const double kRailBreakpoint = 700;
 
 class AppShell extends ConsumerWidget {
@@ -27,65 +28,34 @@ class AppShell extends ConsumerWidget {
     // IMPORTANT: `destinations` is a role-filtered subset of kAllDestinations,
     // but StatefulNavigationShell branch indices are fixed by the FULL list
     // (branch order in app_router.dart mirrors kAllDestinations exactly).
-    // So we must map "tapped position in the visible list" back to its
-    // real branch index - never pass the visible-list position straight
-    // into goBranch, or a guest's tab taps will open the wrong screen.
     final branchIndices = destinations
         .map((d) => kAllDestinations.indexOf(d))
         .toList();
 
-    // Replace the selectedVisibleIndex line with a safe fallback:
     final selectedVisibleIndex = branchIndices.indexOf(
       navigationShell.currentIndex,
     );
-    // If current branch isn't visible for this role (e.g. role just changed),
-    // default to 0 so the nav bar never gets -1.
     final safeIndex = selectedVisibleIndex < 0 ? 0 : selectedVisibleIndex;
-
-    //? Debugging Prints
-    // debugPrint(
-    //   'AppShell: role=$role, width=$width, useRail=$useRail, '
-    //   'selectedVisibleIndex=$selectedVisibleIndex, '
-    //   'branchIndices=$branchIndices',
-    // );
-    // debugPrint("selectedVisibleIndex = $selectedVisibleIndex");
-    // debugPrint("destinations.length = ${destinations.length}");
-    // debugPrint("destinations = $destinations");
 
     void onSelect(int visibleIndex) {
       final branchIndex = branchIndices[visibleIndex];
       navigationShell.goBranch(
         branchIndex,
-        // Tapping the already-active tab pops back to that tab's root,
-        // matching how Flipkart/most shopping apps behave.
         initialLocation: branchIndex == navigationShell.currentIndex,
       );
     }
 
     if (useRail) {
       return Scaffold(
+        backgroundColor: AppColors.ivory,
         body: Row(
           children: [
-            NavigationRail(
+            _DesktopSidebar(
+              destinations: destinations,
               selectedIndex: safeIndex,
-              onDestinationSelected: onSelect,
-              labelType: NavigationRailLabelType.all,
-              backgroundColor: Colors.white,
-              leading: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: _RailBrandMark(),
-              ),
-              destinations: destinations
-                  .map(
-                    (d) => NavigationRailDestination(
-                      icon: Icon(d.icon),
-                      selectedIcon: Icon(d.selectedIcon),
-                      label: Text(d.label),
-                    ),
-                  )
-                  .toList(),
+              onSelected: onSelect,
+              role: role,
             ),
-            const VerticalDivider(width: 1, color: AppColors.divider),
             Expanded(child: navigationShell),
           ],
         ),
@@ -111,21 +81,189 @@ class AppShell extends ConsumerWidget {
   }
 }
 
-class _RailBrandMark extends StatelessWidget {
-  const _RailBrandMark();
+class _DesktopSidebar extends StatelessWidget {
+  const _DesktopSidebar({
+    required this.destinations,
+    required this.selectedIndex,
+    required this.onSelected,
+    required this.role,
+  });
+
+  final List<NavDestination> destinations;
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+  final UserRole role;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Image.asset(
-          'assets/app_logo.png',
-          width: 40,
-          height: 40,
-          errorBuilder: (_, __, ___) =>
-              const Icon(Icons.music_note, color: AppColors.gold, size: 32),
+    return Container(
+      width: 270,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          right: BorderSide(color: AppColors.divider, width: 1),
         ),
-      ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header / Brand (Logo above, centered, bigger)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Center(
+                  child: Image.asset(
+                    'assets/app_logo.png',
+                    width: 110,
+                    height: 110,
+                    errorBuilder: (_, __, ___) => const Icon(
+                      Icons.music_note,
+                      color: AppColors.gold,
+                      size: 64,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Swaransh Academy',
+                  style: AppTypography.titleLarge.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.navy,
+                    fontSize: 16,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'of Music and Arts',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: AppColors.divider),
+          const SizedBox(height: 20),
+
+          // Section Label
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Text(
+              'NAVIGATION',
+              style: AppTypography.caption.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppColors.textSecondary,
+                letterSpacing: 1.2,
+                fontSize: 10,
+              ),
+            ),
+          ),
+
+          // Destinations List
+          Expanded(
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              itemCount: destinations.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 6),
+              itemBuilder: (context, index) {
+                final d = destinations[index];
+                final isSelected = index == selectedIndex;
+
+                return Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  child: InkWell(
+                    onTap: () => onSelected(index),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.navy.withOpacity(0.08)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        border: isSelected
+                            ? Border.all(
+                                color: AppColors.navy.withOpacity(0.15),
+                                width: 1,
+                              )
+                            : null,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isSelected ? d.selectedIcon : d.icon,
+                            color: isSelected
+                                ? AppColors.gold
+                                : AppColors.textSecondary,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 14),
+                          Text(
+                            d.label,
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: isSelected
+                                  ? AppColors.navy
+                                  : AppColors.textPrimary,
+                              fontWeight: isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // Footer Role Badge
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.ivoryDeep,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: AppColors.divider),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.verified_user_outlined,
+                    size: 18,
+                    color: AppColors.gold,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Role: ${role.name.toUpperCase()}',
+                    style: AppTypography.caption.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.navy,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

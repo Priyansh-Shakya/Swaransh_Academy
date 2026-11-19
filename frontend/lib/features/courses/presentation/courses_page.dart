@@ -64,7 +64,7 @@ class _CoursesPageState extends ConsumerState<CoursesPage> {
     final isWide = MediaQuery.sizeOf(context).width >= kRailBreakpoint;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Courses')),
+      appBar: AppBar(title: const Text('Courses'), centerTitle: true),
       floatingActionButton: isAdmin
           ? FloatingActionButton.extended(
               onPressed: () => context.push('/home/course/new'),
@@ -106,9 +106,9 @@ class _CoursesPageState extends ConsumerState<CoursesPage> {
         children: [
           LayoutBuilder(
             builder: (context, constraints) {
-              final feeFieldWidth = (constraints.maxWidth * 0.28).clamp(
-                100.0,
-                116.0,
+              final feeFieldWidth = (constraints.maxWidth * 0.35).clamp(
+                130.0,
+                180.0,
               );
               return Row(
                 children: [
@@ -176,37 +176,42 @@ class _CoursesPageState extends ConsumerState<CoursesPage> {
             },
           ),
           const SizedBox(height: AppSpacing.sm),
-          SizedBox(
-            height: 34,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                ...AppOptions.learningMode.map(
-                  (option) => _filterChip(
-                    option: option,
-                    selected: _filterMode == option.value,
-                    color: AppColors.navy,
-                    onSelected: () => setState(() {
-                      _filterMode = _filterMode == option.value
-                          ? null
-                          : option.value;
-                    }),
-                  ),
+          Center(
+            child: SizedBox(
+              height: 34,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ...AppOptions.learningMode.map(
+                      (option) => _filterChip(
+                        option: option,
+                        selected: _filterMode == option.value,
+                        color: AppColors.navy,
+                        onSelected: () => setState(() {
+                          _filterMode = _filterMode == option.value
+                              ? null
+                              : option.value;
+                        }),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    ...AppOptions.courseTag.map(
+                      (option) => _filterChip(
+                        option: option,
+                        selected: _filterTag == option.value,
+                        color: AppColors.navy,
+                        onSelected: () => setState(() {
+                          _filterTag = _filterTag == option.value
+                              ? null
+                              : option.value;
+                        }),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: AppSpacing.xs),
-                ...AppOptions.courseTag.map(
-                  (option) => _filterChip(
-                    option: option,
-                    selected: _filterTag == option.value,
-                    color: AppColors.navy,
-                    onSelected: () => setState(() {
-                      _filterTag = _filterTag == option.value
-                          ? null
-                          : option.value;
-                    }),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ],

@@ -8,6 +8,7 @@ import '../../../Core/theme/app_colors.dart';
 import '../../../Core/theme/app_spacing.dart';
 import '../../../Core/theme/app_typography.dart';
 import '../../../Core/theme/staff_line_divider.dart';
+import '../../navigation/presentation/app_shell.dart';
 import '../data/admission_notifier.dart';
 import '../domain/admission_form_record.dart';
 import 'admin_admission_page.dart';
@@ -24,25 +25,13 @@ class AdmissionPage extends ConsumerWidget {
     final myFormsAsync = isSignedIn
         ? ref.watch(myAdmissionFormsProvider)
         : null;
+    final isWide = MediaQuery.sizeOf(context).width >= kRailBreakpoint;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admission'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.policy),
-            onPressed: () {
-              print("/n/n/n/nNAVIGATIG to T&C");
-              context.push('/admission/terms/view');
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    Widget bodyContent = SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
             // ---- Hero / Apply Now ----
             Container(
               width: double.infinity,
@@ -179,7 +168,32 @@ class AdmissionPage extends ConsumerWidget {
             const SizedBox(height: AppSpacing.xxl),
           ],
         ),
+      );
+
+    if (isWide) {
+      bodyContent = Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 960),
+          child: bodyContent,
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Admission'),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.policy),
+            onPressed: () {
+              print("/n/n/n/nNAVIGATIG to T&C");
+              context.push('/admission/terms/view');
+            },
+          ),
+        ],
       ),
+      body: bodyContent,
     );
   }
 }

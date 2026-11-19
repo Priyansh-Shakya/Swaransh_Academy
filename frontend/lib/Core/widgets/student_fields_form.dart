@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:swaransh_academy/Core/enums/form_fields.dart';
+import 'package:swaransh_academy/Core/utils/time_format.dart';
 import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
 
 import '../theme/app_colors.dart';
@@ -243,7 +244,10 @@ class StudentFieldsForm extends StatelessWidget {
     if (locked) {
       return Padding(
         padding: const EdgeInsets.only(bottom: AppSpacing.md),
-        child: _ReadOnlyField(label: label, value: controller.text),
+        child: _ReadOnlyField(
+          label: label,
+          value: isDate ? controller.text : formatTime12Hour(controller.text),
+        ),
       );
     }
 
@@ -312,7 +316,9 @@ class StudentFieldsForm extends StatelessWidget {
               child: Text(
                 value.text.isEmpty
                     ? (isDate ? 'Select date' : 'Select time')
-                    : value.text,
+                    : isDate
+                    ? value.text
+                    : formatTime12Hour(value.text),
                 style: AppTypography.bodyMedium.copyWith(
                   color: value.text.isEmpty
                       ? AppColors.textSecondary

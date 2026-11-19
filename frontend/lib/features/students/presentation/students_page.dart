@@ -12,6 +12,7 @@ import '../../../../Core/auth/user_role.dart';
 import '../../../../Core/theme/app_colors.dart';
 import '../../../../Core/theme/app_spacing.dart';
 import '../../../../Core/theme/app_typography.dart';
+import '../../navigation/presentation/app_shell.dart';
 import '../widgets/student_basic_sheet.dart';
 import '../widgets/student_list_tile.dart';
 
@@ -88,6 +89,7 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Students'),
+        centerTitle: true,
         actions: isAdmin
             ? [
                 IconButton(
@@ -131,15 +133,20 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
                     onChanged: (v) => setState(() => _searchQuery = v),
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  SizedBox(
-                    height: 34,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: [
-                        ..._deptFilters(),
-                        const SizedBox(width: AppSpacing.xs),
-                        ..._batchFilters(),
-                      ],
+                  Center(
+                    child: SizedBox(
+                      height: 34,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ..._deptFilters(),
+                            const SizedBox(width: AppSpacing.xs),
+                            ..._batchFilters(),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -176,54 +183,87 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
 
               data: (students) {
                 final filtered = _filtered(students);
+                final isWide = MediaQuery.sizeOf(context).width >= kRailBreakpoint;
 
-                return filtered.isEmpty
-                    ? RefreshIndicator(
-                        color: AppColors.gold,
-                        backgroundColor: AppColors.ivory,
-                        onRefresh: _refreshStudents,
-                        child: ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: [
-                            SizedBox(
-                              height: MediaQuery.of(context).size.height * 0.7,
-                              child: Center(
-                                child: Text(
-                                  students.isEmpty
-                                      ? 'No students yet'
-                                      : 'No results',
-                                  style: AppTypography.bodyMedium,
-                                ),
-                              ),
+                if (filtered.isEmpty) {
+                  return RefreshIndicator(
+                    color: AppColors.gold,
+                    backgroundColor: AppColors.ivory,
+                    onRefresh: _refreshStudents,
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.7,
+                          child: Center(
+                            child: Text(
+                              students.isEmpty
+                                  ? 'No students yet'
+                                  : 'No results',
+                              style: AppTypography.bodyMedium,
                             ),
-                          ],
-                        ),
-                      )
-                    : RefreshIndicator(
-                        color: AppColors.gold,
-                        backgroundColor: AppColors.ivory,
-                        onRefresh: _refreshStudents,
-                        child: ListView.separated(
-                          physics: const BouncingScrollPhysics(
-                            parent: AlwaysScrollableScrollPhysics(),
                           ),
-                          padding: const EdgeInsets.all(AppSpacing.md),
-                          itemCount: filtered.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: AppSpacing.sm),
-                          itemBuilder: (context, i) {
-                            final student =
-                                filtered[i]; // Access the Student object using index i
-                            final isBirthday = hasBirthday(student);
-
-                            return StudentListTile(
-                              student: student,
-                              isBirthday: isBirthday,
-                              onTap: () => _onTap(context, student, role),
-                            );
-                          },
                         ),
+                      ],
+                    ),
+                  );
+                }
+
+                if (isWide) {
+                  return RefreshIndicator(
+                    color: AppColors.gold,
+                    backgroundColor: AppColors.ivory,
+                    onRefresh: _refreshStudents,
+                    child: GridView.builder(
+                      physics: const BouncingScrollPhysics(
+                        parent: AlwaysScrollableScrollPhysics(),
+                      ),
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 480,
+                        mainAxisSpacing: AppSpacing.md,
+                        crossAxisSpacing: AppSpacing.md,
+                        childAspectRatio: 2.3,
+                      ),
+                      itemCount: filtered.length,
+                      itemBuilder: (context, i) {
+                        final student = filtered[i];
+                        final isBirthday = hasBirthday(student);
+
+                        return StudentListTile(
+                          student: student,
+                          isBirthday: isBirthday,
+                          onTap: () => _onTap(context, student, role),
+                        );
+                      },
+                    ),
+                  );
+                }
+
+                return RefreshIndicator(
+                  color: AppColors.gold,
+                  backgroundColor: AppColors.ivory,
+                  onRefresh: _refreshStudents,
+                  child: ListView.separated(
+                    physics: const BouncingScrollPhysics(
+                      parent: AlwaysScrollableScrollPhysics(),
+                    ),
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: AppSpacing.sm),
+                    itemBuilder: (context, i) {
+                      final student = filtered[i];
+                      final isBirthday = hasBirthday(student);
+
+                      return StudentListTile(
+                        student: student,
+                        isBirthday: isBirthday,
+                        onTap: () => _onTap(context, student, role),
                       );
+                    },
+                  ),
+                );
               },
             ),
           ),

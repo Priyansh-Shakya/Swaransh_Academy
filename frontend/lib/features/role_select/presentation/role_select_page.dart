@@ -30,131 +30,111 @@ class RoleSelectPage extends ConsumerWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            // Fall back to a sensible minimum height if screen is too cramped
-            // so the logo doesn't shrink to zero and calculations stay stable.
-            final effectiveHeight = constraints.maxHeight < 620
-                ? 620.0
-                : constraints.maxHeight;
+            final isWide = constraints.maxWidth >= 700;
 
-            final logoSize = (effectiveHeight * 0.30).clamp(120.0, 220.0);
+            final innerContent = Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.lg,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset(
+                    'assets/app_logo.png',
+                    width: isWide ? 90 : 120,
+                    height: isWide ? 90 : 120,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    'Swaransh Academy',
+                    style: AppTypography.headlineLarge,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'How would you like to continue?',
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  const StaffLineDivider(width: 56),
+                  const SizedBox(height: AppSpacing.lg),
+                  _RoleCard(
+                    icon: Icons.explore_outlined,
+                    iconColor: AppColors.deptActing,
+                    title: 'Explore as Guest',
+                    subtitle:
+                        'Browse courses and academy info without signing in.',
+                    onTap: () => context.go('/home'),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  _RoleCard(
+                    icon: Icons.school_outlined,
+                    iconColor: AppColors.gold,
+                    title: "I'm a Student",
+                    subtitle:
+                        'Sign in to view your profile, fees, and fellow students.',
+                    onTap: () {
+                      ref.read(selectedRoleProvider.notifier).state =
+                          UserRole.student;
+                      context.push('/auth');
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  _RoleCard(
+                    icon: Icons.admin_panel_settings_outlined,
+                    iconColor: AppColors.navy,
+                    title: 'Admin Access',
+                    subtitle:
+                        'Manage students, admissions, and academy settings.',
+                    onTap: () {
+                      ref.read(selectedRoleProvider.notifier).state =
+                          UserRole.admin;
+                      context.push('/auth');
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Text(
+                    'Your role is verified automatically after sign-in.',
+                    style: AppTypography.caption,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
 
-            const cardGap = AppSpacing.md;
-            const cardHeight = 48.0 + (AppSpacing.md * 2);
-            const cardsHeight = (cardHeight * 3) + (cardGap * 2);
-
-            final fixedHeight =
-                logoSize +
-                4 +
-                48 +
-                AppSpacing.md +
-                20 +
-                AppSpacing.md +
-                cardsHeight +
-                20;
-
-            final remaining = effectiveHeight - fixedHeight;
-            final sectionGap = (remaining / 5).clamp(12.0, 28.0);
-
-            final topGap = sectionGap * 0.6;
-            final logoTextGap = sectionGap * 0.45;
-            final dividerGap = sectionGap * 0.55;
-            final footerGap = sectionGap * 0.65;
+            if (isWide) {
+              return Center(
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: AppSpacing.xl,
+                    horizontal: AppSpacing.lg,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    border: Border.all(color: AppColors.divider),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 32,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
+                  ),
+                  child: SingleChildScrollView(child: innerContent),
+                ),
+              );
+            }
 
             return SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: IntrinsicHeight(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                    ),
-                    child: Column(
-                      children: [
-                        SizedBox(height: topGap),
-
-                        Image.asset(
-                          'assets/app_logo.png',
-                          width: logoSize,
-                          height: logoSize,
-                        ),
-
-                        SizedBox(height: logoTextGap),
-
-                        Text(
-                          'Swaransh Academy',
-                          style: AppTypography.headlineLarge,
-                          textAlign: TextAlign.center,
-                        ),
-
-                        const SizedBox(height: 4),
-
-                        Text(
-                          'How would you like to continue?',
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-
-                        SizedBox(height: dividerGap),
-
-                        const StaffLineDivider(width: 56),
-
-                        SizedBox(height: dividerGap),
-
-                        _RoleCard(
-                          icon: Icons.explore_outlined,
-                          iconColor: AppColors.deptActing,
-                          title: 'Explore as Guest',
-                          subtitle:
-                              'Browse courses and academy info without signing in.',
-                          onTap: () => context.go('/home'),
-                        ),
-
-                        const SizedBox(height: cardGap),
-
-                        _RoleCard(
-                          icon: Icons.school_outlined,
-                          iconColor: AppColors.gold,
-                          title: "I'm a Student",
-                          subtitle:
-                              'Sign in to view your profile, fees, and fellow students.',
-                          onTap: () {
-                            ref.read(selectedRoleProvider.notifier).state =
-                                UserRole.student;
-                            context.push('/auth');
-                          },
-                        ),
-
-                        const SizedBox(height: cardGap),
-
-                        _RoleCard(
-                          icon: Icons.admin_panel_settings_outlined,
-                          iconColor: AppColors.navy,
-                          title: 'Admin Access',
-                          subtitle:
-                              'Manage students, admissions, and academy settings.',
-                          onTap: () {
-                            ref.read(selectedRoleProvider.notifier).state =
-                                UserRole.admin;
-                            context.push('/auth');
-                          },
-                        ),
-
-                        SizedBox(height: footerGap),
-
-                        Text(
-                          'Your role is verified automatically after sign-in.',
-                          style: AppTypography.caption,
-                          textAlign: TextAlign.center,
-                        ),
-
-                        const SizedBox(height: AppSpacing.md),
-                      ],
-                    ),
-                  ),
-                ),
+                child: Center(child: innerContent),
               ),
             );
           },

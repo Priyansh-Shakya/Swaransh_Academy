@@ -1,1 +1,1 @@
-select * from students;
+SELECT to_regclass('public.payment_order');

@@ -6,9 +6,8 @@ import '../../../Core/theme/app_colors.dart';
 import '../../../Core/theme/app_spacing.dart';
 import '../../../Core/theme/app_typography.dart';
 import '../../../Core/theme/staff_line_divider.dart';
+import '../../../Core/utils/time_format.dart';
 import '../data/admission_notifier.dart';
-
-
 
 class AdmissionPaymentScreen extends ConsumerStatefulWidget {
   const AdmissionPaymentScreen({super.key});
@@ -20,7 +19,6 @@ class AdmissionPaymentScreen extends ConsumerStatefulWidget {
 
 class _AdmissionPaymentScreenState
     extends ConsumerState<AdmissionPaymentScreen> {
-  
   Future<void> _submit() async {
     try {
       await ref.read(admissionFormProvider.notifier).submit();
@@ -90,7 +88,9 @@ class _AdmissionPaymentScreenState
                   _SummaryRow('Mode', formState.learningMode),
                   _SummaryRow(
                     'Batch',
-                    '${formState.batch} · ${formState.startTime}–${formState.endTime}',
+                    '${formState.batch} · '
+                        '${formatTime12Hour(formState.startTime)}–'
+                        '${formatTime12Hour(formState.endTime)}',
                   ),
                   const SizedBox(height: AppSpacing.md),
                   const Center(child: StaffLineDivider(width: 40)),

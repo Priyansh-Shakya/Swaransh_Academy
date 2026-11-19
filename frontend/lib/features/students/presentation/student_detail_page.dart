@@ -12,6 +12,7 @@ import 'package:swaransh_academy/features/students/widgets/student_avatar.dart';
 import '../../../../../Core/theme/app_colors.dart';
 import '../../../../../Core/theme/app_spacing.dart';
 import '../../../../../Core/theme/app_typography.dart';
+import '../../../../../Core/theme/staff_line_divider.dart';
 import '../../../../../Core/widgets/student_fields_form.dart';
 
 // final editingStudentStatusProvider = StateProvider<String>(
@@ -304,71 +305,123 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
               ],
             ],
           ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header: avatar + name + status
-                Center(
-                  child: Column(
-                    children: [
-                      (_editing && _photoController != null)
-                          ? Center(
-                              child: ImagePickerField(
-                                controller: _photoController!,
-                                label: 'Student Photo',
-                                size: 160, // ~ radius 80 * 2
-                                shape: BoxShape.circle,
-                                resolveDisplayUrl: (path) => ref
-                                    .read(supabaseStorageServiceProvider)
-                                    .getSignedUrl(
-                                      bucket: StorageBucket.studentPhotos,
-                                      path: path,
-                                    ),
-                              ),
-                            )
-                          : StudentAvatar(student: student, radius: 80),
-                      const SizedBox(height: AppSpacing.md),
-                      if (student.status != null)
-                        _StatusBadge(
-                          status: student.status!,
-                          isEdit: _editing,
-                          onStatusChanged: (status) {
-                            newStatus = status;
-                          },
-                        ),
-                      if (student.scholarNo != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          'Scholar No. ${student.scholarNo}',
-                          style: AppTypography.bodySmall,
-                        ),
-                      ],
-                    ],
+          body: LayoutBuilder(
+            builder: (context, constraints) {
+              final isDesktop = constraints.maxWidth >= 900;
+
+              final avatarSection = Column(
+                children: [
+                  (_editing && _photoController != null)
+                      ? Center(
+                          child: ImagePickerField(
+                            controller: _photoController!,
+                            label: 'Student Photo',
+                            size: 160,
+                            shape: BoxShape.circle,
+                            resolveDisplayUrl: (path) => ref
+                                .read(supabaseStorageServiceProvider)
+                                .getSignedUrl(
+                                  bucket: StorageBucket.studentPhotos,
+                                  path: path,
+                                ),
+                          ),
+                        )
+                      : StudentAvatar(student: student, radius: 72),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    student.name,
+                    style: AppTypography.headlineMedium,
+                    textAlign: TextAlign.center,
                   ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                // Main form widget (shared with Profile + Admission)
-                StudentFieldsForm(
-                  isCreate: false,
-                  controllers: _controllers,
-                  values: _dropdowns,
-                  editable: _editing,
-                  // Admin can edit everything - no locked fields.
-                  lockedFields: const {},
-                  onDropdownChanged: (key, value) =>
-                      setState(() => _dropdowns[key] = value),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                // Payments stub - structural placeholder only
-                PaymentHistoryWidget(
-                  studentId: student.id!,
-                  isAdmin: true, // shows correct/delete actions + add button
-                ),
-                const SizedBox(height: AppSpacing.xxl),
-              ],
-            ),
+                  const SizedBox(height: 4),
+                  if (student.scholarNo != null)
+                    Text(
+                      'Scholar No. ${student.scholarNo}',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  const SizedBox(height: AppSpacing.md),
+                  if (student.status != null)
+                    _StatusBadge(
+                      status: student.status!,
+                      isEdit: _editing,
+                      onStatusChanged: (status) {
+                        newStatus = status;
+                      },
+                    ),
+                ],
+              );
+
+              final detailsSection = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  StudentFieldsForm(
+                    isCreate: false,
+                    controllers: _controllers,
+                    values: _dropdowns,
+                    editable: _editing,
+                    lockedFields: const {},
+                    onDropdownChanged: (key, value) =>
+                        setState(() => _dropdowns[key] = value),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  const StaffLineDivider(width: 56),
+                  const SizedBox(height: AppSpacing.xl),
+                  PaymentHistoryWidget(
+                    studentId: student.id!,
+                    isAdmin: true,
+                  ),
+                ],
+              );
+
+              Widget bodyContent;
+              if (isDesktop) {
+                bodyContent = Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 340,
+                      child: Container(
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          border: Border.all(color: AppColors.divider),
+                        ),
+                        child: avatarSection,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.lg),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(AppSpacing.xl),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          border: Border.all(color: AppColors.divider),
+                        ),
+                        child: detailsSection,
+                      ),
+                    ),
+                  ],
+                );
+              } else {
+                bodyContent = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(child: avatarSection),
+                    const SizedBox(height: AppSpacing.xl),
+                    detailsSection,
+                  ],
+                );
+              }
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: bodyContent,
+              );
+            },
           ),
         );
       },
