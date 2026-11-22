@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/service/supabase_object_storage/object_storage.dart';
 import 'package:swaransh_academy/Core/sounds/player.dart';
 import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
+import 'package:swaransh_academy/features/payments/data/online_payment_notifier.dart';
+import 'package:swaransh_academy/features/payments/data/razorpay_api_service.dart';
 import 'package:swaransh_academy/features/payments/presentation/payment_hostory.dart';
 import 'package:swaransh_academy/features/students/data/students_notifier.dart';
 import 'package:swaransh_academy/features/students/domain/student.dart';
@@ -361,7 +363,7 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
                       setState(() => _dropdowns[key] = value),
                 ),
                 const SizedBox(height: AppSpacing.xl),
-                // Payments stub - structural placeholder only
+                _AdminFeeSection(studentId: student.id!),
                 PaymentHistoryWidget(
                   studentId: student.id!,
                   isAdmin: true, // shows correct/delete actions + add button
@@ -375,6 +377,108 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
     );
   }
 }
+
+class _AdminFeeSection extends ConsumerWidget {
+  const _AdminFeeSection({required this.studentId});
+  final int studentId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final feeStatusAsync = ref.watch(feeStatusProvider(studentId));
+    final feeStatus = feeStatusAsync.valueOrNull;
+
+    if (feeStatus == null) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.xl),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.account_balance_wallet_outlined,
+                size: 18,
+                color: AppColors.gold,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text('Billing Cycle & Partial Payment',
+                  style: AppTypography.titleLarge),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Current Cycle:', style: AppTypography.caption),
+              Text(feeStatus.cycleLabel,
+                  style: AppTypography.bodySmall
+                      .copyWith(fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Paid in Cycle:', style: AppTypography.caption),
+              Text(
+                  '\u20B9${feeStatus.cyclePaid} of \u20B9${feeStatus.cycleFee}',
+                  style: AppTypography.bodySmall
+                      .copyWith(fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Cycle Balance:', style: AppTypography.caption),
+              Text(
+                '\u20B9${feeStatus.cycleBalance}',
+                style: AppTypography.bodySmall.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: feeStatus.cycleBalance > 0
+                      ? AppColors.error
+                      : AppColors.active,
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: AppSpacing.lg),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Allow part payment for this cycle'),
+            subtitle: const Text(
+                'Turns itself off when the cycle is fully paid.'),
+            value: feeStatus.allowPartialPayment,
+            activeColor: AppColors.gold,
+            onChanged: (val) async {
+              try {
+                await ref
+                    .read(razorpayApiServiceProvider)
+                    .togglePartialPayment(
+                        studentId: studentId, allow: val);
+                ref.invalidate(feeStatusProvider(studentId));
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to update: $e')),
+                  );
+                }
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 
 class _StatusBadge extends StatefulWidget {
   const _StatusBadge({

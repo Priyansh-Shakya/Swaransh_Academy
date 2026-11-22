@@ -6,9 +6,9 @@ from pydantic import BaseModel, Field
 
 class StartPaymentRequest(BaseModel):
     student_id: int
-    cycles: int = Field(
-        1, ge=1, le=12,
-        description="Number of fee cycles to pay for (1 = the current due cycle).",
+    amount: Optional[int] = Field(
+        None, ge=1,
+        description="Optional amount in whole rupees to pay. Omit to pay the full cycle balance.",
     )
 
 
@@ -27,9 +27,10 @@ class CheckoutOptions(BaseModel):
     name: str
     description: str
     prefill: Prefill
-    cycles: int
     covers_from: date
     covers_till: date
+    cycle_label: str
+    is_partial: bool
 
 
 class VerifyPaymentRequest(BaseModel):
@@ -48,6 +49,7 @@ class OrderStatusResponse(BaseModel):
     razorpay_order_id: str
     status: Literal["created", "paid"]
     fee_paid_till: Optional[date] = None
+    last_error: Optional[str] = None
 
 
 class FeeStatusResponse(BaseModel):
@@ -57,6 +59,21 @@ class FeeStatusResponse(BaseModel):
     fee_paid_till: Optional[date] = None
     next_due_date: date
     is_due: bool
+    can_pay: bool
+    cannot_pay_reason: Optional[str] = None
+    cycle_start: date
+    cycle_end: date
+    cycle_label: str
+    cycle_fee: int
+    cycle_paid: int
+    cycle_balance: int
+    allow_partial_payment: bool
+    min_partial_amount: int
+
+
+class PartialPaymentSwitchRequest(BaseModel):
+    allow_partial_payment: bool
+
 
 
 class SimpleCreateOrderRequest(BaseModel):

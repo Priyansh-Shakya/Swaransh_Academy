@@ -39,9 +39,10 @@ class CheckoutOptions {
     required this.name,
     required this.description,
     required this.prefill,
-    required this.cycles,
     required this.coversFrom,
     required this.coversTill,
+    required this.cycleLabel,
+    required this.isPartial,
   });
 
   final String keyId;
@@ -51,9 +52,10 @@ class CheckoutOptions {
   final String name;
   final String description;
   final CheckoutPrefill prefill;
-  final int cycles;
   final DateTime coversFrom;
   final DateTime coversTill;
+  final String cycleLabel;
+  final bool isPartial;
 
   factory CheckoutOptions.fromJson(Map<String, dynamic> json) =>
       CheckoutOptions(
@@ -66,9 +68,10 @@ class CheckoutOptions {
         prefill: CheckoutPrefill.fromJson(
           json['prefill'] as Map<String, dynamic>,
         ),
-        cycles: (json['cycles'] as num).toInt(),
         coversFrom: DateTime.parse(json['covers_from'] as String),
         coversTill: DateTime.parse(json['covers_till'] as String),
+        cycleLabel: json['cycle_label'] as String? ?? '',
+        isPartial: json['is_partial'] as bool? ?? false,
       );
 
   /// The options map handed to razorpay.open(...).
@@ -113,11 +116,13 @@ class OrderStatus {
     required this.orderId,
     required this.status,
     this.feePaidTill,
+    this.lastError,
   });
 
   final String orderId;
   final String status; // 'created' | 'paid'
   final DateTime? feePaidTill;
+  final String? lastError;
 
   bool get isPaid => status == 'paid';
 
@@ -125,6 +130,7 @@ class OrderStatus {
     orderId: json['razorpay_order_id'] as String,
     status: json['status'] as String,
     feePaidTill: _date(json['fee_paid_till']),
+    lastError: json['last_error'] as String?,
   );
 }
 
@@ -136,6 +142,16 @@ class FeeStatus {
     required this.feeAmount,
     required this.nextDueDate,
     required this.isDue,
+    required this.canPay,
+    required this.cycleStart,
+    required this.cycleEnd,
+    required this.cycleLabel,
+    required this.cycleFee,
+    required this.cyclePaid,
+    required this.cycleBalance,
+    required this.allowPartialPayment,
+    required this.minPartialAmount,
+    this.cannotPayReason,
     this.feePaidTill,
   });
 
@@ -145,6 +161,16 @@ class FeeStatus {
   final DateTime? feePaidTill;
   final DateTime nextDueDate;
   final bool isDue;
+  final bool canPay;
+  final String? cannotPayReason;
+  final DateTime cycleStart;
+  final DateTime cycleEnd;
+  final String cycleLabel;
+  final int cycleFee;
+  final int cyclePaid;
+  final int cycleBalance;
+  final bool allowPartialPayment;
+  final int minPartialAmount;
 
   factory FeeStatus.fromJson(Map<String, dynamic> json) => FeeStatus(
     studentId: (json['student_id'] as num).toInt(),
@@ -152,6 +178,16 @@ class FeeStatus {
     feeAmount: (json['fee_amount'] as num).toInt(),
     feePaidTill: _date(json['fee_paid_till']),
     nextDueDate: DateTime.parse(json['next_due_date'] as String),
-    isDue: json['is_due'] as bool,
+    isDue: json['is_due'] as bool? ?? true,
+    canPay: json['can_pay'] as bool? ?? true,
+    cannotPayReason: json['cannot_pay_reason'] as String?,
+    cycleStart: DateTime.parse(json['cycle_start'] as String),
+    cycleEnd: DateTime.parse(json['cycle_end'] as String),
+    cycleLabel: json['cycle_label'] as String? ?? '',
+    cycleFee: (json['cycle_fee'] as num).toInt(),
+    cyclePaid: (json['cycle_paid'] as num).toInt(),
+    cycleBalance: (json['cycle_balance'] as num).toInt(),
+    allowPartialPayment: json['allow_partial_payment'] as bool? ?? false,
+    minPartialAmount: (json['min_partial_amount'] as num).toInt(),
   );
 }

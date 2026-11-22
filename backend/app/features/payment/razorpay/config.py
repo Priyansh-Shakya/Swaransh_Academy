@@ -19,6 +19,7 @@ class RazorpaySettings:
     key_secret: str       # backend only, never sent to the app
     webhook_secret: str   # separate from key secret; you choose it in the dashboard
     academy_name: str
+    min_partial_payment_rupees: int = 500
     api_base: str = "https://api.razorpay.com/v1"
 
 
@@ -27,4 +28,5 @@ settings = RazorpaySettings(
     key_secret=_require("RAZORPAY_KEY_SECRET"),
     webhook_secret=os.getenv("RAZORPAY_WEBHOOK_SECRET", ""),
     academy_name=os.getenv("ACADEMY_NAME", "Swaransh Academy"),
+    min_partial_payment_rupees=int(os.getenv("MIN_PARTIAL_PAYMENT_RUPEES", "500")),
 )

@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:swaransh_academy/features/payments/data/checkout_modles.dart';
+import 'package:swaransh_academy/features/payments/data/payments_notifier.dart';
 import 'package:swaransh_academy/features/payments/data/razorpay_api_service.dart';
+import 'package:swaransh_academy/features/profile/data/profile_notifier.dart';
 
 enum PaymentPhase { idle, starting, checkout, verifying, paid, pending, failed }
 
@@ -65,12 +67,12 @@ class OnlinePaymentNotifier
   }
 
   /// Called by the Pay Fees button.
-  Future<void> pay({int cycles = 1}) async {
+  Future<void> pay({int? amount}) async {
     if (state.valueOrNull?.busy ?? false) return; // ignore double taps
 
     _set(const PaymentFlowState(phase: PaymentPhase.starting));
     try {
-      final options = await _api.startPayment(studentId: arg, cycles: cycles);
+      final options = await _api.startPayment(studentId: arg, amount: amount);
       _orderId = options.orderId;
       _set(
         PaymentFlowState(
@@ -157,6 +159,16 @@ class OnlinePaymentNotifier
       try {
         final status = await _api.getOrderStatus(orderId);
         if (status.isPaid) {
+          if (status.lastError != null) {
+            _set(
+              PaymentFlowState(
+                phase: PaymentPhase.failed,
+                orderId: orderId,
+                message: 'Payment failed: ${status.lastError}',
+              ),
+            );
+            return;
+          }
           _setPaid(orderId, status.feePaidTill);
           return;
         }
@@ -182,7 +194,11 @@ class OnlinePaymentNotifier
         feePaidTill: feePaidTill,
       ),
     );
-    if (!_disposed) ref.invalidate(feeStatusProvider(arg));
+    if (!_disposed) {
+      ref.invalidate(feeStatusProvider(arg));
+      ref.invalidate(paymentProvider(arg));
+      ref.invalidate(profileProvider);
+    }
   }
 }
 

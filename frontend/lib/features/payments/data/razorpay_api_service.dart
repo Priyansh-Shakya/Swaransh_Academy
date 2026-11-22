@@ -12,11 +12,14 @@ class RazorpayApiService {
 
   Future<CheckoutOptions> startPayment({
     required int studentId,
-    int cycles = 1,
+    int? amount,
   }) async {
     final res = await _dio.post<Map<String, dynamic>>(
       '/payments/start',
-      data: {'student_id': studentId, 'cycles': cycles},
+      data: {
+        'student_id': studentId,
+        if (amount != null) 'amount': amount,
+      },
     );
     return CheckoutOptions.fromJson(res.data!);
   }
@@ -47,6 +50,17 @@ class RazorpayApiService {
   Future<FeeStatus> getFeeStatus(int studentId) async {
     final res = await _dio.get<Map<String, dynamic>>(
       '/payments/student/$studentId/fee-status',
+    );
+    return FeeStatus.fromJson(res.data!);
+  }
+
+  Future<FeeStatus> togglePartialPayment({
+    required int studentId,
+    required bool allow,
+  }) async {
+    final res = await _dio.patch<Map<String, dynamic>>(
+      '/payments/student/$studentId/partial-payment',
+      data: {'allow_partial_payment': allow},
     );
     return FeeStatus.fromJson(res.data!);
   }

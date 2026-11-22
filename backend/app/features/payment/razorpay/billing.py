@@ -71,3 +71,24 @@ def coverage(
     start = cycle_start(fee_paid_till, date_of_joining)
     end_exclusive = _add_months(start, months, _anchor_day(start, date_of_joining))
     return start, end_exclusive - timedelta(days=1)
+
+
+def current_cycle(
+    fee_paid_till: date | None,
+    date_of_joining: date,
+    fee_type: str,
+) -> tuple[date, date]:
+    """Returns (start, end), both inclusive, for the current single billing cycle."""
+    return coverage(fee_paid_till, date_of_joining, fee_type, cycles=1)
+
+
+def cycle_label(start: date, end: date) -> str:
+    """Format cycle date range for display.
+    Examples:
+      Same year: '21 Nov to 20 Dec 2026'
+      Different years: '20 Dec 2026 to 19 Jan 2027'
+    """
+    if start.year == end.year:
+        return f"{start:%d %b} to {end:%d %b %Y}"
+    return f"{start:%d %b %Y} to {end:%d %b %Y}"
+

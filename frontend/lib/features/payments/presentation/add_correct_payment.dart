@@ -48,6 +48,7 @@ class _AddPaymentSheetState extends ConsumerState<AddPaymentSheet> {
   final _txnCtrl = TextEditingController();
   final _dateCtrl = TextEditingController();
 
+  bool _recordOnly = false;
   bool _saving = false;
   bool get _isCorrection => widget.existing != null;
 
@@ -86,6 +87,7 @@ class _AddPaymentSheetState extends ConsumerState<AddPaymentSheet> {
       amount: double.parse(amountText),
       mode: _mode,
       isActive: true,
+      recordOnly: _recordOnly,
       txnRef: _txnCtrl.text.trim().isEmpty ? null : _txnCtrl.text.trim(),
       paidOn: _dateCtrl.text.trim().isEmpty
           ? null
@@ -95,11 +97,15 @@ class _AddPaymentSheetState extends ConsumerState<AddPaymentSheet> {
     try {
       if (_isCorrection) {
         final existingId = widget.existing!.id;
-        if (existingId == null)
-          return; // shouldn't happen for a fetched payment, but guards the UI
+        if (existingId == null) return;
         await ref
             .read(paymentProvider(widget.studentId).notifier)
             .correct(existingId, body);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Check this student's Paid Till date.")),
+          );
+        }
       } else {
         await ref.read(paymentProvider(widget.studentId).notifier).add(body);
       }
@@ -140,7 +146,6 @@ class _AddPaymentSheetState extends ConsumerState<AddPaymentSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Handle
               Center(
                 child: Container(
                   width: 36,
@@ -166,7 +171,6 @@ class _AddPaymentSheetState extends ConsumerState<AddPaymentSheet> {
               ],
               const SizedBox(height: AppSpacing.lg),
 
-              // Payment type
               DropdownButtonFormField<String>(
                 initialValue: _type,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -223,7 +227,6 @@ class _AddPaymentSheetState extends ConsumerState<AddPaymentSheet> {
                 },
               ),
               const SizedBox(height: AppSpacing.md),
-              // Amount
               TextFormField(
                 controller: _amountCtrl,
                 keyboardType: TextInputType.number,
@@ -234,7 +237,17 @@ class _AddPaymentSheetState extends ConsumerState<AddPaymentSheet> {
               ),
               const SizedBox(height: AppSpacing.md),
 
-              // Mode
+              if (!_isCorrection) ...[
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: _recordOnly,
+                  title: const Text('Record only (don\'t affect due date)'),
+                  subtitle: const Text('Use for historical backfills or ledger adjustments.'),
+                  onChanged: (v) => setState(() => _recordOnly = v ?? false),
+                ),
+                const SizedBox(height: AppSpacing.md),
+              ],
+
               DropdownButtonFormField<String>(
                 initialValue: _mode,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -261,7 +274,6 @@ class _AddPaymentSheetState extends ConsumerState<AddPaymentSheet> {
               ),
               const SizedBox(height: AppSpacing.md),
 
-              // Date (optional — for backfilling)
               TextFormField(
                 controller: _dateCtrl,
                 readOnly: true,
@@ -291,7 +303,6 @@ class _AddPaymentSheetState extends ConsumerState<AddPaymentSheet> {
               ),
               const SizedBox(height: AppSpacing.md),
 
-              // Txn ref (optional)
               TextFormField(
                 controller: _txnCtrl,
                 decoration: const InputDecoration(

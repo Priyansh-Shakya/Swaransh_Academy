@@ -4,13 +4,20 @@ from datetime import date
 
 _STUDENT_COLS = """
     id, name, contact, email, fees, fee_type::text as fee_type,
-    fee_paid_till, date_of_joining
+    fee_paid_till, date_of_joining, allow_partial_payment
 """
 
 
 async def lock_student_orders(db, student_id: int) -> None:
     """Serialise order creation per student (released at transaction end)."""
     await db.execute("select pg_advisory_xact_lock(1001, $1)", student_id)
+
+
+async def get_student_by_id(db, student_id: int):
+    return await db.fetchrow(
+        f"select {_STUDENT_COLS} from students where id = $1",
+        student_id,
+    )
 
 
 async def get_student_for_user(db, student_id: int, user_id: uuid.UUID):
@@ -27,33 +34,48 @@ async def lock_student(db, student_id: int):
     )
 
 
-async def find_reusable_order(db, student_id: int, amount_paise: int, cycles: int) -> str | None:
+async def find_reusable_order(
+    db, student_id: int, amount_paise: int, cycle_start: date
+) -> str | None:
     return await db.fetchval(
         """
         select razorpay_order_id from payment_order
         where student_id = $1 and status = 'created'
-          and amount_paise = $2 and cycles = $3
+          and amount_paise = $2 and cycle_start = $3
           and created_at > now() - interval '1 day'
         order by id desc limit 1
         """,
-        student_id, amount_paise, cycles,
+        student_id, amount_paise, cycle_start,
     )
 
 
-async def insert_order(db, student_id: int, razorpay_order_id: str, amount_paise: int, cycles: int) -> None:
+async def insert_order(
+    db,
+    student_id: int,
+    razorpay_order_id: str,
+    amount_paise: int,
+    cycle_start: date,
+    cycle_end: date,
+    cycle_fee: int,
+    cycles: int = 1,
+) -> None:
     await db.execute(
         """
-        insert into payment_order (student_id, razorpay_order_id, amount_paise, cycles)
-        values ($1, $2, $3, $4)
+        insert into payment_order (
+            student_id, razorpay_order_id, amount_paise, cycles,
+            cycle_start, cycle_end, cycle_fee
+        )
+        values ($1, $2, $3, $4, $5, $6, $7)
         """,
-        student_id, razorpay_order_id, amount_paise, cycles,
+        student_id, razorpay_order_id, amount_paise, cycles, cycle_start, cycle_end, cycle_fee,
     )
 
 
 async def get_order(db, razorpay_order_id: str):
     return await db.fetchrow(
         """
-        select id, student_id, razorpay_order_id, amount_paise, cycles, status, payment_id
+        select id, student_id, razorpay_order_id, amount_paise, cycles, status,
+               payment_id, cycle_start, cycle_end, cycle_fee, last_error
         from payment_order where razorpay_order_id = $1
         """,
         razorpay_order_id,
@@ -63,45 +85,49 @@ async def get_order(db, razorpay_order_id: str):
 async def lock_order(db, razorpay_order_id: str):
     return await db.fetchrow(
         """
-        select id, student_id, razorpay_order_id, amount_paise, cycles, status, payment_id
+        select id, student_id, razorpay_order_id, amount_paise, cycles, status,
+               payment_id, cycle_start, cycle_end, cycle_fee, last_error
         from payment_order where razorpay_order_id = $1 for update
         """,
         razorpay_order_id,
     )
 
 
-async def has_active_payment(db, student_id: int) -> bool:
+async def record_failed_order(
+    db, order_id: int, payment_id: str, error_desc: str
+) -> bool:
+    """Returns True if recorded, False if deduplicated."""
+    res = await db.execute(
+        """
+        update payment_order
+        set last_error = $2,
+            last_error_at = now(),
+            last_failed_payment_id = $3
+        where id = $1 and coalesce(last_failed_payment_id, '') != $3
+        """,
+        order_id, error_desc, payment_id,
+    )
+    return res != "UPDATE 0"
+
+
+async def get_cycle_paid(db, student_id: int, cycle_start: date) -> int:
     return await db.fetchval(
         """
-        select exists (
-            select 1 from payment
-            where student_id = $1
-              and coalesce(isactive, true)
-              and coalesce(status::text, 'active') = 'active'
-        )
+        select coalesce(sum(amount), 0)::integer
+        from payment
+        where student_id = $1
+          and cycle_start = $2
+          and coalesce(isactive, true)
+          and coalesce(status::text, 'active') = 'active'
         """,
-        student_id,
+        student_id, cycle_start,
     )
 
 
-async def insert_payment(
-    db, student_id: int, payment_type: str, amount_rupees: int,
-    mode: str, txn_ref: str, category: str,
-) -> int:
-    return await db.fetchval(
-        """
-        insert into payment (student_id, payment_type, amount, mode, txn_ref, payment_category)
-        values ($1, $2::payment_type, $3, $4::payment_mode, $5, $6::payment_cat)
-        returning id
-        """,
-        student_id, payment_type, amount_rupees, mode, txn_ref, category,
-    )
-
-
-async def advance_fee_paid_till(db, student_id: int, paid_till: date) -> None:
+async def update_allow_partial_payment(db, student_id: int, allow: bool) -> None:
     await db.execute(
-        "update students set fee_paid_till = $2, updated_at = now() where id = $1",
-        student_id, paid_till,
+        "update students set allow_partial_payment = $2, updated_at = now() where id = $1",
+        student_id, allow,
     )
 
 
@@ -114,3 +140,4 @@ async def mark_order_paid(db, order_pk: int, razorpay_payment_id: str, payment_i
         """,
         order_pk, razorpay_payment_id, payment_id,
     )
+

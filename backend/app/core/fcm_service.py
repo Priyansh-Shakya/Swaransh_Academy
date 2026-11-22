@@ -147,3 +147,18 @@ def send_multiple_notifications(
 
     except Exception as e:
         print(f"[FCM ERROR] Failed to send multicast notification: {e}")
+
+
+async def send_to_admins(
+    db, task: str, msg: str, data: dict[str, str] | None = None
+) -> None:
+    """Fetch all admin FCM tokens from DB and send notifications."""
+    try:
+        admins = await db.fetch(
+            "select fcm_token from users where role = 'admin' and fcm_token is not null"
+        )
+        tokens = [r["fcm_token"] for r in admins if r["fcm_token"]]
+        if tokens:
+            send_multiple_notifications(tokens, task, msg, data)
+    except Exception as e:
+        print(f"[FCM ERROR] Failed to send admin notifications: {e}")
