@@ -10,10 +10,12 @@ class PayFeesButton extends ConsumerWidget {
     required this.builder,
     this.cycles = 1,
     this.onPaid,
+    this.isDue = true,
   });
 
   final int studentId;
   final int cycles;
+  final bool isDue;
 
   /// Called once when the payment is confirmed (e.g. to refresh payment history).
   final VoidCallback? onPaid;
@@ -24,6 +26,8 @@ class PayFeesButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final provider = onlinePaymentProvider(studentId);
+    final feeStatus = ref.watch(feeStatusProvider(studentId)).valueOrNull;
+    final effectiveIsDue = feeStatus?.isDue ?? isDue;
 
     ref.listen<AsyncValue<PaymentFlowState>>(provider, (previous, next) {
       final current = next.valueOrNull;
@@ -52,9 +56,24 @@ class PayFeesButton extends ConsumerWidget {
 
     final busy = ref.watch(provider).valueOrNull?.busy ?? false;
 
+    final VoidCallback? onTapHandler = busy
+        ? null
+        : () {
+            if (!effectiveIsDue) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('You have already paid for this month!'),
+                  duration: Duration(seconds: 3),
+                ),
+              );
+              return;
+            }
+            ref.read(provider.notifier).pay(cycles: cycles);
+          };
+
     return builder(
       context,
-      busy ? null : () => ref.read(provider.notifier).pay(cycles: cycles),
+      onTapHandler,
       busy,
     );
   }

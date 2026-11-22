@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swaransh_academy/Core/service/image_cache_service.dart';
+import 'package:swaransh_academy/features/payments/data/online_payment_notifier.dart';
 import 'package:swaransh_academy/features/payments/data/payments_notifier.dart';
 import 'package:swaransh_academy/features/payments/presentation/pay_fees_button.dart';
 import 'package:swaransh_academy/features/payments/presentation/payment_hostory.dart';
@@ -495,11 +496,31 @@ class _FeesCard extends ConsumerWidget {
   const _FeesCard({required this.student});
   final Student student;
 
+  bool _checkIfDue(Student student) {
+    if (student.feePaidTill == null || student.feePaidTill!.isEmpty) {
+      return true; // null -> due from date of joining
+    }
+    try {
+      final paidTillDate = DateTime.parse(student.feePaidTill!);
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      return paidTillDate.isBefore(today);
+    } catch (_) {
+      return true;
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final studentId = student.id; // int?
     final hasFees = student.fees != null;
     final isPaid = student.feePaidTill != null;
+    final fallbackIsDue = _checkIfDue(student);
+
+    final feeStatusAsync = studentId != null
+        ? ref.watch(feeStatusProvider(studentId))
+        : null;
+    final isDue = feeStatusAsync?.valueOrNull?.isDue ?? fallbackIsDue;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -560,14 +581,55 @@ class _FeesCard extends ConsumerWidget {
               width: double.infinity,
               child: PayFeesButton(
                 studentId: studentId,
+                isDue: isDue,
                 onPaid: () => ref.invalidate(paymentProvider(studentId)),
                 builder: (context, onTap, loading) => OutlinedButton.icon(
                   onPressed: onTap,
                   icon: const Icon(Icons.payment_outlined, size: 18),
-                  label: Text(loading ? 'Please wait…' : 'Pay Fees'),
+                  label: Text(
+                    loading
+                        ? 'Please wait…'
+                        : (isDue ? 'Pay Fees' : 'Fees Paid'),
+                  ),
                 ),
               ),
             ),
+            if (isDue) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                    border: Border.all(
+                      color: AppColors.error.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        size: 14,
+                        color: AppColors.error,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Fees due',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.error,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ],
       ),
