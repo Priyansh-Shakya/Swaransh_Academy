@@ -57,3 +57,43 @@ class FeeStatusResponse(BaseModel):
     fee_paid_till: Optional[date] = None
     next_due_date: date
     is_due: bool
+
+
+class SimpleCreateOrderRequest(BaseModel):
+    amount: int = Field(..., ge=100, description="Amount in paise (minimum 100 paise)")
+    currency: str = "INR"
+    receipt: Optional[str] = None
+    notes: Optional[dict[str, str]] = None
+
+
+class SimpleCreateOrderResponse(BaseModel):
+    order_id: str
+    amount: int
+    currency: str
+
+
+class SimpleVerifyPaymentRequest(BaseModel):
+    order_id: Optional[str] = None
+    payment_id: Optional[str] = None
+    signature: Optional[str] = None
+    razorpay_order_id: Optional[str] = None
+    razorpay_payment_id: Optional[str] = None
+    razorpay_signature: Optional[str] = None
+
+    @property
+    def resolved_order_id(self) -> str:
+        return self.order_id or self.razorpay_order_id or ""
+
+    @property
+    def resolved_payment_id(self) -> str:
+        return self.payment_id or self.razorpay_payment_id or ""
+
+    @property
+    def resolved_signature(self) -> str:
+        return self.signature or self.razorpay_signature or ""
+
+
+class SimpleVerifyPaymentResponse(BaseModel):
+    status: str
+    message: str
+

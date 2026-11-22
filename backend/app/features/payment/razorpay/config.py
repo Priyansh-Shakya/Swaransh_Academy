@@ -25,6 +25,6 @@ class RazorpaySettings:
 settings = RazorpaySettings(
     key_id=_require("RAZORPAY_KEY_ID"),
     key_secret=_require("RAZORPAY_KEY_SECRET"),
-    webhook_secret=_require("RAZORPAY_WEBHOOK_SECRET"),
+    webhook_secret=os.getenv("RAZORPAY_WEBHOOK_SECRET", ""),
     academy_name=os.getenv("ACADEMY_NAME", "Swaransh Academy"),
 )

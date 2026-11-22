@@ -17,6 +17,10 @@ from app.features.users.router import router as user_router
 from app.features.student_birthday.router import router as birthday_router
 from app.features.payment.razorpay.webhook_router import router as razorpay_webhook_router
 from app.features.payment.razorpay.router import router as razorpay_router
+from app.features.payment.razorpay import service as razorpay_service
+from app.features.payment.razorpay.models import (
+    SimpleCreateOrderRequest, SimpleVerifyPaymentRequest,
+)
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -121,3 +125,13 @@ print("FastAPI Initilized ...")
 @app.get("/")
 async def root():
     return {"message": "Gateway of the App"}
+
+
+@app.post("/api/create-order")
+async def api_create_order(body: SimpleCreateOrderRequest):
+    return await razorpay_service.create_simple_order(body)
+
+
+@app.post("/api/verify-payment")
+async def api_verify_payment(body: SimpleVerifyPaymentRequest):
+    return await razorpay_service.verify_simple_payment(body)

@@ -127,12 +127,22 @@ class OnlinePaymentNotifier
 
   void _onError(PaymentFailureResponse r) {
     // Fires on failure AND when the user closes checkout.
+    final String errorDetails = r.message ?? '';
+    final isCancelled = r.code == Razorpay.PAYMENT_CANCELLED ||
+        errorDetails.toLowerCase().contains('cancelled') ||
+        errorDetails.toLowerCase().contains('canceled');
+
+    final String message = isCancelled
+        ? 'Payment was cancelled. No money is deducted unless the bank confirms it.'
+        : (errorDetails.isNotEmpty
+            ? 'Payment failed (${r.code}): $errorDetails'
+            : 'Payment failed or was cancelled. Please try again.');
+
     _set(
       PaymentFlowState(
         phase: PaymentPhase.failed,
         orderId: _orderId,
-        message:
-            'Payment was cancelled or failed. No money is deducted unless the bank confirms it.',
+        message: message,
       ),
     );
   }

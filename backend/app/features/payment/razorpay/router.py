@@ -6,10 +6,24 @@ from app.core.db import get_db
 from . import service
 from .models import (
     CheckoutOptions, FeeStatusResponse, OrderStatusResponse,
+    SimpleCreateOrderRequest, SimpleCreateOrderResponse,
+    SimpleVerifyPaymentRequest, SimpleVerifyPaymentResponse,
     StartPaymentRequest, VerifyPaymentRequest, VerifyPaymentResponse,
 )
 
 router = APIRouter(prefix="/payments", tags=["Razorpay"])
+
+
+@router.post("/create-order", response_model=SimpleCreateOrderResponse)
+async def create_order(body: SimpleCreateOrderRequest):
+    """Create a Razorpay order with amount (in paise), currency, and optional receipt."""
+    return await service.create_simple_order(body)
+
+
+@router.post("/verify-payment", response_model=SimpleVerifyPaymentResponse)
+async def verify_payment_simple(body: SimpleVerifyPaymentRequest):
+    """Verify Razorpay payment HMAC-SHA256 signature."""
+    return await service.verify_simple_payment(body)
 
 
 @router.post("/start", response_model=CheckoutOptions)

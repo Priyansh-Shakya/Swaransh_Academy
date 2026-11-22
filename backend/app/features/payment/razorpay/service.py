@@ -11,6 +11,8 @@ from . import billing, client, repository as repo
 from .config import settings
 from .models import (
     CheckoutOptions, FeeStatusResponse, OrderStatusResponse, Prefill,
+    SimpleCreateOrderRequest, SimpleCreateOrderResponse,
+    SimpleVerifyPaymentRequest, SimpleVerifyPaymentResponse,
     StartPaymentRequest, VerifyPaymentRequest, VerifyPaymentResponse,
 )
 
@@ -60,6 +62,8 @@ async def start_payment(db, user: dict, body: StartPaymentRequest) -> CheckoutOp
 
         fee_rupees, fee_type = _fee_details(student)
         amount_paise = fee_rupees * body.cycles * 100  # amount comes from OUR db
+        if amount_paise < 100:
+            raise HTTPException(400, "Amount must be at least 100 paise")
 
         covers_from, covers_till = billing.coverage(
             student["fee_paid_till"], student["date_of_joining"], fee_type, body.cycles
@@ -242,3 +246,39 @@ async def get_fee_status(db, user: dict, student_id: int) -> FeeStatusResponse:
         next_due_date=next_due,
         is_due=next_due <= billing.today_ist(),
     )
+
+
+# ------------------------------------------------------------------ 5. standard Razorpay endpoints
+async def create_simple_order(body: SimpleCreateOrderRequest) -> SimpleCreateOrderResponse:
+    if body.amount < 100:
+        raise HTTPException(400, "Amount must be at least 100 paise")
+    try:
+        receipt = body.receipt or f"rcpt_{secrets.token_hex(4)}"
+        order = await client.create_order(
+            amount_paise=body.amount, receipt=receipt, notes=body.notes or {}
+        )
+    except client.RazorpayError as exc:
+        log.error("Razorpay order creation failed: %s", exc)
+        raise HTTPException(500, f"Order creation failed: {exc}")
+
+    return SimpleCreateOrderResponse(
+        order_id=order["id"], amount=order["amount"], currency=order["currency"]
+    )
+
+
+async def verify_simple_payment(body: SimpleVerifyPaymentRequest) -> SimpleVerifyPaymentResponse:
+    order_id = body.resolved_order_id
+    payment_id = body.resolved_payment_id
+    signature = body.resolved_signature
+
+    if not order_id or not payment_id or not signature:
+        raise HTTPException(400, "Missing required fields: order_id, payment_id, and signature are required")
+
+    is_valid = client.verify_checkout_signature(order_id, payment_id, signature)
+    if not is_valid:
+        raise HTTPException(400, "Invalid payment signature")
+
+    return SimpleVerifyPaymentResponse(
+        status="success", message="Payment signature verified successfully"
+    )
+
