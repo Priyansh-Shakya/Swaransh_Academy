@@ -385,96 +385,166 @@ class _AdminFeeSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final feeStatusAsync = ref.watch(feeStatusProvider(studentId));
-    final feeStatus = feeStatusAsync.valueOrNull;
 
-    if (feeStatus == null) return const SizedBox.shrink();
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.xl),
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.divider),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.account_balance_wallet_outlined,
-                size: 18,
+    return feeStatusAsync.when(
+      loading: () => Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.xl),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppColors.divider),
+        ),
+        child: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(AppSpacing.md),
+            child: SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
                 color: AppColors.gold,
               ),
-              const SizedBox(width: AppSpacing.sm),
-              Text('Billing Cycle & Partial Payment',
-                  style: AppTypography.titleLarge),
-            ],
+            ),
           ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Current Cycle:', style: AppTypography.caption),
-              Text(feeStatus.cycleLabel,
-                  style: AppTypography.bodySmall
-                      .copyWith(fontWeight: FontWeight.w700)),
-            ],
+        ),
+      ),
+      error: (err, _) => Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.xl),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: AppColors.error.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                'Could not load fee status: $err',
+                style: AppTypography.caption.copyWith(color: AppColors.error),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.refresh, size: 18),
+              onPressed: () => ref.invalidate(feeStatusProvider(studentId)),
+            ),
+          ],
+        ),
+      ),
+      data: (feeStatus) {
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final isStarted = !feeStatus.cycleStart.isAfter(today);
+        final balanceColor = feeStatus.cycleBalance == 0
+            ? AppColors.active
+            : (isStarted ? AppColors.error : AppColors.textPrimary);
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: AppSpacing.xl),
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.divider),
           ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Paid in Cycle:', style: AppTypography.caption),
-              Text(
-                  '\u20B9${feeStatus.cyclePaid} of \u20B9${feeStatus.cycleFee}',
-                  style: AppTypography.bodySmall
-                      .copyWith(fontWeight: FontWeight.w700)),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Cycle Balance:', style: AppTypography.caption),
-              Text(
-                '\u20B9${feeStatus.cycleBalance}',
-                style: AppTypography.bodySmall.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: feeStatus.cycleBalance > 0
-                      ? AppColors.error
-                      : AppColors.active,
+              Row(
+                children: [
+                  const Icon(
+                    Icons.account_balance_wallet_outlined,
+                    size: 18,
+                    color: AppColors.gold,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text('Billing Cycle & Partial Payment',
+                      style: AppTypography.titleLarge),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Current Cycle:', style: AppTypography.caption),
+                  Text(feeStatus.cycleLabel,
+                      style: AppTypography.bodySmall
+                          .copyWith(fontWeight: FontWeight.w700)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Paid in Cycle:', style: AppTypography.caption),
+                  Text(
+                      '\u20B9${feeStatus.cyclePaid} of \u20B9${feeStatus.cycleFee}',
+                      style: AppTypography.bodySmall
+                          .copyWith(fontWeight: FontWeight.w700)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Balance due:', style: AppTypography.caption),
+                  Text(
+                    '\u20B9${feeStatus.cycleBalance}',
+                    style: AppTypography.bodySmall.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: balanceColor,
+                    ),
+                  ),
+                ],
+              ),
+              if (feeStatus.hasUnlinkedPayments) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Row(
+                  children: [
+                    const Icon(Icons.info_outline,
+                        size: 14, color: AppColors.gold),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'Some payments are not linked to a cycle.',
+                        style: AppTypography.caption
+                            .copyWith(color: AppColors.gold),
+                      ),
+                    ),
+                  ],
                 ),
+              ],
+              const Divider(height: AppSpacing.lg),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Allow part payment for this cycle'),
+                subtitle: const Text(
+                    'Turns itself off when the cycle is fully paid.'),
+                value: feeStatus.allowPartialPayment,
+                activeThumbColor: AppColors.gold,
+                onChanged: (val) async {
+                  try {
+                    await ref
+                        .read(razorpayApiServiceProvider)
+                        .togglePartialPayment(
+                            studentId: studentId, allow: val);
+                    ref.invalidate(feeStatusProvider(studentId));
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to update: $e')),
+                      );
+                    }
+                  }
+                },
               ),
             ],
           ),
-          const Divider(height: AppSpacing.lg),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Allow part payment for this cycle'),
-            subtitle: const Text(
-                'Turns itself off when the cycle is fully paid.'),
-            value: feeStatus.allowPartialPayment,
-            activeColor: AppColors.gold,
-            onChanged: (val) async {
-              try {
-                await ref
-                    .read(razorpayApiServiceProvider)
-                    .togglePartialPayment(
-                        studentId: studentId, allow: val);
-                ref.invalidate(feeStatusProvider(studentId));
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to update: $e')),
-                  );
-                }
-              }
-            },
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

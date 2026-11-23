@@ -69,6 +69,7 @@ class FeeStatusResponse(BaseModel):
     cycle_balance: int
     allow_partial_payment: bool
     min_partial_amount: int
+    has_unlinked_payments: bool = False
 
 
 class PartialPaymentSwitchRequest(BaseModel):

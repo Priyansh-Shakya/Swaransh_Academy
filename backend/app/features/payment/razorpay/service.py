@@ -379,6 +379,20 @@ async def get_fee_status(db, user: dict, student_id: int, is_admin_user: bool = 
 
     next_due = billing.cycle_start(student["fee_paid_till"], student["date_of_joining"])
 
+    has_unlinked = await db.fetchval(
+        """
+        select exists (
+            select 1 from payment
+            where student_id = $1
+              and payment_category in ('fee', 'admission')
+              and cycle_start is null
+              and coalesce(isactive, true)
+              and coalesce(status::text, 'active') = 'active'
+        )
+        """,
+        student["id"],
+    )
+
     return FeeStatusResponse(
         student_id=student["id"],
         fee_type=fee_type,
@@ -396,6 +410,7 @@ async def get_fee_status(db, user: dict, student_id: int, is_admin_user: bool = 
         cycle_balance=c_balance,
         allow_partial_payment=bool(student.get("allow_partial_payment")),
         min_partial_amount=min(settings.min_partial_payment_rupees, c_balance or fee_rupees),
+        has_unlinked_payments=bool(has_unlinked),
     )
 
 

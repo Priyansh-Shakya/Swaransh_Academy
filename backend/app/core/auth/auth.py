@@ -1,5 +1,6 @@
 import os
 import time
+import uuid
 
 import httpx
 from dotenv import load_dotenv
@@ -190,8 +191,13 @@ async def check_role(user: dict | None, db) -> str:
     """Fetch role from DB users table for the given JWT user."""
     if user is None or not user.get("id"):
         return "guest"
-    row = await db.fetchrow("select role::text from users where user_id = $1", user["id"])
-    return row["role"] if row and row.get("role") else "guest"
+    try:
+        uid = uuid.UUID(str(user["id"])) if isinstance(user["id"], str) else user["id"]
+        row = await db.fetchrow("select role::text from users where user_id = $1", uid)
+        return row["role"] if row and row.get("role") else "guest"
+    except Exception as e:
+        print(f"[auth] Error checking role for user {user.get('id')}: {e}")
+        return "guest"
 
 
 async def is_admin(user: dict | None, db) -> bool:
