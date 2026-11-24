@@ -404,7 +404,7 @@ async def get_fee_status(db, user: dict, student_id: int, is_admin_user: bool = 
     approved_part = student.get("partial_payment_amount")
     part_available = (
         bool(student.get("allow_partial_payment"))
-        and approved_part is not null
+        and approved_part is not None
         and approved_part < c_balance
     )
 
