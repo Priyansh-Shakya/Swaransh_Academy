@@ -1,10 +1,12 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:swaransh_academy/features/payments/data/checkout_modles.dart';
 import 'package:swaransh_academy/features/payments/data/payments_notifier.dart';
 import 'package:swaransh_academy/features/payments/data/razorpay_api_service.dart';
+import 'package:swaransh_academy/features/payments/data/web_checkout/web_checkout.dart';
 import 'package:swaransh_academy/features/profile/data/profile_notifier.dart';
 
 enum PaymentPhase { idle, starting, checkout, verifying, paid, pending, failed }
@@ -40,7 +42,7 @@ final feeStatusProvider = FutureProvider.autoDispose.family<FeeStatus, int>((
 /// start order -> open checkout -> verify -> (poll if needed).
 class OnlinePaymentNotifier
     extends AutoDisposeFamilyAsyncNotifier<PaymentFlowState, int> {
-  late Razorpay _razorpay;
+  Razorpay? _razorpay;
   bool _disposed = false;
   String? _orderId;
 
@@ -49,14 +51,18 @@ class OnlinePaymentNotifier
   @override
   Future<PaymentFlowState> build(int studentId) async {
     _disposed = false;
-    _razorpay = Razorpay()
-      ..on(Razorpay.EVENT_PAYMENT_SUCCESS, _onSuccess)
-      ..on(Razorpay.EVENT_PAYMENT_ERROR, _onError)
-      ..on(Razorpay.EVENT_EXTERNAL_WALLET, _onExternalWallet);
+    if (!kIsWeb) {
+      _razorpay = Razorpay()
+        ..on(Razorpay.EVENT_PAYMENT_SUCCESS, _onSuccess)
+        ..on(Razorpay.EVENT_PAYMENT_ERROR, _onError)
+        ..on(Razorpay.EVENT_EXTERNAL_WALLET, _onExternalWallet);
+    }
 
     ref.onDispose(() {
       _disposed = true;
-      _razorpay.clear();
+      if (!kIsWeb) {
+        _razorpay?.clear();
+      }
     });
     return const PaymentFlowState();
   }
@@ -80,7 +86,41 @@ class OnlinePaymentNotifier
           orderId: options.orderId,
         ),
       );
-      _razorpay.open(options.toRazorpayOptions());
+
+      if (kIsWeb) {
+        final webResult = await openWebCheckout(options.toRazorpayOptions());
+        if (webResult.status == 'success') {
+          await _handleSuccess(
+            webResult.orderId,
+            webResult.paymentId,
+            webResult.signature,
+          );
+        } else if (webResult.status == 'dismissed') {
+          var msg =
+              'Payment was cancelled or failed. No money is deducted unless the bank confirms it.';
+          if (webResult.lastError != null &&
+              webResult.lastError!.isNotEmpty) {
+            msg += ' (${webResult.lastError})';
+          }
+          _set(
+            PaymentFlowState(
+              phase: PaymentPhase.failed,
+              orderId: _orderId,
+              message: msg,
+            ),
+          );
+        } else {
+          _set(
+            PaymentFlowState(
+              phase: PaymentPhase.failed,
+              orderId: _orderId,
+              message: webResult.message ?? 'Payment failed on web',
+            ),
+          );
+        }
+      } else {
+        _razorpay?.open(options.toRazorpayOptions());
+      }
     } catch (e) {
       _set(
         PaymentFlowState(
@@ -92,9 +132,13 @@ class OnlinePaymentNotifier
   }
 
   // ---------------------------------------------------------- checkout callbacks
-  Future<void> _onSuccess(PaymentSuccessResponse r) async {
-    final orderId = r.orderId ?? _orderId;
-    if (orderId == null) {
+  Future<void> _handleSuccess(
+    String? orderId,
+    String? paymentId,
+    String? signature,
+  ) async {
+    final resolvedOrderId = orderId ?? _orderId;
+    if (resolvedOrderId == null) {
       _set(
         const PaymentFlowState(
           phase: PaymentPhase.pending,
@@ -105,26 +149,31 @@ class OnlinePaymentNotifier
       return;
     }
 
-    _set(PaymentFlowState(phase: PaymentPhase.verifying, orderId: orderId));
+    _set(PaymentFlowState(
+      phase: PaymentPhase.verifying,
+      orderId: resolvedOrderId,
+    ));
 
-    final paymentId = r.paymentId;
-    final signature = r.signature;
     if (paymentId != null && signature != null) {
       try {
         final result = await _api.verifyPayment(
-          orderId: orderId,
+          orderId: resolvedOrderId,
           paymentId: paymentId,
           signature: signature,
         );
         if (result.isPaid) {
-          _setPaid(orderId, result.feePaidTill);
+          _setPaid(resolvedOrderId, result.feePaidTill);
           return;
         }
       } catch (_) {
         // Network hiccup or not captured yet: fall back to polling below.
       }
     }
-    await _pollUntilPaid(orderId);
+    await _pollUntilPaid(resolvedOrderId);
+  }
+
+  Future<void> _onSuccess(PaymentSuccessResponse r) async {
+    await _handleSuccess(r.orderId, r.paymentId, r.signature);
   }
 
   void _onError(PaymentFailureResponse r) {

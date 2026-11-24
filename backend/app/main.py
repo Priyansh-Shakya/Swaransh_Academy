@@ -97,12 +97,25 @@ async def log_requests(request: Request, call_next):
     
     response = await call_next(request)
     return response
-#? Allow CORS for dev only
+# CORS configuration
+origins = [
+    "https://swaransh-academy.web.app",
+    "https://swaransh-academy.firebaseapp.com",
+    "http://localhost:3000",
+    "http://localhost:8000",
+    "http://localhost:5000",
+    "http://localhost:8080",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8000",
+    "http://127.0.0.1:5000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],      # dev only
+    allow_origins=origins,
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1|10\.0\.2\.2)(:\d+)?",
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
