@@ -653,7 +653,10 @@ class _FeesCardState extends ConsumerState<_FeesCard> {
               children: [
                 Expanded(
                   child: ChoiceChip(
-                    label: Text('Pay \u20B9$approvedPart\n(approved part)'),
+                    label: Text(
+                      'Pay \u20B9$approvedPart\n(approved part)',
+                      textAlign: TextAlign.center,
+                    ),
                     selected: _payPart,
                     selectedColor: AppColors.gold.withValues(alpha: 0.2),
                     onSelected: (val) {
@@ -664,7 +667,10 @@ class _FeesCardState extends ConsumerState<_FeesCard> {
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: ChoiceChip(
-                    label: Text('Pay full\n\u20B9$cycleBalance'),
+                    label: Text(
+                      'Pay full\n\u20B9$cycleBalance',
+                      textAlign: TextAlign.center,
+                    ),
                     selected: !_payPart,
                     selectedColor: AppColors.gold.withValues(alpha: 0.2),
                     onSelected: (val) {
