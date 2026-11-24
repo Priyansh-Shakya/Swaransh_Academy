@@ -57,10 +57,14 @@ class RazorpayApiService {
   Future<FeeStatus> togglePartialPayment({
     required int studentId,
     required bool allow,
+    int? amount,
   }) async {
     final res = await _dio.patch<Map<String, dynamic>>(
       '/payments/student/$studentId/partial-payment',
-      data: {'allow_partial_payment': allow},
+      data: {
+        'allow_partial_payment': allow,
+        if (amount != null) 'partial_payment_amount': amount,
+      },
     );
     return FeeStatus.fromJson(res.data!);
   }

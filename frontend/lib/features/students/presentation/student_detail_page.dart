@@ -382,6 +382,66 @@ class _AdminFeeSection extends ConsumerWidget {
   const _AdminFeeSection({required this.studentId});
   final int studentId;
 
+  Future<int?> _showAmountDialog(
+      BuildContext context, int cycleBalance, int? currentAmount) async {
+    final ctrl = TextEditingController(
+      text: (currentAmount ?? (cycleBalance > 1 ? cycleBalance - 1 : 1))
+          .toString(),
+    );
+    final formKey = GlobalKey<FormState>();
+
+    return showDialog<int>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Set Approved Part Payment'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextFormField(
+                controller: ctrl,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: 'Approved Amount (\u20B9)',
+                  helperText: 'Balance is \u20B9$cycleBalance',
+                  prefixText: '\u20B9 ',
+                ),
+                validator: (val) {
+                  final n = int.tryParse(val ?? '');
+                  if (n == null || n < 1) {
+                    return 'Enter an amount of at least \u20B91';
+                  }
+                  if (n >= cycleBalance) {
+                    return 'Amount must be less than balance (\u20B9$cycleBalance)';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                final amt = int.parse(ctrl.text.trim());
+                Navigator.pop(ctx, amt);
+              }
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final feeStatusAsync = ref.watch(feeStatusProvider(studentId));
@@ -522,25 +582,87 @@ class _AdminFeeSection extends ConsumerWidget {
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Allow part payment for this cycle'),
                 subtitle: const Text(
-                    'Turns itself off when the cycle is fully paid.'),
+                    'The student can pay this amount once. It switches off after their payment or when the cycle is fully paid.'),
                 value: feeStatus.allowPartialPayment,
                 activeThumbColor: AppColors.gold,
                 onChanged: (val) async {
-                  try {
-                    await ref
-                        .read(razorpayApiServiceProvider)
-                        .togglePartialPayment(
-                            studentId: studentId, allow: val);
-                    ref.invalidate(feeStatusProvider(studentId));
-                  } catch (e) {
-                    if (context.mounted) {
+                  if (val) {
+                    if (feeStatus.cycleBalance <= 1) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Failed to update: $e')),
+                        const SnackBar(
+                            content: Text(
+                                'Cycle balance must be greater than \u20B91 to allow a part payment.')),
                       );
+                      return;
+                    }
+                    final amt = await _showAmountDialog(
+                        context, feeStatus.cycleBalance, feeStatus.partialPaymentAmount);
+                    if (amt == null) return;
+                    try {
+                      await ref
+                          .read(razorpayApiServiceProvider)
+                          .togglePartialPayment(
+                              studentId: studentId, allow: true, amount: amt);
+                      ref.invalidate(feeStatusProvider(studentId));
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed to update: $e')),
+                        );
+                      }
+                    }
+                  } else {
+                    try {
+                      await ref
+                          .read(razorpayApiServiceProvider)
+                          .togglePartialPayment(
+                              studentId: studentId, allow: false, amount: null);
+                      ref.invalidate(feeStatusProvider(studentId));
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed to update: $e')),
+                        );
+                      }
                     }
                   }
                 },
               ),
+              if (feeStatus.allowPartialPayment && feeStatus.partialPaymentAmount != null) ...[
+                Row(
+                  children: [
+                    Text(
+                      'Approved part payment: \u20B9${feeStatus.partialPaymentAmount}',
+                      style: AppTypography.bodySmall.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.gold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit, size: 16, color: AppColors.gold),
+                      tooltip: 'Change approved amount',
+                      onPressed: () async {
+                        final amt = await _showAmountDialog(
+                            context, feeStatus.cycleBalance, feeStatus.partialPaymentAmount);
+                        if (amt == null) return;
+                        try {
+                          await ref
+                              .read(razorpayApiServiceProvider)
+                              .togglePartialPayment(
+                                  studentId: studentId, allow: true, amount: amt);
+                          ref.invalidate(feeStatusProvider(studentId));
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Failed to update: $e')),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         );

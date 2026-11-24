@@ -150,7 +150,8 @@ class FeeStatus {
     required this.cyclePaid,
     required this.cycleBalance,
     required this.allowPartialPayment,
-    required this.minPartialAmount,
+    this.partialPaymentAmount,
+    this.partPaymentAvailable = false,
     this.hasUnlinkedPayments = false,
     this.cannotPayReason,
     this.feePaidTill,
@@ -171,7 +172,8 @@ class FeeStatus {
   final int cyclePaid;
   final int cycleBalance;
   final bool allowPartialPayment;
-  final int minPartialAmount;
+  final int? partialPaymentAmount;
+  final bool partPaymentAvailable;
   final bool hasUnlinkedPayments;
 
   factory FeeStatus.fromJson(Map<String, dynamic> json) => FeeStatus(
@@ -190,7 +192,8 @@ class FeeStatus {
     cyclePaid: (json['cycle_paid'] as num).toInt(),
     cycleBalance: (json['cycle_balance'] as num).toInt(),
     allowPartialPayment: json['allow_partial_payment'] as bool? ?? false,
-    minPartialAmount: (json['min_partial_amount'] as num).toInt(),
+    partialPaymentAmount: (json['partial_payment_amount'] as num?)?.toInt(),
+    partPaymentAvailable: json['part_payment_available'] as bool? ?? false,
     hasUnlinkedPayments: json['has_unlinked_payments'] as bool? ?? false,
   );
 }

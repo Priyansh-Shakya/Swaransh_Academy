@@ -501,14 +501,7 @@ class _FeesCard extends ConsumerStatefulWidget {
 }
 
 class _FeesCardState extends ConsumerState<_FeesCard> {
-  final TextEditingController _amountController = TextEditingController();
-  int? _lastSetBalance;
-
-  @override
-  void dispose() {
-    _amountController.dispose();
-    super.dispose();
-  }
+  bool _payPart = true;
 
   bool _checkIfDue(Student student) {
     if (student.feePaidTill == null || student.feePaidTill!.isEmpty) {
@@ -529,8 +522,18 @@ class _FeesCardState extends ConsumerState<_FeesCard> {
     final student = widget.student;
     final studentId = student.id;
     final hasFees = student.fees != null;
-    final isPaid = student.feePaidTill != null;
     final fallbackIsDue = _checkIfDue(student);
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    bool isPaidUpToDate = false;
+    if (student.feePaidTill != null && student.feePaidTill!.isNotEmpty) {
+      try {
+        final dt = DateTime.parse(student.feePaidTill!);
+        isPaidUpToDate = !dt.isBefore(today);
+      } catch (_) {}
+    }
+    final paidTillColor = isPaidUpToDate ? AppColors.active : AppColors.error;
 
     final feeStatusAsync = studentId != null
         ? ref.watch(feeStatusProvider(studentId))
@@ -542,18 +545,14 @@ class _FeesCardState extends ConsumerState<_FeesCard> {
     final cycleFee = feeStatus?.cycleFee ?? (student.fees?.toInt() ?? 0);
     final cyclePaid = feeStatus?.cyclePaid ?? 0;
     final cycleBalance = feeStatus?.cycleBalance ?? cycleFee;
-    final allowPartial = feeStatus?.allowPartialPayment ?? false;
-    final minPartial = feeStatus?.minPartialAmount ?? 500;
+    final partAvailable = feeStatus?.partPaymentAvailable ?? false;
+    final approvedPart = feeStatus?.partialPaymentAmount;
 
     if (studentId == null) return const SizedBox.shrink();
 
-    if (_lastSetBalance != cycleBalance && allowPartial) {
-      _amountController.text = cycleBalance.toString();
-      _lastSetBalance = cycleBalance;
-    }
-
-    final parsedAmount = int.tryParse(_amountController.text);
-    final payAmount = allowPartial ? (parsedAmount ?? cycleBalance) : cycleBalance;
+    final selectedAmount = (partAvailable && _payPart && approvedPart != null)
+        ? approvedPart
+        : cycleBalance;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -611,8 +610,10 @@ class _FeesCardState extends ConsumerState<_FeesCard> {
               Expanded(
                 child: _FeeStat(
                   label: 'Paid Till',
-                  value: isPaid ? student.feePaidTill! : '—',
-                  valueColor: isPaid ? AppColors.active : AppColors.error,
+                  value: (student.feePaidTill != null && student.feePaidTill!.isNotEmpty)
+                      ? student.feePaidTill!
+                      : '—',
+                  valueColor: paidTillColor,
                 ),
               ),
             ],
@@ -645,17 +646,33 @@ class _FeesCardState extends ConsumerState<_FeesCard> {
             ),
           ],
           const SizedBox(height: AppSpacing.md),
-          if (canPay && allowPartial) ...[
-            TextField(
-              controller: _amountController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Payment Amount (\u20B9)',
-                helperText: 'Pay between \u20B9$minPartial and \u20B9$cycleBalance',
-                prefixText: '\u20B9 ',
-                isDense: true,
-                border: const OutlineInputBorder(),
-              ),
+          if (canPay && partAvailable && approvedPart != null) ...[
+            Text('Select payment option:', style: AppTypography.caption),
+            const SizedBox(height: AppSpacing.xs),
+            Row(
+              children: [
+                Expanded(
+                  child: ChoiceChip(
+                    label: Text('Pay \u20B9$approvedPart\n(approved part)'),
+                    selected: _payPart,
+                    selectedColor: AppColors.gold.withValues(alpha: 0.2),
+                    onSelected: (val) {
+                      if (val) setState(() => _payPart = true);
+                    },
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: ChoiceChip(
+                    label: Text('Pay full\n\u20B9$cycleBalance'),
+                    selected: !_payPart,
+                    selectedColor: AppColors.gold.withValues(alpha: 0.2),
+                    onSelected: (val) {
+                      if (val) setState(() => _payPart = false);
+                    },
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: AppSpacing.md),
           ],
@@ -664,7 +681,9 @@ class _FeesCardState extends ConsumerState<_FeesCard> {
             child: PayFeesButton(
               studentId: studentId,
               isDue: canPay,
-              amount: payAmount,
+              amount: (partAvailable && _payPart && approvedPart != null)
+                  ? approvedPart
+                  : null,
               onPaid: () {
                 ref.invalidate(paymentProvider(studentId));
                 ref.invalidate(feeStatusProvider(studentId));
@@ -676,7 +695,7 @@ class _FeesCardState extends ConsumerState<_FeesCard> {
                 label: Text(
                   loading
                       ? 'Please wait…'
-                      : (canPay ? 'Pay \u20B9$payAmount' : 'Fees Paid'),
+                      : (canPay ? 'Pay \u20B9$selectedAmount' : 'Fees Paid'),
                 ),
               ),
             ),
