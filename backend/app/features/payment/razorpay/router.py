@@ -64,4 +64,4 @@ async def patch_partial_payment(
     student_id: int, body: PartialPaymentSwitchRequest, db=Depends(get_db), admin=Depends(require_admin)
 ):
     """Admin endpoint to enable/disable partial payments for a student's current cycle."""
-    return await service.toggle_partial_payment(db, student_id, body.allow_partial_payment)
+    return await service.toggle_partial_payment(db, student_id, body.allow_partial_payment, body.partial_payment_amount)

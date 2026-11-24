@@ -155,6 +155,7 @@ async def apply_payment(
                 update students
                 set fee_paid_till = greatest(coalesce(fee_paid_till, '1970-01-01'::date), $2::date),
                     allow_partial_payment = false,
+                    partial_payment_amount = null,
                     status = 'active',
                     updated_at = now()
                 where id = $1
@@ -167,6 +168,7 @@ async def apply_payment(
                 update students
                 set fee_paid_till = greatest(coalesce(fee_paid_till, '1970-01-01'::date), $2::date),
                     allow_partial_payment = false,
+                    partial_payment_amount = null,
                     updated_at = now()
                 where id = $1
                 """,

@@ -135,15 +135,21 @@ async def start_payment(db, user: dict, body: StartPaymentRequest) -> CheckoutOp
             )
             raise HTTPException(409, reason)
 
+        approved_part = student.get("partial_payment_amount")
+        part_available = (
+            bool(student.get("allow_partial_payment"))
+            and approved_part is not None
+            and approved_part < c_balance
+        )
+
         if body.amount is not None:
             if body.amount > c_balance:
                 raise HTTPException(422, f"Amount cannot exceed the balance of ₹{c_balance}")
             if body.amount < c_balance:
-                if not student.get("allow_partial_payment"):
-                    raise HTTPException(422, "Part payment is not enabled for this student")
-                min_req = min(settings.min_partial_payment_rupees, c_balance)
-                if body.amount < min_req:
-                    raise HTTPException(422, f"Minimum partial payment is ₹{min_req} for this student")
+                if not part_available:
+                    raise HTTPException(422, "Part payment is not available for this student")
+                if body.amount != approved_part:
+                    raise HTTPException(422, f"Part payment must be exactly ₹{approved_part} as approved by the academy")
             amount_rupees = body.amount
         else:
             amount_rupees = c_balance
@@ -219,6 +225,8 @@ async def settle_order(
             source="online",
         )
         await repo.mark_order_paid(db, order["id"], razorpay_payment_id, res.payment_id)
+        # Clear online partial payment approval after settlement
+        await repo.consume_partial_payment_approval(db, order["student_id"])
 
     if res is not None:
         await _dispatch_settlement_notifications(db, res)
@@ -393,6 +401,13 @@ async def get_fee_status(db, user: dict, student_id: int, is_admin_user: bool = 
         student["id"],
     )
 
+    approved_part = student.get("partial_payment_amount")
+    part_available = (
+        bool(student.get("allow_partial_payment"))
+        and approved_part is not null
+        and approved_part < c_balance
+    )
+
     return FeeStatusResponse(
         student_id=student["id"],
         fee_type=fee_type,
@@ -409,16 +424,35 @@ async def get_fee_status(db, user: dict, student_id: int, is_admin_user: bool = 
         cycle_paid=c_paid,
         cycle_balance=c_balance,
         allow_partial_payment=bool(student.get("allow_partial_payment")),
-        min_partial_amount=min(settings.min_partial_payment_rupees, c_balance or fee_rupees),
+        partial_payment_amount=approved_part,
+        part_payment_available=part_available,
         has_unlinked_payments=bool(has_unlinked),
     )
 
 
-async def toggle_partial_payment(db, student_id: int, allow: bool) -> FeeStatusResponse:
+async def toggle_partial_payment(
+    db, student_id: int, allow: bool, amount: int | None = None
+) -> FeeStatusResponse:
     student = await repo.get_student_by_id(db, student_id)
     if not student:
         raise HTTPException(404, "Student not found")
-    await repo.update_allow_partial_payment(db, student_id, allow)
+
+    fee_rupees, fee_type = _fee_details(student)
+    c_start, _ = billing.current_cycle(student["fee_paid_till"], student["date_of_joining"], fee_type)
+    c_paid = await repo.get_cycle_paid(db, student["id"], c_start)
+    c_balance = max(0, fee_rupees - c_paid)
+
+    if allow:
+        if amount is None or amount < 1 or amount >= c_balance:
+            raise HTTPException(
+                422,
+                f"Approved partial payment amount must be between ₹1 and ₹{c_balance - 1} for this cycle (Balance is ₹{c_balance})",
+            )
+    else:
+        allow = False
+        amount = None
+
+    await repo.update_allow_partial_payment(db, student_id, allow, amount)
     return await get_fee_status(db, {}, student_id, is_admin_user=True)
 
 

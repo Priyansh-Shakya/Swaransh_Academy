@@ -4,7 +4,7 @@ from datetime import date
 
 _STUDENT_COLS = """
     id, name, contact, email, fees, fee_type::text as fee_type,
-    fee_paid_till, date_of_joining, allow_partial_payment
+    fee_paid_till, date_of_joining, allow_partial_payment, partial_payment_amount
 """
 
 
@@ -124,10 +124,19 @@ async def get_cycle_paid(db, student_id: int, cycle_start: date) -> int:
     )
 
 
-async def update_allow_partial_payment(db, student_id: int, allow: bool) -> None:
+async def update_allow_partial_payment(
+    db, student_id: int, allow: bool, amount: int | None = None
+) -> None:
     await db.execute(
-        "update students set allow_partial_payment = $2, updated_at = now() where id = $1",
-        student_id, allow,
+        "update students set allow_partial_payment = $2, partial_payment_amount = $3, updated_at = now() where id = $1",
+        student_id, allow, amount,
+    )
+
+
+async def consume_partial_payment_approval(db, student_id: int) -> None:
+    await db.execute(
+        "update students set allow_partial_payment = false, partial_payment_amount = null, updated_at = now() where id = $1",
+        student_id,
     )
 
 
