@@ -623,7 +623,7 @@ class _FeesCardState extends ConsumerState<_FeesCard> {
             LinearProgressIndicator(
               value: cycleFee > 0 ? (cyclePaid / cycleFee).clamp(0.0, 1.0) : 0.0,
               backgroundColor: AppColors.divider,
-              color: AppColors.gold,
+              color: cycleBalance == 0 ? AppColors.active : AppColors.gold,
               minHeight: 6,
               borderRadius: BorderRadius.circular(AppRadius.pill),
             ),
