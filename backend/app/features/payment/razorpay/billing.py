@@ -77,9 +77,25 @@ def current_cycle(
     fee_paid_till: date | None,
     date_of_joining: date,
     fee_type: str,
+    today: date | None = None,
 ) -> tuple[date, date]:
-    """Returns (start, end), both inclusive, for the current single billing cycle."""
-    return coverage(fee_paid_till, date_of_joining, fee_type, cycles=1)
+    """Returns (start, end), both inclusive, for the student's active cycle.
+    - If fee_paid_till is None or < today: returns the unpaid cycle starting on
+      cycle_start(fee_paid_till, date_of_joining).
+    - If fee_paid_till >= today: returns the currently covered cycle ending on
+      fee_paid_till.
+    """
+    today_date = today or today_ist()
+    normalized_type = normalize_fee_type(fee_type)
+    months = FEE_TYPE_MONTHS[normalized_type]
+
+    if fee_paid_till is None or fee_paid_till < today_date:
+        return coverage(fee_paid_till, date_of_joining, fee_type, cycles=1)
+
+    end = fee_paid_till
+    next_day = end + timedelta(days=1)
+    start = _add_months(next_day, -months, _anchor_day(next_day, date_of_joining))
+    return start, end
 
 
 def cycle_label(start: date, end: date) -> str:
