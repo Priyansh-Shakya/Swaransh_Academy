@@ -352,27 +352,34 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
                   StudentFieldSection.course,
                 },
                 imagePickerController: _photoController,
-                actionButton: SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.gold,
-                      foregroundColor: AppColors.navy,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                    ),
-                    onPressed: _proceed,
-                    child: const Text(
-                      'Continue to Terms & Conditions',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
+                actionButton: isWide
+                    ? SizedBox(
+                        width: double.infinity,
+                        child: SizedBox(
+                          height: 50,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.gold,
+                              foregroundColor: AppColors.navy,
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.md),
+                              ),
+                            ),
+                            onPressed: _proceed,
+                            child: const Text(
+                              'Continue to Terms & Conditions',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    : null,
               ),
 
               if (!isWide) ...[
@@ -427,6 +434,19 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: AppSpacing.xxl),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.gold,
+                      foregroundColor: AppColors.navy,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: _proceed,
+                    child: const Text('Continue to Terms & Conditions'),
+                  ),
                 ),
               ],
 
