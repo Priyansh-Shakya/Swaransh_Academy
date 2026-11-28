@@ -94,128 +94,133 @@ class _CoursesPageState extends ConsumerState<CoursesPage> {
   }
 
   Widget _buildFilters() {
+    final isWide = MediaQuery.sizeOf(context).width >= kRailBreakpoint;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
         AppSpacing.md,
-        AppSpacing.md,
-        AppSpacing.md,
+        AppSpacing.lg,
         0,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final feeFieldWidth = (constraints.maxWidth * 0.35).clamp(
-                130.0,
-                180.0,
-              );
-              return Row(
+          Row(
+            children: [
+              // Search bar: constrained width on web/desktop, expanded on mobile
+              if (isWide)
+                SizedBox(
+                  width: 420,
+                  child: _buildSearchField(),
+                )
+              else
+                Expanded(child: _buildSearchField()),
+              const SizedBox(width: AppSpacing.md),
+              // Max fee input
+              SizedBox(
+                width: 150,
+                child: _buildFeeField(),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          // Chips Row
+          SizedBox(
+            height: 48,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
                 children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchCtrl,
-                      decoration: InputDecoration(
-                        hintText: 'Search by course or subject...',
-                        prefixIcon: const Icon(
-                          Icons.search,
-                          color: AppColors.textSecondary,
-                        ),
-                        suffixIcon: _searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, size: 18),
-                                onPressed: () {
-                                  _searchCtrl.clear();
-                                  setState(() => _searchQuery = '');
-                                },
-                              )
-                            : null,
-                      ),
-                      onChanged: (value) =>
-                          setState(() => _searchQuery = value),
+                  ...AppOptions.learningMode.map(
+                    (option) => _filterChip(
+                      option: option,
+                      selected: _filterMode == option.value,
+                      color: AppColors.navy,
+                      onSelected: () => setState(() {
+                        _filterMode = _filterMode == option.value
+                            ? null
+                            : option.value;
+                      }),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
-                  SizedBox(
-                    width: feeFieldWidth,
-                    child: TextField(
-                      controller: _feesCtrl,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: InputDecoration(
-                        prefixText: '\u20B9',
-                        hintText: 'Max fee',
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm,
-                          vertical: 12,
-                        ),
-                        suffixIcon: _feesCtrl.text.isNotEmpty
-                            ? IconButton(
-                                tooltip: 'Clear fee filter',
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints.tightFor(
-                                  width: 20,
-                                  height: 20,
-                                ),
-                                icon: const Icon(Icons.close, size: 14),
-                                onPressed: () {
-                                  _feesCtrl.clear();
-                                  setState(() => _maxFees = null);
-                                },
-                              )
-                            : null,
-                      ),
-                      onChanged: (value) => setState(() {
-                        _maxFees = int.tryParse(value);
+                  ...AppOptions.courseTag.map(
+                    (option) => _filterChip(
+                      option: option,
+                      selected: _filterTag == option.value,
+                      color: AppColors.navy,
+                      onSelected: () => setState(() {
+                        _filterTag = _filterTag == option.value
+                            ? null
+                            : option.value;
                       }),
                     ),
                   ),
                 ],
-              );
-            },
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Center(
-            child: SizedBox(
-              height: 34,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ...AppOptions.learningMode.map(
-                      (option) => _filterChip(
-                        option: option,
-                        selected: _filterMode == option.value,
-                        color: AppColors.navy,
-                        onSelected: () => setState(() {
-                          _filterMode = _filterMode == option.value
-                              ? null
-                              : option.value;
-                        }),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    ...AppOptions.courseTag.map(
-                      (option) => _filterChip(
-                        option: option,
-                        selected: _filterTag == option.value,
-                        color: AppColors.navy,
-                        onSelected: () => setState(() {
-                          _filterTag = _filterTag == option.value
-                              ? null
-                              : option.value;
-                        }),
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSearchField() {
+    return TextField(
+      controller: _searchCtrl,
+      decoration: InputDecoration(
+        hintText: 'Search by course or subject...',
+        prefixIcon: const Icon(
+          Icons.search,
+          color: AppColors.textSecondary,
+        ),
+        suffixIcon: _searchQuery.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear, size: 18),
+                onPressed: () {
+                  _searchCtrl.clear();
+                  setState(() => _searchQuery = '');
+                },
+              )
+            : null,
+      ),
+      onChanged: (value) => setState(() => _searchQuery = value),
+    );
+  }
+
+  Widget _buildFeeField() {
+    return TextField(
+      controller: _feesCtrl,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      decoration: InputDecoration(
+        prefixText: '\u20B9',
+        hintText: 'Max fee',
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: 12,
+        ),
+        suffixIcon: _feesCtrl.text.isNotEmpty
+            ? IconButton(
+                tooltip: 'Clear fee filter',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: 20,
+                  height: 20,
+                ),
+                icon: const Icon(Icons.close, size: 14),
+                onPressed: () {
+                  _feesCtrl.clear();
+                  setState(() => _maxFees = null);
+                },
+              )
+            : null,
+      ),
+      onChanged: (value) => setState(() {
+        _maxFees = int.tryParse(value);
+      }),
     );
   }
 
@@ -226,15 +231,17 @@ class _CoursesPageState extends ConsumerState<CoursesPage> {
     required VoidCallback onSelected,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(right: AppSpacing.xs),
+      padding: const EdgeInsets.only(right: AppSpacing.sm),
       child: FilterChip(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         label: Text(
           '${option.label[0].toUpperCase()}${option.label.substring(1)}',
         ),
         selected: selected,
         selectedColor: color.withValues(alpha: 0.16),
-        labelStyle: AppTypography.caption.copyWith(
-          color: selected ? color : AppColors.textSecondary,
+        labelStyle: AppTypography.bodyMedium.copyWith(
+          color: selected ? color : AppColors.textPrimary,
           fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
         ),
         onSelected: (_) => onSelected(),
