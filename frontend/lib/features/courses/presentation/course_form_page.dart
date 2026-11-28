@@ -85,211 +85,426 @@ class _CourseFormPageState extends ConsumerState<CourseFormPage> {
   @override
   Widget build(BuildContext context) {
     debugPrint("EDIT COURSE IMAGE URL:\n$imageUrl");
-    return Scaffold(
-      appBar: AppBar(title: Text(_isEdit ? 'Edit Course' : 'Add Course')),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          children: [
-            Center(
-              child: Column(
-                children: [
-                  ImagePickerField(
-                    controller: _photoController,
-                    label: 'Course Photo',
-                    size: 100,
-                    shape: BoxShape.circle,
-                    resolveDisplayUrl: (path) => Future.value(
-                      ref
-                          .read(supabaseStorageServiceProvider)
-                          .getPublicUrl(
-                            bucket: StorageBucket.coursePhotos,
-                            path: path,
-                          ),
-                    ),
+    final isDesktop = MediaQuery.sizeOf(context).width >= 900;
+
+    Widget formContent = Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Column(
+              children: [
+                ImagePickerField(
+                  controller: _photoController,
+                  label: 'Course Photo',
+                  size: isDesktop ? 130 : 100,
+                  shape: BoxShape.circle,
+                  resolveDisplayUrl: (path) => Future.value(
+                    ref
+                        .read(supabaseStorageServiceProvider)
+                        .getPublicUrl(
+                          bucket: StorageBucket.coursePhotos,
+                          path: path,
+                        ),
                   ),
-                  Text(
-                    "Recommended Image Size: Landscape images around 2.4:1-2.7:1 ratio.",
-                    style: AppTypography.label.copyWith(
-                      fontWeight: FontWeight.w600,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  "Recommended Image Size: Landscape images around 2.4:1-2.7:1 ratio.",
+                  style: AppTypography.caption.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(isDesktop ? AppSpacing.xl : AppSpacing.lg),
+            decoration: isDesktop
+                ? BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    border: Border.all(color: AppColors.divider),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.navy.withValues(alpha: 0.04),
+                        blurRadius: 12,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  )
+                : null,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextFormField(
+                  controller: _nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Display title',
+                    helperText:
+                        'What students see, e.g. "Beginner Guitar Workshop"',
+                  ),
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? 'Required' : null,
+                ),
+                const SizedBox(height: AppSpacing.md),
+
+                if (isDesktop)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _durationCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Duration (e.g. "3 months")',
+                          ),
+                          validator: (v) =>
+                              (v == null || v.trim().isEmpty) ? 'Required' : null,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _feesCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration:
+                              const InputDecoration(labelText: 'Fees (\u20B9)'),
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) return 'Required';
+                            if (double.tryParse(v) == null)
+                              return 'Enter a valid number';
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  )
+                else ...[
+                  TextFormField(
+                    controller: _durationCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Duration (e.g. "3 months")',
                     ),
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  TextFormField(
+                    controller: _feesCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration:
+                        const InputDecoration(labelText: 'Fees (\u20B9)'),
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) return 'Required';
+                      if (double.tryParse(v) == null)
+                        return 'Enter a valid number';
+                      return null;
+                    },
                   ),
                 ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            TextFormField(
-              controller: _nameCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Display title',
-                helperText:
-                    'What students see, e.g. "Beginner Guitar Workshop"',
-              ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Required' : null,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            TextFormField(
-              controller: _durationCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Duration (e.g. "3 months")',
-              ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Required' : null,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            TextFormField(
-              controller: _feesCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Fees (\u20B9)'),
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Required';
-                if (double.tryParse(v) == null) return 'Enter a valid number';
-                return null;
-              },
-            ),
-            const SizedBox(height: AppSpacing.md),
-            DropdownButtonFormField<String>(
-              initialValue: _mode,
-              isExpanded: true,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-    color: AppColors.navy,
-    fontWeight: FontWeight.normal,
-  ),
-              decoration: const InputDecoration(
-                labelText: 'Learning mode',
-                filled: true,
-                fillColor: AppColors.surface,
-              ),
-              items: AppOptions.learningMode
-                  .map(
-                    (option) => DropdownMenuItem<String>(
-                      value: option.value,
-                      child: Text(
-                        option.label,
-                        style: const TextStyle(color: AppColors.navy),
-                      ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _mode = value;
-                  });
-                }
-              },
-            ),
-            const SizedBox(height: AppSpacing.md),
-            DropdownButtonFormField<String>(
-              initialValue: _tag,
-              isExpanded: true,
 
-              style: const TextStyle(
-                color: AppColors.navy,
-              ), // closed-state text
-              decoration: InputDecoration(
-                labelText: 'Tag',
-                filled: true,
-                fillColor: AppColors.surface,
-              ),
-              items: AppOptions.courseTag
-                  .map(
-                    (option) => DropdownMenuItem<String>(
-                      value: option.value,
-                      child: Text(
-                        option.label,
-                        style: const TextStyle(color: AppColors.navy),
-                      ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _tag = value;
-                  });
-                }
-              },
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            const Divider(),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Admission pre-fill mapping',
-              style: Theme.of(context).textTheme.labelLarge,
-            ),
-            Text(
-              'Used to pre-fill the Admission Form when a student taps "Apply Now" - '
-              'keep these matching the form\'s actual enum/subject values, not the '
-              'display title above.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            DropdownButtonFormField<String>(
-              initialValue: _department,
-              isExpanded: true,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-    color: AppColors.navy,
-    fontWeight: FontWeight.normal,
-  ),
-              decoration: const InputDecoration(
-                labelText: 'Maps to Department',
-                filled: true,
-                fillColor: AppColors.surface,
-              ),
-              items: AppOptions.department
-                  .map(
-                    (option) => DropdownMenuItem<String>(
-                      value: option.value,
-                      child: Text(
-                        option.label,
-                        style: const TextStyle(color: AppColors.navy),
-                      ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _department = value;
-                  });
-                }
-              },
-            ),
-            const SizedBox(height: AppSpacing.md),
-            TextFormField(
-              controller: _subjectCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Maps to subject',
-                helperText:
-                    'Exact value the admission form expects, e.g. "Guitar"',
-              ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Required' : null,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            const Divider(),
-            const SizedBox(height: AppSpacing.sm),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: _saving ? null : _save,
-                child: _saving
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.navy,
+                const SizedBox(height: AppSpacing.md),
+
+                if (isDesktop)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _mode,
+                          isExpanded: true,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(
+                                color: AppColors.navy,
+                                fontWeight: FontWeight.normal,
+                              ),
+                          decoration: const InputDecoration(
+                            labelText: 'Learning mode',
+                            filled: true,
+                            fillColor: AppColors.surface,
+                          ),
+                          items: AppOptions.learningMode
+                              .map(
+                                (option) => DropdownMenuItem<String>(
+                                  value: option.value,
+                                  child: Text(
+                                    option.label,
+                                    style:
+                                        const TextStyle(color: AppColors.navy),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _mode = value);
+                            }
+                          },
                         ),
-                      )
-                    : Text(_isEdit ? 'Save Changes' : 'Add Course'),
-              ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _tag,
+                          isExpanded: true,
+                          style: const TextStyle(color: AppColors.navy),
+                          decoration: const InputDecoration(
+                            labelText: 'Tag',
+                            filled: true,
+                            fillColor: AppColors.surface,
+                          ),
+                          items: AppOptions.courseTag
+                              .map(
+                                (option) => DropdownMenuItem<String>(
+                                  value: option.value,
+                                  child: Text(
+                                    option.label,
+                                    style:
+                                        const TextStyle(color: AppColors.navy),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _tag = value);
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  )
+                else ...[
+                  DropdownButtonFormField<String>(
+                    initialValue: _mode,
+                    isExpanded: true,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: AppColors.navy,
+                          fontWeight: FontWeight.normal,
+                        ),
+                    decoration: const InputDecoration(
+                      labelText: 'Learning mode',
+                      filled: true,
+                      fillColor: AppColors.surface,
+                    ),
+                    items: AppOptions.learningMode
+                        .map(
+                          (option) => DropdownMenuItem<String>(
+                            value: option.value,
+                            child: Text(
+                              option.label,
+                              style: const TextStyle(color: AppColors.navy),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _mode = value);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  DropdownButtonFormField<String>(
+                    initialValue: _tag,
+                    isExpanded: true,
+                    style: const TextStyle(color: AppColors.navy),
+                    decoration: const InputDecoration(
+                      labelText: 'Tag',
+                      filled: true,
+                      fillColor: AppColors.surface,
+                    ),
+                    items: AppOptions.courseTag
+                        .map(
+                          (option) => DropdownMenuItem<String>(
+                            value: option.value,
+                            child: Text(
+                              option.label,
+                              style: const TextStyle(color: AppColors.navy),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _tag = value);
+                      }
+                    },
+                  ),
+                ],
+
+                const SizedBox(height: AppSpacing.lg),
+                const Divider(),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'Admission pre-fill mapping',
+                  style:
+                      AppTypography.titleLarge.copyWith(color: AppColors.gold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Used to pre-fill the Admission Form when a student taps "Apply Now" - '
+                  'keep these matching the form\'s actual enum/subject values.',
+                  style: AppTypography.bodySmall,
+                ),
+                const SizedBox(height: AppSpacing.md),
+
+                if (isDesktop)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _department,
+                          isExpanded: true,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(
+                                color: AppColors.navy,
+                                fontWeight: FontWeight.normal,
+                              ),
+                          decoration: const InputDecoration(
+                            labelText: 'Maps to Department',
+                            filled: true,
+                            fillColor: AppColors.surface,
+                          ),
+                          items: AppOptions.department
+                              .map(
+                                (option) => DropdownMenuItem<String>(
+                                  value: option.value,
+                                  child: Text(
+                                    option.label,
+                                    style:
+                                        const TextStyle(color: AppColors.navy),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _department = value);
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _subjectCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Maps to subject',
+                            helperText:
+                                'Exact value expected, e.g. "Guitar"',
+                          ),
+                          validator: (v) =>
+                              (v == null || v.trim().isEmpty)
+                                  ? 'Required'
+                                  : null,
+                        ),
+                      ),
+                    ],
+                  )
+                else ...[
+                  DropdownButtonFormField<String>(
+                    initialValue: _department,
+                    isExpanded: true,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: AppColors.navy,
+                          fontWeight: FontWeight.normal,
+                        ),
+                    decoration: const InputDecoration(
+                      labelText: 'Maps to Department',
+                      filled: true,
+                      fillColor: AppColors.surface,
+                    ),
+                    items: AppOptions.department
+                        .map(
+                          (option) => DropdownMenuItem<String>(
+                            value: option.value,
+                            child: Text(
+                              option.label,
+                              style: const TextStyle(color: AppColors.navy),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _department = value);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  TextFormField(
+                    controller: _subjectCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Maps to subject',
+                      helperText:
+                          'Exact value expected, e.g. "Guitar"',
+                    ),
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  ),
+                ],
+
+                const SizedBox(height: AppSpacing.xl),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: AppColors.gold,
+                      foregroundColor: AppColors.navy,
+                    ),
+                    onPressed: _saving ? null : _save,
+                    child: _saving
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.navy,
+                            ),
+                          )
+                        : Text(
+                            _isEdit ? 'Save Changes' : 'Add Course',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
+    );
+
+    return Scaffold(
+      backgroundColor: AppColors.ivory,
+      appBar: AppBar(
+        title: Text(_isEdit ? 'Edit Course' : 'Add Course'),
+        backgroundColor: AppColors.ivory,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: isDesktop
+            ? Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 820),
+                  child: formContent,
+                ),
+              )
+            : formContent,
       ),
     );
   }
