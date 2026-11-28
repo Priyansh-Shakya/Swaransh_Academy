@@ -361,11 +361,11 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
                             style: FilledButton.styleFrom(
                               backgroundColor: AppColors.gold,
                               foregroundColor: AppColors.navy,
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 16),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.md),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.md,
+                                ),
                               ),
                             ),
                             onPressed: _proceed,
@@ -437,6 +437,7 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
                 ),
                 const SizedBox(height: AppSpacing.xxl),
                 SizedBox(
+                  height: 50,
                   width: double.infinity,
                   child: FilledButton(
                     style: FilledButton.styleFrom(

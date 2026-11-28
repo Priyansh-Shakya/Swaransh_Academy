@@ -97,7 +97,7 @@ class _DesktopSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 405, // 1.5x thicker than original 270
+      width: 360, // 1.5x thicker than original 270
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(
@@ -116,8 +116,8 @@ class _DesktopSidebar extends StatelessWidget {
                 Center(
                   child: Image.asset(
                     'assets/app_logo.png',
-                    width: 200, // 2x original 110 (scaled for 405 container)
-                    height: 200,
+                    width: 230, // 2x original 110 (scaled for 405 container)
+                    height: 230,
                     errorBuilder: (_, __, ___) => const Icon(
                       Icons.music_note,
                       color: AppColors.gold,
