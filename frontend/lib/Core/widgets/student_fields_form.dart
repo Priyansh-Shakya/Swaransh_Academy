@@ -40,6 +40,8 @@ class StudentFieldsForm extends StatelessWidget {
     this.onDropdownChanged,
     // ── Image picker (optional) ──
     this.imagePickerController,
+    // ── Custom Avatar Header (e.g. for Student Details page) ──
+    this.avatarHeader,
     // ── Optional action button (e.g. submit / continue) ──
     this.actionButton,
   });
@@ -63,6 +65,9 @@ class StudentFieldsForm extends StatelessWidget {
 
   /// Profile Image fields
   final ImagePickerController? imagePickerController;
+
+  /// Custom Avatar Header (e.g. for Student Details page)
+  final Widget? avatarHeader;
 
   /// Optional action button (e.g. submit / continue to terms)
   final Widget? actionButton;
@@ -117,12 +122,15 @@ class StudentFieldsForm extends StatelessWidget {
         if (hasIdentity && (hasContact || hasCourse || hasAdmin))
           const SizedBox(width: AppSpacing.lg),
 
-        // Column 2: Photo & Contact Card & Action Button
-        if (hasContact || imagePickerController != null)
+        // Column 2: Photo / Avatar Header & Contact Card & Action Button
+        if (hasContact || imagePickerController != null || avatarHeader != null)
           Expanded(
             child: Column(
               children: [
-                if (imagePickerController != null) ...[
+                if (avatarHeader != null) ...[
+                  Center(child: avatarHeader!),
+                  const SizedBox(height: AppSpacing.lg),
+                ] else if (imagePickerController != null) ...[
                   Center(
                     child: ImagePickerField(
                       controller: imagePickerController!,
@@ -298,9 +306,13 @@ class StudentFieldsForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (avatarHeader != null) ...[
+          Center(child: avatarHeader!),
+          const SizedBox(height: AppSpacing.lg),
+        ],
         if (visibleSections.contains(StudentFieldSection.identity)) ...[
           const _SectionHeader('Personal Details'),
-          if (imagePickerController != null) ...[
+          if (imagePickerController != null && avatarHeader == null) ...[
             Center(
               child: ImagePickerField(
                 controller: imagePickerController!,

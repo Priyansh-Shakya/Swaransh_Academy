@@ -136,6 +136,18 @@ class FeeStatus {
     required this.feeAmount,
     required this.nextDueDate,
     required this.isDue,
+    required this.canPay,
+    required this.cycleStart,
+    required this.cycleEnd,
+    required this.cycleLabel,
+    required this.cycleFee,
+    required this.cyclePaid,
+    required this.cycleBalance,
+    required this.allowPartialPayment,
+    this.partialPaymentAmount,
+    this.partPaymentAvailable = false,
+    this.hasUnlinkedPayments = false,
+    this.cannotPayReason,
     this.feePaidTill,
   });
 
@@ -145,6 +157,18 @@ class FeeStatus {
   final DateTime? feePaidTill;
   final DateTime nextDueDate;
   final bool isDue;
+  final bool canPay;
+  final String? cannotPayReason;
+  final DateTime cycleStart;
+  final DateTime cycleEnd;
+  final String cycleLabel;
+  final int cycleFee;
+  final int cyclePaid;
+  final int cycleBalance;
+  final bool allowPartialPayment;
+  final int? partialPaymentAmount;
+  final bool partPaymentAvailable;
+  final bool hasUnlinkedPayments;
 
   factory FeeStatus.fromJson(Map<String, dynamic> json) => FeeStatus(
     studentId: (json['student_id'] as num).toInt(),
@@ -152,6 +176,18 @@ class FeeStatus {
     feeAmount: (json['fee_amount'] as num).toInt(),
     feePaidTill: _date(json['fee_paid_till']),
     nextDueDate: DateTime.parse(json['next_due_date'] as String),
-    isDue: json['is_due'] as bool,
+    isDue: json['is_due'] as bool? ?? true,
+    canPay: json['can_pay'] as bool? ?? true,
+    cannotPayReason: json['cannot_pay_reason'] as String?,
+    cycleStart: DateTime.parse(json['cycle_start'] as String),
+    cycleEnd: DateTime.parse(json['cycle_end'] as String),
+    cycleLabel: json['cycle_label'] as String? ?? '',
+    cycleFee: (json['cycle_fee'] as num).toInt(),
+    cyclePaid: (json['cycle_paid'] as num).toInt(),
+    cycleBalance: (json['cycle_balance'] as num).toInt(),
+    allowPartialPayment: json['allow_partial_payment'] as bool? ?? false,
+    partialPaymentAmount: (json['partial_payment_amount'] as num?)?.toInt(),
+    partPaymentAvailable: json['part_payment_available'] as bool? ?? false,
+    hasUnlinkedPayments: json['has_unlinked_payments'] as bool? ?? false,
   );
 }

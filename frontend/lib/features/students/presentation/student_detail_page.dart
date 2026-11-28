@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:swaransh_academy/Core/service/supabase_object_storage/object_storage.dart';
 import 'package:swaransh_academy/Core/sounds/player.dart';
 import 'package:swaransh_academy/Core/widgets/image_picker_field.dart';
+import 'package:swaransh_academy/features/payments/data/checkout_modles.dart';
+import 'package:swaransh_academy/features/payments/data/online_payment_notifier.dart';
+import 'package:swaransh_academy/features/payments/data/razorpay_api_service.dart';
 import 'package:swaransh_academy/features/payments/presentation/payment_hostory.dart';
 import 'package:swaransh_academy/features/students/data/students_notifier.dart';
 import 'package:swaransh_academy/features/students/domain/student.dart';
@@ -307,8 +310,6 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
           ),
           body: LayoutBuilder(
             builder: (context, constraints) {
-              final isDesktop = constraints.maxWidth >= 900;
-
               final avatarSection = Column(
                 children: [
                   (_editing && _photoController != null)
@@ -362,66 +363,323 @@ class _StudentDetailPageState extends ConsumerState<StudentDetailPage> {
                     values: _dropdowns,
                     editable: _editing,
                     lockedFields: const {},
+                    avatarHeader: avatarSection,
+                    imagePickerController: _editing ? _photoController : null,
                     onDropdownChanged: (key, value) =>
                         setState(() => _dropdowns[key] = value),
                   ),
-                  const SizedBox(height: AppSpacing.xl),
-                  const StaffLineDivider(width: 56),
-                  const SizedBox(height: AppSpacing.xl),
-                  PaymentHistoryWidget(
-                    studentId: student.id!,
-                    isAdmin: true,
-                  ),
+                  if (student.id != null) ...[
+                    const SizedBox(height: AppSpacing.xl),
+                    _AdminFeeSection(studentId: student.id!),
+                    const SizedBox(height: AppSpacing.xl),
+                    const StaffLineDivider(width: 56),
+                    const SizedBox(height: AppSpacing.xl),
+                    PaymentHistoryWidget(
+                      studentId: student.id!,
+                      isAdmin: true,
+                    ),
+                  ],
                 ],
               );
 
-              Widget bodyContent;
-              if (isDesktop) {
-                bodyContent = Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: 340,
-                      child: Container(
-                        padding: const EdgeInsets.all(AppSpacing.lg),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(AppRadius.lg),
-                          border: Border.all(color: AppColors.divider),
-                        ),
-                        child: avatarSection,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.lg),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(AppSpacing.xl),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(AppRadius.lg),
-                          border: Border.all(color: AppColors.divider),
-                        ),
-                        child: detailsSection,
-                      ),
-                    ),
-                  ],
-                );
-              } else {
-                bodyContent = Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(child: avatarSection),
-                    const SizedBox(height: AppSpacing.xl),
-                    detailsSection,
-                  ],
-                );
-              }
-
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(AppSpacing.lg),
-                child: bodyContent,
+                child: detailsSection,
               );
             },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AdminFeeSection extends ConsumerWidget {
+  const _AdminFeeSection({required this.studentId});
+  final int studentId;
+
+  Future<int?> _showAmountDialog(
+      BuildContext context, int cycleBalance, int? currentAmount) async {
+    final ctrl = TextEditingController(
+      text: (currentAmount ?? (cycleBalance > 1 ? cycleBalance - 1 : 1))
+          .toString(),
+    );
+    final formKey = GlobalKey<FormState>();
+
+    return showDialog<int>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Set Approved Part Payment'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextFormField(
+                controller: ctrl,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: 'Approved Amount (\u20B9)',
+                  helperText: 'Balance is \u20B9$cycleBalance',
+                  prefixText: '\u20B9 ',
+                ),
+                validator: (val) {
+                  final n = int.tryParse(val ?? '');
+                  if (n == null || n < 1) {
+                    return 'Enter an amount of at least \u20B91';
+                  }
+                  if (n >= cycleBalance) {
+                    return 'Amount must be less than balance (\u20B9$cycleBalance)';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                final amt = int.parse(ctrl.text.trim());
+                Navigator.pop(ctx, amt);
+              }
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final feeStatusAsync = ref.watch(feeStatusProvider(studentId));
+
+    return feeStatusAsync.when(
+      loading: () => Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.xl),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppColors.divider),
+        ),
+        child: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(AppSpacing.md),
+            child: SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.gold,
+              ),
+            ),
+          ),
+        ),
+      ),
+      error: (err, _) => Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.xl),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: AppColors.error.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                'Could not load fee status: $err',
+                style: AppTypography.caption.copyWith(color: AppColors.error),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.refresh, size: 18),
+              onPressed: () => ref.invalidate(feeStatusProvider(studentId)),
+            ),
+          ],
+        ),
+      ),
+      data: (feeStatus) {
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final isStarted = !feeStatus.cycleStart.isAfter(today);
+        final balanceColor = feeStatus.cycleBalance == 0
+            ? AppColors.active
+            : (isStarted ? AppColors.error : AppColors.textPrimary);
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: AppSpacing.xl),
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.divider),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.account_balance_wallet_outlined,
+                    size: 18,
+                    color: AppColors.gold,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text('Billing Cycle & Partial Payment',
+                      style: AppTypography.titleLarge),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Current Cycle:', style: AppTypography.caption),
+                  Text(feeStatus.cycleLabel,
+                      style: AppTypography.bodySmall
+                          .copyWith(fontWeight: FontWeight.w700)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Paid in Cycle:', style: AppTypography.caption),
+                  Text(
+                      '\u20B9${feeStatus.cyclePaid} of \u20B9${feeStatus.cycleFee}',
+                      style: AppTypography.bodySmall
+                          .copyWith(fontWeight: FontWeight.w700)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Balance due:', style: AppTypography.caption),
+                  Text(
+                    '\u20B9${feeStatus.cycleBalance}',
+                    style: AppTypography.bodySmall.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: balanceColor,
+                    ),
+                  ),
+                ],
+              ),
+              if (feeStatus.hasUnlinkedPayments) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Row(
+                  children: [
+                    const Icon(Icons.info_outline,
+                        size: 14, color: AppColors.gold),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'Some payments are not linked to a cycle.',
+                        style: AppTypography.caption
+                            .copyWith(color: AppColors.gold),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const Divider(height: AppSpacing.lg),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Allow part payment for this cycle'),
+                subtitle: const Text(
+                    'The student can pay this amount once. It switches off after their payment or when the cycle is fully paid.'),
+                value: feeStatus.allowPartialPayment,
+                activeThumbColor: AppColors.gold,
+                onChanged: (val) async {
+                  if (val) {
+                    if (feeStatus.cycleBalance <= 1) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                'Cycle balance must be greater than \u20B91 to allow a part payment.')),
+                      );
+                      return;
+                    }
+                    final amt = await _showAmountDialog(
+                        context, feeStatus.cycleBalance, feeStatus.partialPaymentAmount);
+                    if (amt == null) return;
+                    try {
+                      await ref
+                          .read(razorpayApiServiceProvider)
+                          .togglePartialPayment(
+                              studentId: studentId, allow: true, amount: amt);
+                      ref.invalidate(feeStatusProvider(studentId));
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed to update: $e')),
+                        );
+                      }
+                    }
+                  } else {
+                    try {
+                      await ref
+                          .read(razorpayApiServiceProvider)
+                          .togglePartialPayment(
+                              studentId: studentId, allow: false, amount: null);
+                      ref.invalidate(feeStatusProvider(studentId));
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed to update: $e')),
+                        );
+                      }
+                    }
+                  }
+                },
+              ),
+              if (feeStatus.allowPartialPayment && feeStatus.partialPaymentAmount != null) ...[
+                Row(
+                  children: [
+                    Text(
+                      'Approved part payment: \u20B9${feeStatus.partialPaymentAmount}',
+                      style: AppTypography.bodySmall.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.gold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit, size: 16, color: AppColors.gold),
+                      tooltip: 'Change approved amount',
+                      onPressed: () async {
+                        final amt = await _showAmountDialog(
+                            context, feeStatus.cycleBalance, feeStatus.partialPaymentAmount);
+                        if (amt == null) return;
+                        try {
+                          await ref
+                              .read(razorpayApiServiceProvider)
+                              .togglePartialPayment(
+                                  studentId: studentId, allow: true, amount: amt);
+                          ref.invalidate(feeStatusProvider(studentId));
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Failed to update: $e')),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ],
           ),
         );
       },
