@@ -53,10 +53,7 @@ class _CourseDetailBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final deptColor = AppColors.departmentColor(course.mapsToDepartment);
-
     final isDesktop = MediaQuery.sizeOf(context).width >= 900;
-
-    final imageHeight = isDesktop ? 500.0 : 220.0;
 
     final imageUrl = (course.imageUrl != null && course.imageUrl!.isNotEmpty)
         ? resolvePublicImage(
@@ -65,21 +62,245 @@ class _CourseDetailBody extends ConsumerWidget {
             pathOrUrl: course.imageUrl!,
           )
         : null;
-    debugPrint(
-      "---------------------- IMAGE URL -------------------- \n$imageUrl",
-    );
 
+    if (isDesktop) {
+      return _buildDesktopLayout(context, ref, imageUrl, deptColor);
+    }
+
+    return _buildMobileLayout(context, ref, imageUrl, deptColor);
+  }
+
+  Widget _buildDesktopLayout(
+    BuildContext context,
+    WidgetRef ref,
+    String? imageUrl,
+    Color deptColor,
+  ) {
+    return Scaffold(
+      backgroundColor: AppColors.ivory,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xxl,
+          vertical: AppSpacing.xl,
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 920),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top Navigation & Action Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton.filledTonal(
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: () => context.pop(),
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppColors.navy,
+                      ),
+                    ),
+                    if (isAdmin)
+                      Row(
+                        children: [
+                          IconButton.filledTonal(
+                            icon: const Icon(Icons.edit_outlined),
+                            tooltip: 'Edit Course',
+                            onPressed: () =>
+                                context.push('/home/course/${course.id}/edit'),
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: AppColors.navy,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          IconButton.filledTonal(
+                            icon: const Icon(Icons.delete_outline),
+                            tooltip: 'Delete Course',
+                            onPressed: () => _confirmDelete(context, ref),
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: AppColors.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.lg),
+
+                // Hero Course Banner Image Card
+                Container(
+                  width: double.infinity,
+                  height: 380,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    border: Border.all(color: AppColors.divider, width: 1),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.navy.withValues(alpha: 0.06),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    child: (imageUrl != null && imageUrl.isNotEmpty)
+                        ? Image.network(
+                            imageUrl,
+                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                          )
+                        : Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  deptColor.withValues(alpha: 0.85),
+                                  deptColor.withValues(alpha: 0.5),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                course.tag == 'Vocal'
+                                    ? Icons.mic_none
+                                    : Icons.music_note,
+                                size: 84,
+                                color: Colors.white.withValues(alpha: 0.85),
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+
+                // Details Card Container
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSpacing.xl),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    border: Border.all(color: AppColors.divider),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.navy.withValues(alpha: 0.04),
+                        blurRadius: 12,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(course.courseName,
+                          style: AppTypography.displayMedium),
+                      const SizedBox(height: AppSpacing.sm),
+                      Wrap(
+                        spacing: AppSpacing.sm,
+                        children: [
+                          Chip(
+                            label: Text(
+                                course.mapsToDepartment.replaceAll('_', ' ')),
+                            backgroundColor: AppColors.ivoryDeep,
+                          ),
+                          Chip(
+                            label: Text(course.tag),
+                            backgroundColor: AppColors.ivoryDeep,
+                          ),
+                          Chip(
+                            label: Text(course.mode),
+                            backgroundColor: AppColors.ivoryDeep,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      const StaffLineDivider(),
+                      const SizedBox(height: AppSpacing.lg),
+                      _InfoRow(
+                        icon: Icons.schedule,
+                        label: 'Duration',
+                        value: course.duration,
+                      ),
+                      const Divider(),
+                      _InfoRow(
+                        icon: Icons.currency_rupee,
+                        label: 'Fees',
+                        value: '\u20B9${course.fees.toStringAsFixed(0)}',
+                      ),
+                      const Divider(),
+                      _InfoRow(
+                        icon: Icons.laptop_mac,
+                        label: 'Mode',
+                        value: course.mode,
+                      ),
+                      const Divider(),
+                      _InfoRow(
+                        icon: Icons.menu_book_outlined,
+                        label: 'Subject',
+                        value: course.mapsToSubject,
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      if (!isAdmin)
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: () {
+                              ref
+                                  .read(admissionPrefillProvider.notifier)
+                                  .set(
+                                    AdmissionPrefill(
+                                      department: course.mapsToDepartment,
+                                      subject: course.mapsToSubject,
+                                      fees: course.fees,
+                                    ),
+                                  );
+                              context.go('/admission');
+                            },
+                            child: const Padding(
+                              padding:
+                                  EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                              child: Text(
+                                'Apply Now',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xxl),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout(
+    BuildContext context,
+    WidgetRef ref,
+    String? imageUrl,
+    Color deptColor,
+  ) {
     return CustomScrollView(
       slivers: [
         SliverAppBar(
-          expandedHeight: imageHeight,
+          expandedHeight: 220.0,
           pinned: true,
           backgroundColor: AppColors.ivory,
           foregroundColor: AppColors.navy,
           actions: isAdmin
               ? [
                   Container(
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: AppColors.ivory,
                       shape: BoxShape.circle,
                     ),
@@ -90,7 +311,7 @@ class _CourseDetailBody extends ConsumerWidget {
                     ),
                   ),
                   Container(
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: AppColors.ivory,
                       shape: BoxShape.circle,
                     ),
@@ -102,20 +323,19 @@ class _CourseDetailBody extends ConsumerWidget {
                 ]
               : null,
           flexibleSpace: FlexibleSpaceBar(
-            collapseMode: CollapseMode
-                .pin, // image stays put, doesn't parallax-shift while collapsing
+            collapseMode: CollapseMode.pin,
             background: (imageUrl != null && imageUrl.isNotEmpty)
                 ? Image.network(
                     imageUrl,
-                    fit: BoxFit.fill,
-                    alignment: Alignment.topCenter,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
                   )
                 : Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          deptColor.withOpacity(0.85),
-                          deptColor.withOpacity(0.5),
+                          deptColor.withValues(alpha: 0.85),
+                          deptColor.withValues(alpha: 0.5),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -127,7 +347,7 @@ class _CourseDetailBody extends ConsumerWidget {
                             ? Icons.mic_none
                             : Icons.music_note,
                         size: 72,
-                        color: Colors.white.withOpacity(0.85),
+                        color: Colors.white.withValues(alpha: 0.85),
                       ),
                     ),
                   ),
@@ -178,9 +398,6 @@ class _CourseDetailBody extends ConsumerWidget {
                   width: double.infinity,
                   child: FilledButton(
                     onPressed: () {
-                      debugPrint(
-                        "Prefilling datra: department: ${course.mapsToDepartment}",
-                      );
                       ref
                           .read(admissionPrefillProvider.notifier)
                           .set(
