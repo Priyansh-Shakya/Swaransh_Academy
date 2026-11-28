@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swaransh_academy/Core/service/image_cache_service.dart';
+import 'package:swaransh_academy/features/payments/data/online_payment_notifier.dart';
 import 'package:swaransh_academy/features/payments/data/payments_notifier.dart';
 import 'package:swaransh_academy/features/payments/presentation/pay_fees_button.dart';
 import 'package:swaransh_academy/features/payments/presentation/payment_hostory.dart';
@@ -505,15 +506,67 @@ class _BannerStat extends StatelessWidget {
   }
 }
 
-class _FeesCard extends ConsumerWidget {
+class _FeesCard extends ConsumerStatefulWidget {
   const _FeesCard({required this.student});
   final Student student;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final studentId = student.id; // int?
+  ConsumerState<_FeesCard> createState() => _FeesCardState();
+}
+
+class _FeesCardState extends ConsumerState<_FeesCard> {
+  bool _payPart = true;
+
+  bool _checkIfDue(Student student) {
+    if (student.feePaidTill == null || student.feePaidTill!.isEmpty) {
+      return true;
+    }
+    try {
+      final paidTillDate = DateTime.parse(student.feePaidTill!);
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      return paidTillDate.isBefore(today);
+    } catch (_) {
+      return true;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final student = widget.student;
+    final studentId = student.id;
     final hasFees = student.fees != null;
-    final isPaid = student.feePaidTill != null;
+    final fallbackIsDue = _checkIfDue(student);
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    bool isPaidUpToDate = false;
+    if (student.feePaidTill != null && student.feePaidTill!.isNotEmpty) {
+      try {
+        final dt = DateTime.parse(student.feePaidTill!);
+        isPaidUpToDate = !dt.isBefore(today);
+      } catch (_) {}
+    }
+    final paidTillColor = isPaidUpToDate ? AppColors.active : AppColors.error;
+
+    final feeStatusAsync = studentId != null
+        ? ref.watch(feeStatusProvider(studentId))
+        : null;
+    final feeStatus = feeStatusAsync?.valueOrNull;
+
+    final canPay = feeStatus?.canPay ?? fallbackIsDue;
+    final cycleLabel = feeStatus?.cycleLabel ?? '';
+    final cycleFee = feeStatus?.cycleFee ?? (student.fees?.toInt() ?? 0);
+    final cyclePaid = feeStatus?.cyclePaid ?? 0;
+    final cycleBalance = feeStatus?.cycleBalance ?? cycleFee;
+    final partAvailable = feeStatus?.partPaymentAvailable ?? false;
+    final approvedPart = feeStatus?.partialPaymentAmount;
+
+    if (studentId == null) return const SizedBox.shrink();
+
+    final selectedAmount = (partAvailable && _payPart && approvedPart != null)
+        ? approvedPart
+        : cycleBalance;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -539,6 +592,16 @@ class _FeesCard extends ConsumerWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
               Text('Fees', style: AppTypography.titleLarge),
+              if (cycleLabel.isNotEmpty) ...[
+                const Spacer(),
+                Text(
+                  cycleLabel,
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.navy,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: AppSpacing.md),
@@ -561,24 +624,144 @@ class _FeesCard extends ConsumerWidget {
               Expanded(
                 child: _FeeStat(
                   label: 'Paid Till',
-                  value: isPaid ? student.feePaidTill! : '—',
-                  valueColor: isPaid ? AppColors.active : AppColors.error,
+                  value: (student.feePaidTill != null && student.feePaidTill!.isNotEmpty)
+                      ? student.feePaidTill!
+                      : '—',
+                  valueColor: paidTillColor,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
-          if (studentId != null) ...[
+          if (cycleFee > 0) ...[
             const SizedBox(height: AppSpacing.md),
-            SizedBox(
-              width: double.infinity,
-              child: PayFeesButton(
-                studentId: studentId,
-                onPaid: () => ref.invalidate(paymentProvider(studentId)),
-                builder: (context, onTap, loading) => OutlinedButton.icon(
-                  onPressed: onTap,
-                  icon: const Icon(Icons.payment_outlined, size: 18),
-                  label: Text(loading ? 'Please wait…' : 'Pay Fees'),
+            LinearProgressIndicator(
+              value: cycleFee > 0 ? (cyclePaid / cycleFee).clamp(0.0, 1.0) : 0.0,
+              backgroundColor: AppColors.divider,
+              color: cycleBalance == 0 ? AppColors.active : AppColors.gold,
+              minHeight: 6,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Paid \u20B9$cyclePaid of \u20B9$cycleFee',
+                  style: AppTypography.caption,
+                ),
+                Text(
+                  'Balance: \u20B9$cycleBalance',
+                  style: AppTypography.caption.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: cycleBalance > 0 ? AppColors.error : AppColors.active,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: AppSpacing.md),
+          if (canPay && partAvailable && approvedPart != null) ...[
+            Text('Select payment option:', style: AppTypography.caption),
+            const SizedBox(height: AppSpacing.xs),
+            Row(
+              children: [
+                Expanded(
+                  child: ChoiceChip(
+                    label: Text(
+                      'Pay \u20B9$approvedPart\n(approved part)',
+                      textAlign: TextAlign.center,
+                    ),
+                    selected: _payPart,
+                    selectedColor: AppColors.gold.withValues(alpha: 0.2),
+                    onSelected: (val) {
+                      if (val) setState(() => _payPart = true);
+                    },
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: ChoiceChip(
+                    label: Text(
+                      'Pay full\n\u20B9$cycleBalance',
+                      textAlign: TextAlign.center,
+                    ),
+                    selected: !_payPart,
+                    selectedColor: AppColors.gold.withValues(alpha: 0.2),
+                    onSelected: (val) {
+                      if (val) setState(() => _payPart = false);
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+          SizedBox(
+            width: double.infinity,
+            child: PayFeesButton(
+              studentId: studentId,
+              isDue: canPay,
+              amount: (partAvailable && _payPart && approvedPart != null)
+                  ? approvedPart
+                  : null,
+              onPaid: () {
+                ref.invalidate(paymentProvider(studentId));
+                ref.invalidate(feeStatusProvider(studentId));
+                ref.invalidate(profileProvider);
+              },
+              builder: (context, onTap, loading) => OutlinedButton.icon(
+                onPressed: canPay ? onTap : null,
+                icon: const Icon(Icons.payment_outlined, size: 18),
+                label: Text(
+                  loading
+                      ? 'Please wait…'
+                      : (canPay ? 'Pay \u20B9$selectedAmount' : 'Fees Paid'),
+                ),
+              ),
+            ),
+          ),
+          if (!canPay && feeStatus?.cannotPayReason != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Center(
+              child: Text(
+                feeStatus!.cannotPayReason!,
+                style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+          if (canPay) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 14,
+                      color: AppColors.error,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Fees due',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

@@ -8,7 +8,7 @@ pool = None
 async def init_db():
     DATABASE_URL = os.getenv("DATABASE_URL")
 
-    print("Database URL:", DATABASE_URL)
+    print(f"Database URL: {DATABASE_URL[:10] + "..." + DATABASE_URL[-10:]}")
     global pool
     pool = await asyncpg.create_pool(DATABASE_URL, statement_cache_size=0)
 

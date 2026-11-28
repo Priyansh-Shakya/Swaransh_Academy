@@ -1,4 +1,5 @@
 
+from datetime import date
 from typing import Optional
 
 from app.core import enums
@@ -11,7 +12,8 @@ class PaymentCreate(BaseModel):
     amount: int
     payment_category: PaymentCategory
     mode: enums.PaymentMode
-    isActive:bool
+    isActive: bool = True
+    record_only: bool = False
     txn_ref: Optional[str] = Field(
         None, description='Gateway transaction reference, if applicable.'
     )
@@ -42,3 +44,8 @@ class Payment(BaseModel):
         None,
         description='Set only when status = superseded. Points to the Payment.id of\nthe corrected row that replaced this one. Null for active rows.\n',
     )
+    cycle_start: Optional[date] = None
+    cycle_end: Optional[date] = None
+    cycle_fee: Optional[int] = None
+    cycle_label: Optional[str] = None
+

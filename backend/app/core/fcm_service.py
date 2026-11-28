@@ -12,13 +12,17 @@ if not firebase_admin._apps:
     config = os.getenv("FIREBASE_CREDENTIALS")
 
     if not config:
-        raise ValueError("FIREBASE_CREDENTIALS is missing")
+        print("[FCM WARNING] FIREBASE_CREDENTIALS missing. FCM push notifications disabled.")
+    else:
+        try:
+            service_account = json.loads(config)
+            service_account["private_key"] = service_account["private_key"].replace("\\n", "\n")
 
-    service_account = json.loads(config)
-    service_account["private_key"] = service_account["private_key"].replace("\\n", "\n")
-
-    cred = credentials.Certificate(service_account)
-    firebase_admin.initialize_app(cred)
+            cred = credentials.Certificate(service_account)
+            firebase_admin.initialize_app(cred)
+            print("✅ Firebase initialized successfully.")
+        except Exception as e:
+            print(f"[FCM WARNING] Firebase initialization failed: {e}")
 
 
 # Common Android High-Priority Config
@@ -147,3 +151,18 @@ def send_multiple_notifications(
 
     except Exception as e:
         print(f"[FCM ERROR] Failed to send multicast notification: {e}")
+
+
+async def send_to_admins(
+    db, task: str, msg: str, data: dict[str, str] | None = None
+) -> None:
+    """Fetch all admin FCM tokens from DB and send notifications."""
+    try:
+        admins = await db.fetch(
+            "select fcm_token from users where role = 'admin' and fcm_token is not null"
+        )
+        tokens = [r["fcm_token"] for r in admins if r["fcm_token"]]
+        if tokens:
+            send_multiple_notifications(tokens, task, msg, data)
+    except Exception as e:
+        print(f"[FCM ERROR] Failed to send admin notifications: {e}")

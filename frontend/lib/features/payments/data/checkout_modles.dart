@@ -39,9 +39,10 @@ class CheckoutOptions {
     required this.name,
     required this.description,
     required this.prefill,
-    required this.cycles,
     required this.coversFrom,
     required this.coversTill,
+    required this.cycleLabel,
+    required this.isPartial,
   });
 
   final String keyId;
@@ -51,9 +52,10 @@ class CheckoutOptions {
   final String name;
   final String description;
   final CheckoutPrefill prefill;
-  final int cycles;
   final DateTime coversFrom;
   final DateTime coversTill;
+  final String cycleLabel;
+  final bool isPartial;
 
   factory CheckoutOptions.fromJson(Map<String, dynamic> json) =>
       CheckoutOptions(
@@ -66,9 +68,10 @@ class CheckoutOptions {
         prefill: CheckoutPrefill.fromJson(
           json['prefill'] as Map<String, dynamic>,
         ),
-        cycles: (json['cycles'] as num).toInt(),
         coversFrom: DateTime.parse(json['covers_from'] as String),
         coversTill: DateTime.parse(json['covers_till'] as String),
+        cycleLabel: json['cycle_label'] as String? ?? '',
+        isPartial: json['is_partial'] as bool? ?? false,
       );
 
   /// The options map handed to razorpay.open(...).
@@ -113,11 +116,13 @@ class OrderStatus {
     required this.orderId,
     required this.status,
     this.feePaidTill,
+    this.lastError,
   });
 
   final String orderId;
   final String status; // 'created' | 'paid'
   final DateTime? feePaidTill;
+  final String? lastError;
 
   bool get isPaid => status == 'paid';
 
@@ -125,6 +130,7 @@ class OrderStatus {
     orderId: json['razorpay_order_id'] as String,
     status: json['status'] as String,
     feePaidTill: _date(json['fee_paid_till']),
+    lastError: json['last_error'] as String?,
   );
 }
 

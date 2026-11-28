@@ -6,6 +6,7 @@ class PaymentCreate {
   final String? txnRef;
   final String? paidOn; // e.g. "2024-01-01T00:00:00+00:00"
   final bool isActive;
+  final bool recordOnly;
 
   PaymentCreate({
     required this.paymentType,
@@ -13,6 +14,7 @@ class PaymentCreate {
     required this.payment_category,
     required this.mode,
     required this.isActive,
+    this.recordOnly = false,
     this.txnRef,
     this.paidOn,
   });
@@ -23,6 +25,7 @@ class PaymentCreate {
     'mode': mode,
     'payment_category': payment_category,
     'isActive': isActive,
+    'record_only': recordOnly,
     if (txnRef != null) 'txn_ref': txnRef,
     if (paidOn != null) 'paid_on': paidOn,
   };
@@ -40,6 +43,10 @@ class Payment {
   final int? supersededBy;
   final String? payment_category;
   final bool? isActive;
+  final DateTime? cycleStart;
+  final DateTime? cycleEnd;
+  final int? cycleFee;
+  final String? cycleLabel;
 
   Payment({
     this.id,
@@ -53,6 +60,10 @@ class Payment {
     this.supersededBy,
     this.isActive,
     this.payment_category,
+    this.cycleStart,
+    this.cycleEnd,
+    this.cycleFee,
+    this.cycleLabel,
   });
 
   factory Payment.fromJson(Map<String, dynamic> json) => Payment(
@@ -67,6 +78,10 @@ class Payment {
     status: json['status'] as String?,
     supersededBy: json['superseded_by'] as int?,
     isActive: json['isActive'] as bool?,
+    cycleStart: json['cycle_start'] != null ? DateTime.parse(json['cycle_start'] as String) : null,
+    cycleEnd: json['cycle_end'] != null ? DateTime.parse(json['cycle_end'] as String) : null,
+    cycleFee: (json['cycle_fee'] as num?)?.toInt(),
+    cycleLabel: json['cycle_label'] as String?,
   );
 
   Map<String, dynamic> toJson() => {
@@ -81,6 +96,10 @@ class Payment {
     'paid_on': paidOn,
     'status': status,
     'superseded_by': supersededBy,
+    'cycle_start': cycleStart?.toIso8601String(),
+    'cycle_end': cycleEnd?.toIso8601String(),
+    'cycle_fee': cycleFee,
+    'cycle_label': cycleLabel,
   };
 
   bool get isSuperseded => status?.toLowerCase() == 'superseded';

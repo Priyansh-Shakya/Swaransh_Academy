@@ -17,6 +17,10 @@ from app.features.users.router import router as user_router
 from app.features.student_birthday.router import router as birthday_router
 from app.features.payment.razorpay.webhook_router import router as razorpay_webhook_router
 from app.features.payment.razorpay.router import router as razorpay_router
+from app.features.payment.razorpay import service as razorpay_service
+from app.features.payment.razorpay.models import (
+    SimpleCreateOrderRequest, SimpleVerifyPaymentRequest,
+)
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -93,12 +97,25 @@ async def log_requests(request: Request, call_next):
     
     response = await call_next(request)
     return response
-#? Allow CORS for dev only
+# CORS configuration
+origins = [
+    "https://swaransh-academy.web.app",
+    "https://swaransh-academy.firebaseapp.com",
+    "http://localhost:3000",
+    "http://localhost:8000",
+    "http://localhost:5000",
+    "http://localhost:8080",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8000",
+    "http://127.0.0.1:5000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],      # dev only
+    allow_origins=origins,
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1|10\.0\.2\.2)(:\d+)?",
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -121,3 +138,13 @@ print("FastAPI Initilized ...")
 @app.get("/")
 async def root():
     return {"message": "Gateway of the App"}
+
+
+@app.post("/api/create-order")
+async def api_create_order(body: SimpleCreateOrderRequest):
+    return await razorpay_service.create_simple_order(body)
+
+
+@app.post("/api/verify-payment")
+async def api_verify_payment(body: SimpleVerifyPaymentRequest):
+    return await razorpay_service.verify_simple_payment(body)

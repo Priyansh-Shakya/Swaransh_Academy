@@ -71,3 +71,40 @@ def coverage(
     start = cycle_start(fee_paid_till, date_of_joining)
     end_exclusive = _add_months(start, months, _anchor_day(start, date_of_joining))
     return start, end_exclusive - timedelta(days=1)
+
+
+def current_cycle(
+    fee_paid_till: date | None,
+    date_of_joining: date,
+    fee_type: str,
+    today: date | None = None,
+) -> tuple[date, date]:
+    """Returns (start, end), both inclusive, for the student's active cycle.
+    - If fee_paid_till is None or < today: returns the unpaid cycle starting on
+      cycle_start(fee_paid_till, date_of_joining).
+    - If fee_paid_till >= today: returns the currently covered cycle ending on
+      fee_paid_till.
+    """
+    today_date = today or today_ist()
+    normalized_type = normalize_fee_type(fee_type)
+    months = FEE_TYPE_MONTHS[normalized_type]
+
+    if fee_paid_till is None or fee_paid_till < today_date:
+        return coverage(fee_paid_till, date_of_joining, fee_type, cycles=1)
+
+    end = fee_paid_till
+    next_day = end + timedelta(days=1)
+    start = _add_months(next_day, -months, _anchor_day(next_day, date_of_joining))
+    return start, end
+
+
+def cycle_label(start: date, end: date) -> str:
+    """Format cycle date range for display.
+    Examples:
+      Same year: '21 Nov to 20 Dec 2026'
+      Different years: '20 Dec 2026 to 19 Jan 2027'
+    """
+    if start.year == end.year:
+        return f"{start:%d %b} to {end:%d %b %Y}"
+    return f"{start:%d %b %Y} to {end:%d %b %Y}"
+

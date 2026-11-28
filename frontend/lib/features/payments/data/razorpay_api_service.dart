@@ -12,11 +12,14 @@ class RazorpayApiService {
 
   Future<CheckoutOptions> startPayment({
     required int studentId,
-    int cycles = 1,
+    int? amount,
   }) async {
     final res = await _dio.post<Map<String, dynamic>>(
       '/payments/start',
-      data: {'student_id': studentId, 'cycles': cycles},
+      data: {
+        'student_id': studentId,
+        if (amount != null) 'amount': amount,
+      },
     );
     return CheckoutOptions.fromJson(res.data!);
   }

@@ -11,10 +11,8 @@ create table if not exists public.payment_order (
   created_at timestamptz not null default now(),
   paid_at timestamptz
 );
-
 create index if not exists idx_payment_order_student_status
   on public.payment_order (student_id, status);
-
 -- ---------------------------------------------------------------------------
 -- Helper (run manually, BEFORE going live): students with no fee_paid_till.
 -- Decide each student's real "paid up to" date, then update, e.g.:

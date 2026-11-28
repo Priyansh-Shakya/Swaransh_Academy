@@ -28,11 +28,10 @@ class PaymentHistoryWidget extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ---- Header ----
         Row(
           children: [
             IconButton(
-              icon: Icon(Icons.history, size: 18),
+              icon: const Icon(Icons.history, size: 18),
               color: AppColors.gold,
               onPressed: () async {
                 await ref.read(paymentProvider(studentId).notifier).refresh();
@@ -56,7 +55,6 @@ class PaymentHistoryWidget extends ConsumerWidget {
         ),
         const SizedBox(height: AppSpacing.md),
 
-        // ---- Content ----
         paymentsAsync.when(
           loading: () => const Center(
             child: Padding(
@@ -70,10 +68,9 @@ class PaymentHistoryWidget extends ConsumerWidget {
             color: AppColors.error,
           ),
           data: (payments) {
-            // Only show active rows to students; admin sees all
             final visible = isAdmin
                 ? payments
-                : payments.where((p) => p.isActive!).toList();
+                : payments.where((p) => p.isActive ?? true).toList();
 
             if (visible.isEmpty) {
               return const _EmptyCard(
@@ -84,7 +81,6 @@ class PaymentHistoryWidget extends ConsumerWidget {
 
             return Column(
               children: visible.map((p) {
-                debugPrint("From payment History , Line 87: ${p.toJson()}");
                 return Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                   child: _PaymentRow(
@@ -145,7 +141,12 @@ class PaymentHistoryWidget extends ConsumerWidget {
     try {
       await ref
           .read(paymentProvider(studentId).notifier)
-          .remove(p.id!); //! Forced non null
+          .remove(p.id!);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Check this student's Paid Till date.")),
+        );
+      }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(
@@ -155,8 +156,6 @@ class PaymentHistoryWidget extends ConsumerWidget {
     }
   }
 }
-
-// ---- Single payment row -----------------------------------------------
 
 class _PaymentRow extends StatelessWidget {
   const _PaymentRow({
@@ -175,8 +174,10 @@ class _PaymentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isSuperseded = (supersededBy != null); //! Foreced non null
-    final typeColor = _typeColor(payment.paymentType!); //! Same
+    final isSuperseded = (supersededBy != null);
+    final typeColor = _typeColor(payment.paymentType ?? 'fee');
+    final isPartPayment = payment.cycleFee != null &&
+        (payment.amount ?? 0) < payment.cycleFee!;
 
     return Opacity(
       opacity: isSuperseded ? 0.45 : 1.0,
@@ -197,7 +198,6 @@ class _PaymentRow extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // Type indicator
               Container(
                 width: 4,
                 height: 44,
@@ -208,7 +208,6 @@ class _PaymentRow extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
 
-              // Main info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -216,7 +215,7 @@ class _PaymentRow extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          payment.paymentType!
+                          (payment.paymentType ?? 'FEE')
                               .replaceAll('_', ' ')
                               .toUpperCase(),
                           style: AppTypography.bodySmall.copyWith(
@@ -227,6 +226,26 @@ class _PaymentRow extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: AppSpacing.xs),
+                        if (isPartPayment && !isSuperseded)
+                          Container(
+                            margin: const EdgeInsets.only(left: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.error.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                            ),
+                            child: Text(
+                              'Part payment',
+                              style: AppTypography.caption.copyWith(
+                                fontSize: 9,
+                                color: AppColors.error,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
                         if (isSuperseded)
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -250,9 +269,17 @@ class _PaymentRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${payment.mode!.replaceAll('_', ' ')} · ${_formatDate(payment.paidOn!)}',
+                      '${(payment.mode ?? 'cash').replaceAll('_', ' ')} · ${_formatDate(payment.paidOn)}',
                       style: AppTypography.caption,
                     ),
+                    if (payment.cycleLabel != null && payment.cycleLabel!.isNotEmpty)
+                      Text(
+                        payment.cycleLabel!,
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.navy,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     if (payment.txnRef != null)
                       Text(
                         'Ref: ${payment.txnRef}',
@@ -264,9 +291,8 @@ class _PaymentRow extends StatelessWidget {
                 ),
               ),
 
-              // Amount
               Text(
-                '\u20B9${payment.amount!.toStringAsFixed(0)}',
+                '\u20B9${(payment.amount ?? 0).toStringAsFixed(0)}',
                 style: AppTypography.titleLarge.copyWith(
                   color: isSuperseded
                       ? AppColors.textSecondary
@@ -274,8 +300,7 @@ class _PaymentRow extends StatelessWidget {
                 ),
               ),
 
-              // Admin actions
-              if (isAdmin && payment.isActive!) ...[
+              if (isAdmin && (payment.isActive ?? true)) ...[
                 const SizedBox(width: AppSpacing.xs),
                 PopupMenuButton<String>(
                   icon: const Icon(
@@ -318,7 +343,8 @@ class _PaymentRow extends StatelessWidget {
     _ => AppColors.textSecondary,
   };
 
-  String _formatDate(String iso) {
+  String _formatDate(String? iso) {
+    if (iso == null) return '—';
     try {
       final dt = DateTime.parse(iso);
       return '${dt.day.toString().padLeft(2, '0')}/'
@@ -329,8 +355,6 @@ class _PaymentRow extends StatelessWidget {
     }
   }
 }
-
-// ---- Empty / error state -----------------------------------------------
 
 class _EmptyCard extends StatelessWidget {
   const _EmptyCard({

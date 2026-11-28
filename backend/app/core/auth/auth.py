@@ -1,11 +1,14 @@
 import os
 import time
+import uuid
 
 import httpx
 from dotenv import load_dotenv
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer
 from jose import jwt
+
+from app.core.db import get_db
 
 load_dotenv()
 
@@ -182,4 +185,30 @@ async def get_current_user_optional(
 
         # Treat invalid token as guest
         return None
+
+
+async def check_role(user: dict | None, db) -> str:
+    """Fetch role from DB users table for the given JWT user."""
+    if user is None or not user.get("id"):
+        return "guest"
+    try:
+        uid = uuid.UUID(str(user["id"])) if isinstance(user["id"], str) else user["id"]
+        row = await db.fetchrow("select role::text from users where user_id = $1", uid)
+        return row["role"] if row and row.get("role") else "guest"
+    except Exception as e:
+        print(f"[auth] Error checking role for user {user.get('id')}: {e}")
+        return "guest"
+
+
+async def is_admin(user: dict | None, db) -> bool:
+    role = await check_role(user, db)
+    return role == "admin"
+
+
+async def require_admin(user=Depends(get_current_user), db=Depends(get_db)) -> dict:
+    """FastAPI dependency enforcing admin role or raising HTTP 403."""
+    if not await is_admin(user, db):
+        raise HTTPException(status_code=403, detail="Forbidden: Admin access required")
+    return user
+
 
