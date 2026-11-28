@@ -70,13 +70,242 @@ class StudentFieldsForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.sizeOf(context).width >= 900;
+
+    if (isDesktop) {
+      return _buildDesktopLayout(context);
+    }
+    return _buildMobileLayout(context);
+  }
+
+  Widget _buildDesktopLayout(BuildContext context) {
+    final hasIdentity = visibleSections.contains(StudentFieldSection.identity);
+    final hasContact = visibleSections.contains(StudentFieldSection.contact);
+    final hasCourse = visibleSections.contains(StudentFieldSection.course);
+    final hasAdmin = visibleSections.contains(StudentFieldSection.admin);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Column 1: Personal Details Card
+        if (hasIdentity)
+          Expanded(
+            child: _buildCardContainer(
+              title: 'Personal Details',
+              children: [
+                _text(context, 'name', 'Full Name'),
+                _text(context, 'fatherName', "Father's Name"),
+                _pickerField(context, 'dob', 'Date of Birth', isDate: true),
+                dropdown(context, 'gender', 'Gender', AppOptions.gender),
+                dropdown(
+                  context,
+                  'educationQualification',
+                  'Education Qualification',
+                  AppOptions.educationQualification,
+                ),
+                _text(context, 'religion', 'Religion'),
+                _text(context, 'caste', 'Caste'),
+              ],
+            ),
+          ),
+
+        if (hasIdentity && (hasContact || hasCourse || hasAdmin))
+          const SizedBox(width: AppSpacing.lg),
+
+        // Column 2: Photo & Contact Card
+        if (hasContact || imagePickerController != null)
+          Expanded(
+            child: Column(
+              children: [
+                if (imagePickerController != null) ...[
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.divider),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.navy.withValues(alpha: 0.04),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ImagePickerField(
+                        controller: imagePickerController!,
+                        label: 'Add Profile Photo',
+                        size: 150,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                ],
+                if (hasContact)
+                  _buildCardContainer(
+                    title: 'Contact',
+                    children: [
+                      _text(
+                        context,
+                        'contact',
+                        'Contact Number',
+                        keyboardType: TextInputType.phone,
+                      ),
+                      _text(
+                        context,
+                        'email',
+                        'Email',
+                        keyboardType: TextInputType.emailAddress,
+                        helperText: _isLocked('email')
+                            ? 'Email is used for login and can only be changed by admin.'
+                            : null,
+                      ),
+                      _text(context, 'address', 'Address', maxLines: 2),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+
+        if ((hasContact || imagePickerController != null) && (hasCourse || hasAdmin))
+          const SizedBox(width: AppSpacing.lg),
+
+        // Column 3: Course & Fees Cards
+        if (hasCourse || hasAdmin)
+          Expanded(
+            child: Column(
+              children: [
+                if (hasCourse) ...[
+                  _buildCardContainer(
+                    title: 'Course & Enrollment',
+                    children: [
+                      dropdown(
+                        context,
+                        'department',
+                        'Department',
+                        AppOptions.department,
+                      ),
+                      _text(context, 'subject', 'Subject'),
+                      dropdown(
+                        context,
+                        'admissionType',
+                        'Admission Type',
+                        AppOptions.admissionType,
+                      ),
+                      dropdown(
+                        context,
+                        'learningMode',
+                        'Learning Mode',
+                        AppOptions.learningMode,
+                      ),
+                      dropdown(context, 'batch', 'Batch', AppOptions.batch),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _pickerField(
+                              context,
+                              'startTime',
+                              'Start Time',
+                              isDate: false,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: _pickerField(
+                              context,
+                              'endTime',
+                              'End Time',
+                              isDate: false,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
+                if (hasAdmin || controllers.containsKey('fees'))
+                  _buildCardContainer(
+                    title: 'Fees & Payment',
+                    children: [
+                      _text(
+                        context,
+                        'fees',
+                        'Fees (\u20B9)',
+                        keyboardType: TextInputType.number,
+                      ),
+                      dropdown(
+                        context,
+                        'feeType',
+                        'Fee Type',
+                        AppOptions.feeType,
+                      ),
+                      if (hasAdmin) ...[
+                        if (!isCreate)
+                          _text(
+                            context,
+                            'scholarNo',
+                            'Scholar No.',
+                            readOnly: true,
+                            helperText:
+                                'Scholar Number is assigned by Database.',
+                          ),
+                        _pickerField(
+                          context,
+                          'dateOfJoining',
+                          'Date of Joining',
+                          isDate: true,
+                        ),
+                      ],
+                    ],
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCardContainer({
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(title),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.divider),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.navy.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: children,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (visibleSections.contains(StudentFieldSection.identity)) ...[
           const _SectionHeader('Personal Details'),
-          //* Image picker — shown only when config is provided
-          //* Image picker — shown only when a controller is provided
           if (imagePickerController != null) ...[
             Center(
               child: ImagePickerField(

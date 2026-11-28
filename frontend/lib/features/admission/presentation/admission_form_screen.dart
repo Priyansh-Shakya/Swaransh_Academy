@@ -306,6 +306,7 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
   Widget build(BuildContext context) {
     final formState = ref.watch(admissionFormProvider);
     _seedFromState(formState);
+    final isWide = MediaQuery.sizeOf(context).width >= 900;
 
     return Scaffold(
       backgroundColor: AppColors.ivory,
@@ -320,7 +321,7 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: EdgeInsets.all(isWide ? AppSpacing.xl : AppSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -335,7 +336,7 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
               ),
               const SizedBox(height: AppSpacing.xl),
 
-              // Identity + Contact + Course via shared widget
+              // Identity + Contact + Course + Fees via shared widget
               StudentFieldsForm(
                 controllers: _controllers,
                 values: _dropdowns,
@@ -353,67 +354,71 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
                 imagePickerController: _photoController,
               ),
 
-              // Optional fields section
-              const _SectionHeader('Additional Information (Optional)'),
-              TextFormField(
-                controller: _religionCtrl,
-                decoration: const InputDecoration(labelText: 'Religion'),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              TextFormField(
-                controller: _casteCtrl,
-                decoration: const InputDecoration(labelText: 'Caste'),
-              ),
-              const SizedBox(height: AppSpacing.lg),
+              if (!isWide) ...[
+                // Optional fields section (Mobile only)
+                const _SectionHeader('Additional Information (Optional)'),
+                TextFormField(
+                  controller: _religionCtrl,
+                  decoration: const InputDecoration(labelText: 'Religion'),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextFormField(
+                  controller: _casteCtrl,
+                  decoration: const InputDecoration(labelText: 'Caste'),
+                ),
+                const SizedBox(height: AppSpacing.lg),
 
-              // Fees section
-              const _SectionHeader('Fees'),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _feesCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Amount (\u20B9) *',
+                // Fees section (Mobile only)
+                const _SectionHeader('Fees'),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _feesCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Amount (\u20B9) *',
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _dropdowns['feeType'],
-                      decoration: const InputDecoration(
-                        labelText: 'Fee Type *',
-                      ),
-                      items: AppOptions.feeType
-                          .map(
-                            (option) => DropdownMenuItem<String>(
-                              value: option.value,
-                              child: Text(
-                                option.label,
-                                style: AppTypography.bodyMedium,
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _dropdowns['feeType'],
+                        decoration: const InputDecoration(
+                          labelText: 'Fee Type *',
+                        ),
+                        items: AppOptions.feeType
+                            .map(
+                              (option) => DropdownMenuItem<String>(
+                                value: option.value,
+                                child: Text(
+                                  option.label,
+                                  style: AppTypography.bodyMedium,
+                                ),
                               ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() => _dropdowns['feeType'] = value);
-                      },
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() => _dropdowns['feeType'] = value);
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
 
               const SizedBox(height: AppSpacing.xxl),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _proceed,
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                    child: Text('Continue to Terms & Conditions'),
+              Center(
+                child: SizedBox(
+                  width: isWide ? 460 : double.infinity,
+                  child: FilledButton(
+                    onPressed: _proceed,
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 14),
+                      child: Text('Continue to Terms & Conditions'),
+                    ),
                   ),
                 ),
               ),
