@@ -28,85 +28,194 @@ class AdmissionPage extends ConsumerWidget {
     final isWide = MediaQuery.sizeOf(context).width >= kRailBreakpoint;
 
     Widget bodyContent = SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: EdgeInsets.all(isWide ? AppSpacing.xl : AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-            // ---- Hero / Apply Now ----
+          // ---- Hero / Apply Now ----
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+              horizontal: isWide ? AppSpacing.xxl : AppSpacing.xl,
+              vertical: isWide ? 44.0 : AppSpacing.xl,
+            ),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [AppColors.navy, Color(0xFF2A4070)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              boxShadow: isWide
+                  ? [
+                      BoxShadow(
+                        color: AppColors.navy.withValues(alpha: 0.15),
+                        blurRadius: 20,
+                        offset: const Offset(0, 6),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(isWide ? 10 : 0),
+                  decoration: isWide
+                      ? BoxDecoration(
+                          color: AppColors.gold.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        )
+                      : null,
+                  child: Icon(
+                    Icons.school_outlined,
+                    color: AppColors.gold,
+                    size: isWide ? 42 : 36,
+                  ),
+                ),
+                SizedBox(height: isWide ? AppSpacing.lg : AppSpacing.md),
+                Text(
+                  'Join Swaransh Academy',
+                  style: (isWide
+                          ? AppTypography.displayMedium
+                          : AppTypography.headlineLarge)
+                      .copyWith(
+                    color: Colors.white,
+                    fontSize: isWide ? 32 : null,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Begin your journey in music, dance, acting, or production.',
+                  style: (isWide
+                          ? AppTypography.bodyLarge
+                          : AppTypography.bodyMedium)
+                      .copyWith(
+                    color: Colors.white70,
+                  ),
+                ),
+                SizedBox(height: isWide ? 32.0 : AppSpacing.xl),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.gold,
+                      foregroundColor: AppColors.navy,
+                      padding: EdgeInsets.symmetric(
+                        vertical: isWide ? 16.0 : AppSpacing.xs,
+                      ),
+                    ),
+                    onPressed: () => context.push('/admission/form'),
+                    child: Text(
+                      'Apply Now',
+                      style: TextStyle(
+                        fontSize: isWide ? 16 : 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          SizedBox(height: isWide ? AppSpacing.xxl : AppSpacing.xl),
+
+          // ---- How it works ----
+          if (isWide)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(AppSpacing.xl),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.navy, Color(0xFF2A4070)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(AppRadius.lg),
+                border: Border.all(color: AppColors.divider),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.navy.withValues(alpha: 0.04),
+                    blurRadius: 12,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    Icons.school_outlined,
-                    color: AppColors.gold,
-                    size: 36,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Text(
-                    'Join Swaransh Academy',
-                    style: AppTypography.headlineLarge.copyWith(
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Begin your journey in music, dance, acting, or production.',
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: Colors.white70,
-                    ),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.explore_outlined,
+                        color: AppColors.gold,
+                        size: 22,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(
+                        'How it works',
+                        style: AppTypography.headlineMedium.copyWith(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.gold,
-                        foregroundColor: AppColors.navy,
-                      ),
-                      onPressed: () => context.push('/admission/form'),
-                      child: const Text('Apply Now'),
-                    ),
+                  _Step(
+                    number: 1,
+                    title: 'Fill the Application Form',
+                    subtitle: 'Your personal, contact & course details.',
+                    isWide: true,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  _Step(
+                    number: 2,
+                    title: 'Review Terms & Conditions',
+                    subtitle: 'Attendance, fees, conduct and refund policy.',
+                    isWide: true,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  _Step(
+                    number: 3,
+                    title: 'Submit Application',
+                    subtitle: 'Admin reviews and approves your application.',
+                    isWide: true,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  _Step(
+                    number: 4,
+                    title: 'Complete Payment',
+                    subtitle: 'Pay fees after your application is approved.',
+                    isWide: true,
+                    isLast: true,
                   ),
                 ],
               ),
-            ),
-
-            const SizedBox(height: AppSpacing.xl),
-
-            // ---- How it works ----
+            )
+          else ...[
             Text('How it works', style: AppTypography.headlineMedium),
             const SizedBox(height: AppSpacing.md),
-            _Step(
+            const _Step(
               number: 1,
               title: 'Fill the Application Form',
               subtitle: 'Your personal, contact & course details.',
             ),
-            _Step(
+            const _Step(
               number: 2,
               title: 'Review Terms & Conditions',
               subtitle: 'Attendance, fees, conduct and refund policy.',
             ),
-            _Step(
+            const _Step(
               number: 3,
               title: 'Submit Application',
               subtitle: 'Admin reviews and approves your application.',
             ),
-            _Step(
+            const _Step(
               number: 4,
               title: 'Complete Payment',
               subtitle: 'Pay fees after your application is approved.',
+              isLast: true,
             ),
+          ],
 
             // ---- My Applications (signed-in users only) ----
             if (isSignedIn && myFormsAsync != null) ...[
@@ -204,7 +313,6 @@ class _MyApplicationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final deptColor = AppColors.departmentColor(form.department);
     final statusColor = switch (form.status) {
       'approved' => AppColors.active,
       'declined' => AppColors.error,
@@ -297,31 +405,46 @@ class _Step extends StatelessWidget {
     required this.number,
     required this.title,
     required this.subtitle,
+    this.isWide = false,
+    this.isLast = false,
   });
+
   final int number;
   final String title;
   final String subtitle;
+  final bool isWide;
+  final bool isLast;
 
   @override
   Widget build(BuildContext context) {
+    final circleSize = isWide ? 42.0 : 32.0;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: EdgeInsets.only(
+        bottom: isLast ? 0 : (isWide ? AppSpacing.md : AppSpacing.md),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 32,
-            height: 32,
+            width: circleSize,
+            height: circleSize,
             decoration: BoxDecoration(
-              color: AppColors.gold.withValues(alpha: 0.12),
+              color: AppColors.gold.withValues(alpha: 0.15),
               shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.gold.withValues(alpha: 0.3),
+              ),
             ),
             child: Center(
               child: Text(
                 '$number',
-                style: AppTypography.bodyMedium.copyWith(
+                style: (isWide
+                        ? AppTypography.titleLarge
+                        : AppTypography.bodyMedium)
+                    .copyWith(
                   color: AppColors.gold,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ),
@@ -333,11 +456,21 @@ class _Step extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: AppTypography.bodyMedium.copyWith(
+                  style: (isWide
+                          ? AppTypography.titleLarge
+                          : AppTypography.bodyMedium)
+                      .copyWith(
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                Text(subtitle, style: AppTypography.bodySmall),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: isWide
+                      ? AppTypography.bodyMedium
+                          .copyWith(color: AppColors.textSecondary)
+                      : AppTypography.bodySmall,
+                ),
               ],
             ),
           ),
