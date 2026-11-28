@@ -352,6 +352,27 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
                   StudentFieldSection.course,
                 },
                 imagePickerController: _photoController,
+                actionButton: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.gold,
+                      foregroundColor: AppColors.navy,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                    ),
+                    onPressed: _proceed,
+                    child: const Text(
+                      'Continue to Terms & Conditions',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
               ),
 
               if (!isWide) ...[
@@ -409,19 +430,6 @@ class _AdmissionFormScreenState extends ConsumerState<AdmissionFormScreen> {
                 ),
               ],
 
-              const SizedBox(height: AppSpacing.xxl),
-              Center(
-                child: SizedBox(
-                  width: isWide ? 460 : double.infinity,
-                  child: FilledButton(
-                    onPressed: _proceed,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 14),
-                      child: Text('Continue to Terms & Conditions'),
-                    ),
-                  ),
-                ),
-              ),
               const SizedBox(height: AppSpacing.xxl),
             ],
           ),

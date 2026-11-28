@@ -40,6 +40,8 @@ class StudentFieldsForm extends StatelessWidget {
     this.onDropdownChanged,
     // ── Image picker (optional) ──
     this.imagePickerController,
+    // ── Optional action button (e.g. submit / continue) ──
+    this.actionButton,
   });
 
   /// One TextEditingController per free-text field key
@@ -59,8 +61,11 @@ class StudentFieldsForm extends StatelessWidget {
   final Set<StudentFieldSection> visibleSections;
   final void Function(String fieldKey, String newValue)? onDropdownChanged;
 
-  /// Profile Image  fields
+  /// Profile Image fields
   final ImagePickerController? imagePickerController;
+
+  /// Optional action button (e.g. submit / continue to terms)
+  final Widget? actionButton;
 
   bool _isLocked(String key) => !editable || lockedFields.contains(key);
   bool _isRequired(String key) => editable && requiredFields.contains(key);
@@ -112,36 +117,21 @@ class StudentFieldsForm extends StatelessWidget {
         if (hasIdentity && (hasContact || hasCourse || hasAdmin))
           const SizedBox(width: AppSpacing.lg),
 
-        // Column 2: Photo & Contact Card
+        // Column 2: Photo & Contact Card & Action Button
         if (hasContact || imagePickerController != null)
           Expanded(
             child: Column(
               children: [
                 if (imagePickerController != null) ...[
                   Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.divider),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.navy.withValues(alpha: 0.04),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: ImagePickerField(
-                        controller: imagePickerController!,
-                        label: 'Add Profile Photo',
-                        size: 150,
-                        shape: BoxShape.circle,
-                      ),
+                    child: ImagePickerField(
+                      controller: imagePickerController!,
+                      label: 'Profile Photo',
+                      size: 150,
+                      shape: BoxShape.circle,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.xl),
+                  const SizedBox(height: AppSpacing.lg),
                 ],
                 if (hasContact)
                   _buildCardContainer(
@@ -165,6 +155,10 @@ class StudentFieldsForm extends StatelessWidget {
                       _text(context, 'address', 'Address', maxLines: 2),
                     ],
                   ),
+                if (actionButton != null) ...[
+                  const SizedBox(height: AppSpacing.lg),
+                  actionButton!,
+                ],
               ],
             ),
           ),
@@ -417,6 +411,10 @@ class StudentFieldsForm extends StatelessWidget {
           dropdown(context, 'feeType', 'Fee Type', AppOptions.feeType),
           _text(context, 'religion', 'Religion (optional)'),
           _text(context, 'caste', 'Caste (optional)'),
+        ],
+        if (actionButton != null) ...[
+          const SizedBox(height: AppSpacing.lg),
+          actionButton!,
         ],
       ],
     );
