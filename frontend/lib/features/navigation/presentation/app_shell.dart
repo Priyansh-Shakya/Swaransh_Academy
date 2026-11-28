@@ -97,7 +97,7 @@ class _DesktopSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 270,
+      width: 405, // 1.5x thicker than original 270
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(
@@ -107,41 +107,42 @@ class _DesktopSidebar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header / Brand (Logo above, centered, bigger)
+          // Header / Brand (Logo & title doubled in size)
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
+            padding: const EdgeInsets.fromLTRB(24, 40, 24, 30),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Center(
                   child: Image.asset(
                     'assets/app_logo.png',
-                    width: 110,
-                    height: 110,
+                    width: 200, // 2x original 110 (scaled for 405 container)
+                    height: 200,
                     errorBuilder: (_, __, ___) => const Icon(
                       Icons.music_note,
                       color: AppColors.gold,
-                      size: 64,
+                      size: 120,
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 18),
                 Text(
                   'Swaransh Academy',
                   style: AppTypography.titleLarge.copyWith(
                     fontWeight: FontWeight.w800,
                     color: AppColors.navy,
-                    fontSize: 16,
+                    fontSize: 24, // enlarged
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   'of Music and Arts',
                   style: AppTypography.caption.copyWith(
                     color: AppColors.textSecondary,
                     fontWeight: FontWeight.w600,
-                    letterSpacing: 0.3,
+                    letterSpacing: 0.5,
+                    fontSize: 15, // enlarged
                   ),
                   textAlign: TextAlign.center,
                 ),
